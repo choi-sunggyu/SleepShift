@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">SleepShift</string>
+    <string name="notif_title">취침 시간 리마인더</string>
+    <string name="notif_text">오늘도 목표에 15분 가까워져요. 준비해볼까요?</string>
+</resources>

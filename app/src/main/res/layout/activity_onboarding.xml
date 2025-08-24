@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <!-- 왜 사용하나요? -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="왜 이 어플을 사용하시나요?"
+            android:textStyle="bold"
+            android:textSize="18sp" />
+
+        <RadioGroup
+            android:id="@+id/rgReason"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <RadioButton
+                android:id="@+id/rbReason1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="스스로 억제할 수 없어서" />
+            <RadioButton
+                android:id="@+id/rbReason2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="나이트 루틴을 만들어보고 싶어서" />
+            <RadioButton
+                android:id="@+id/rbReason3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="건강하게 살고 싶어서" />
+        </RadioGroup>
+
+        <!-- 간단 행동 입력 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="자기 전에 뭐하시나요? (간단히)" />
+        <EditText
+            android:id="@+id/etBeforeBed"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="예: 유튜브 1시간, SNS 30분" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="휴대폰 이외엔 몇시에 잠드나요?" />
+        <EditText
+            android:id="@+id/etSleepTime"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="예: 01:30" />
+
+        <Button
+            android:id="@+id/btnNext"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="다음" />
+    </LinearLayout>
+</ScrollView>

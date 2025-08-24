@@ -1,5 +1,7 @@
 <resources>
-    <string name="app_name">SleepShift</string>
-    <string name="notif_title">취침 시간 리마인더</string>
-    <string name="notif_text">오늘도 목표에 15분 가까워져요. 준비해볼까요?</string>
+    <string name="channel_name">Bedtime Reminder</string>
+    <string name="app_name">Sleep Shift</string>
+    <string name="channel_desc">Reminds you to go to bed earlier by 30 minutes each day.</string>
+    <string name="done">완료</string>
+    <string name="skip">건너뛰기</string>
 </resources>

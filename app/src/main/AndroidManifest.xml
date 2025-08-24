@@ -4,13 +4,16 @@
 
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- 정확 알람 & 재부팅 복구 -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
+        android:label="SleepShipt"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.SleepShift">
@@ -25,8 +28,29 @@
         </activity>
 
         <receiver
-            android:name=".notif.BedtimeAlarmReceiver"
+            android:name=".alarm.AlarmReceiver"
             android:exported="false" />
+
+        <!-- 알림 액션: 완료/건너뛰기 -->
+        <receiver
+            android:name=".alarm.ActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.example.sleepshift.ACTION_DONE" />
+                <action android:name="com.example.sleepshift.ACTION_SKIP" />
+            </intent-filter>
+        </receiver>
+
+        <!-- 재부팅 시 알람 재설정 -->
+        <receiver
+            android:name=".alarm.BootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

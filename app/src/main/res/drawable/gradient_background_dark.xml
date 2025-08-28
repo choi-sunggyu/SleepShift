@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Tailwind slate-900 ~ gray-900 느낌 -->
     <gradient
-        android:startColor="#F8FAFC"
-        android:endColor="#E2E8F0"
+        android:startColor="#0B1220"
+        android:endColor="#111827"
         android:angle="135"/>
 </shape>

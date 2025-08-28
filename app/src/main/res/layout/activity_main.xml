@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
-    android:background="@drawable/gradient_background"
+    android:background="@drawable/gradient_background_dark"
     tools:context=".MainActivity">
 
     <LinearLayout
@@ -15,7 +15,7 @@
         android:layout_height="wrap_content"
         android:padding="24dp">
 
-        <!-- 헤더 섹션 -->
+        <!-- 헤더 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -28,7 +28,7 @@
                 android:layout_height="80dp"
                 android:src="@drawable/ic_sleep_moon"
                 android:layout_marginBottom="16dp"
-                app:tint="#6366F1" />
+                android:tint="#A78BFA" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -36,7 +36,7 @@
                 android:text="수면 관리"
                 android:textSize="28sp"
                 android:textStyle="bold"
-                android:textColor="#1F2937"
+                android:textColor="#E5E7EB"
                 android:layout_marginBottom="8dp" />
 
             <TextView
@@ -44,7 +44,7 @@
                 android:layout_height="wrap_content"
                 android:text="건강한 수면 습관을 만들어보세요"
                 android:textSize="16sp"
-                android:textColor="#6B7280"
+                android:textColor="#9CA3AF"
                 android:gravity="center" />
         </LinearLayout>
 
@@ -54,8 +54,8 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="20dp"
             app:cardCornerRadius="16dp"
-            app:cardElevation="4dp"
-            app:cardBackgroundColor="#FFFFFF">
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="#1F2937">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -74,8 +74,8 @@
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:src="@drawable/ic_bedtime"
-                        android:layout_marginEnd="12dp"
-                        app:tint="#6366F1" />
+                        android:tint="#A78BFA"
+                        android:layout_marginEnd="12dp" />
 
                     <TextView
                         android:layout_width="0dp"
@@ -84,7 +84,7 @@
                         android:text="현재 취침 시간"
                         android:textSize="18sp"
                         android:textStyle="bold"
-                        android:textColor="#1F2937" />
+                        android:textColor="#E5E7EB" />
                 </LinearLayout>
 
                 <Button
@@ -94,7 +94,7 @@
                     android:text="시간 선택 (예: 01:30)"
                     android:textSize="16sp"
                     android:background="@drawable/button_outline"
-                    android:textColor="#6366F1"
+                    android:textColor="#A78BFA"
                     android:elevation="0dp"
                     app:backgroundTint="@null" />
             </LinearLayout>
@@ -106,8 +106,8 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="20dp"
             app:cardCornerRadius="16dp"
-            app:cardElevation="4dp"
-            app:cardBackgroundColor="#FFFFFF">
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="#1F2937">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -126,8 +126,8 @@
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:src="@drawable/ic_alarm"
-                        android:layout_marginEnd="12dp"
-                        app:tint="#F59E0B" />
+                        android:tint="#FBBF24"
+                        android:layout_marginEnd="12dp" />
 
                     <TextView
                         android:layout_width="0dp"
@@ -136,7 +136,7 @@
                         android:text="목표 기상 시간"
                         android:textSize="18sp"
                         android:textStyle="bold"
-                        android:textColor="#1F2937" />
+                        android:textColor="#E5E7EB" />
                 </LinearLayout>
 
                 <Button
@@ -146,7 +146,7 @@
                     android:text="시간 선택 (예: 07:00)"
                     android:textSize="16sp"
                     android:background="@drawable/button_outline_orange"
-                    android:textColor="#F59E0B"
+                    android:textColor="#FBBF24"
                     android:elevation="0dp"
                     app:backgroundTint="@null" />
             </LinearLayout>
@@ -158,8 +158,8 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="20dp"
             app:cardCornerRadius="16dp"
-            app:cardElevation="4dp"
-            app:cardBackgroundColor="#FFFFFF">
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="#1F2937">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -178,8 +178,8 @@
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:src="@drawable/ic_timer"
-                        android:layout_marginEnd="12dp"
-                        app:tint="#10B981" />
+                        android:tint="#34D399"
+                        android:layout_marginEnd="12dp" />
 
                     <TextView
                         android:layout_width="0dp"
@@ -188,7 +188,7 @@
                         android:text="목표 수면 시간"
                         android:textSize="18sp"
                         android:textStyle="bold"
-                        android:textColor="#1F2937" />
+                        android:textColor="#E5E7EB" />
                 </LinearLayout>
 
                 <Button
@@ -198,7 +198,7 @@
                     android:text="시간 선택 (예: 07:30)"
                     android:textSize="16sp"
                     android:background="@drawable/button_outline_green"
-                    android:textColor="#10B981"
+                    android:textColor="#34D399"
                     android:elevation="0dp"
                     app:backgroundTint="@null" />
             </LinearLayout>
@@ -210,8 +210,8 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="24dp"
             app:cardCornerRadius="16dp"
-            app:cardElevation="4dp"
-            app:cardBackgroundColor="#EEF2FF">
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="#111827">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -225,7 +225,7 @@
                     android:layout_height="wrap_content"
                     android:text="계산된 목표 취침 시간"
                     android:textSize="16sp"
-                    android:textColor="#6B7280"
+                    android:textColor="#9CA3AF"
                     android:layout_marginBottom="8dp" />
 
                 <TextView
@@ -235,11 +235,11 @@
                     android:text="--:--"
                     android:textSize="32sp"
                     android:textStyle="bold"
-                    android:textColor="#6366F1" />
+                    android:textColor="#A78BFA" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
-        <!-- 알람 시작 버튼 -->
+        <!-- 30분씩 당기는 알람 시작 -->
         <Button
             android:id="@+id/btnStart"
             android:layout_width="match_parent"
@@ -249,16 +249,28 @@
             android:textStyle="bold"
             android:textColor="#FFFFFF"
             android:background="@drawable/button_gradient"
-            android:layout_marginBottom="20dp"
+            android:layout_marginBottom="12dp"
             android:elevation="8dp" />
 
-        <!-- 다음 알람 정보 카드 -->
+        <!-- ✅ 지금 당장 수면 시작 버튼 -->
+        <Button
+            android:id="@+id/btnSleepNow"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="지금 바로 수면 시작"
+            android:textSize="16sp"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/button_gradient"
+            android:layout_marginBottom="20dp"
+            android:elevation="6dp" />
+
+        <!-- 다음 알람 정보 -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardCornerRadius="16dp"
-            app:cardElevation="4dp"
-            app:cardBackgroundColor="#F9FAFB">
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="#111827">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -271,8 +283,8 @@
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:src="@drawable/ic_notification"
-                    android:layout_marginEnd="16dp"
-                    app:tint="#6B7280" />
+                    android:tint="#9CA3AF"
+                    android:layout_marginEnd="16dp" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -285,7 +297,7 @@
                         android:layout_height="wrap_content"
                         android:text="다음 알람"
                         android:textSize="14sp"
-                        android:textColor="#6B7280"
+                        android:textColor="#9CA3AF"
                         android:layout_marginBottom="4dp" />
 
                     <TextView
@@ -295,7 +307,7 @@
                         android:text="설정되지 않음"
                         android:textSize="16sp"
                         android:textStyle="bold"
-                        android:textColor="#1F2937" />
+                        android:textColor="#E5E7EB" />
                 </LinearLayout>
             </LinearLayout>
         </androidx.cardview.widget.CardView>

@@ -9,13 +9,14 @@ import java.time.format.DateTimeFormatter
 object TimeUtils {
     private val HHMM: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
-    fun parseHHmm(s: String) = LocalTime.parse(s, HHMM)
-    fun hhmm(h: Int, m: Int) = LocalTime.of(h, m).format(HHMM)
-    fun minutesToHHmm(min: Int) = String.format("%02d:%02d", min / 60, min % 60)
+    fun hhmm(h: Int, m: Int): String = LocalTime.of(h, m).format(HHMM)
+    fun parseHHmm(s: String): LocalTime = LocalTime.parse(s, HHMM)
+    fun minutesToHHmm(min: Int): String = String.format("%02d:%02d", min / 60, min % 60)
 
     fun computeTargetBedtime(wakeHHmm: String, sleepMin: Int): String {
         val wake = parseHHmm(wakeHHmm)
-        return wake.minusMinutes(sleepMin.toLong()).format(HHMM)
+        val target = wake.minusMinutes(sleepMin.toLong())
+        return target.format(HHMM)
     }
 
     fun nextOccurrence(time: LocalTime, now: ZonedDateTime = ZonedDateTime.now()): ZonedDateTime {

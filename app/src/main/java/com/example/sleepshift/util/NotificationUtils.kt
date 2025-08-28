@@ -12,11 +12,7 @@ object NotificationUtils {
     fun ensureChannel(ctx: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            val ch = NotificationChannel(
-                CHANNEL_ID,
-                ctx.getString(R.string.channel_name),
-                NotificationManager.IMPORTANCE_HIGH
-            )
+            val ch = NotificationChannel(CHANNEL_ID, ctx.getString(R.string.channel_name), NotificationManager.IMPORTANCE_HIGH)
             ch.description = ctx.getString(R.string.channel_desc)
             nm.createNotificationChannel(ch)
         }

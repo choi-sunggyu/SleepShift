@@ -14,20 +14,31 @@ import kotlinx.coroutines.runBlocking
 
 object AlarmScheduler {
 
+    private const val REQ_PRE = 1101
+    private const val REQ_SLEEP = 1102
+    private const val REQ_GRACE = 1103
+
     fun scheduleNextBedtimeAlarm(ctx: Context) {
         val ds = DataStoreManager(ctx)
         runBlocking {
             val progressS = ds.progressBedtime.first() ?: return@runBlocking
-            val nextTime = TimeUtils.nextOccurrence(TimeUtils.parseHHmm(progressS)).toInstant().toEpochMilli()
+            val progress = TimeUtils.parseHHmm(progressS)
+            val sleepZdt = TimeUtils.nextOccurrence(progress)
+            val preZdt = sleepZdt.minusMinutes(30)
+            val graceZdt = sleepZdt.plusMinutes(5)
 
             val am = ctx.getSystemService<AlarmManager>() ?: return@runBlocking
-            val op = PendingIntent.getBroadcast(
-                ctx, 1001, Intent(ctx, AlarmReceiver::class.java),
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
 
-            scheduleExactOrFallback(ctx, am, nextTime, op)
-            ds.setNextAlarmEpoch(nextTime)
+            am.setExactOrFallback(ctx, preZdt.toInstant().toEpochMilli(),
+                broadcast(ctx, REQ_PRE, AlarmReceiver::class.java, "PRESLEEP"))
+            am.setExactOrFallback(ctx, sleepZdt.toInstant().toEpochMilli(),
+                broadcast(ctx, REQ_SLEEP, AlarmReceiver::class.java, "SLEEP"))
+            am.setExactOrFallback(ctx, graceZdt.toInstant().toEpochMilli(),
+                broadcast(ctx, REQ_GRACE, GraceReceiver::class.java, null))
+
+            ds.setNextAlarmEpoch(sleepZdt.toInstant().toEpochMilli())
+            ds.setSleepStarted(false)
+            ds.setSleepStartedAt(null)
         }
     }
 
@@ -35,49 +46,57 @@ object AlarmScheduler {
         val ds = DataStoreManager(ctx)
         runBlocking {
             val progressS = ds.progressBedtime.first() ?: return@runBlocking
-            val next = TimeUtils.nextOccurrence(TimeUtils.parseHHmm(progressS)).plusDays(1).toInstant().toEpochMilli()
+            val sleepZdt = TimeUtils.nextOccurrence(TimeUtils.parseHHmm(progressS)).plusDays(1)
+            val preZdt = sleepZdt.minusMinutes(30)
+            val graceZdt = sleepZdt.plusMinutes(5)
 
             val am = ctx.getSystemService<AlarmManager>() ?: return@runBlocking
-            val op = PendingIntent.getBroadcast(
-                ctx, 1001, Intent(ctx, AlarmReceiver::class.java),
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
 
-            scheduleExactOrFallback(ctx, am, next, op)
-            ds.setNextAlarmEpoch(next)
+            am.setExactOrFallback(ctx, preZdt.toInstant().toEpochMilli(),
+                broadcast(ctx, REQ_PRE, AlarmReceiver::class.java, "PRESLEEP"))
+            am.setExactOrFallback(ctx, sleepZdt.toInstant().toEpochMilli(),
+                broadcast(ctx, REQ_SLEEP, AlarmReceiver::class.java, "SLEEP"))
+            am.setExactOrFallback(ctx, graceZdt.toInstant().toEpochMilli(),
+                broadcast(ctx, REQ_GRACE, GraceReceiver::class.java, null))
+
+            ds.setNextAlarmEpoch(sleepZdt.toInstant().toEpochMilli())
+            ds.setSleepStarted(false)
+            ds.setSleepStartedAt(null)
         }
     }
 
-    private fun scheduleExactOrFallback(
+    private fun broadcast(ctx: Context, req: Int, clazz: Class<*>, type: String?): PendingIntent {
+        val i = Intent(ctx, clazz).apply { if (type != null) putExtra("type", type) }
+        return PendingIntent.getBroadcast(ctx, req, i, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+    }
+
+    private fun AlarmManager.setExactOrFallback(
         ctx: Context,
-        am: AlarmManager,
         triggerAtMillis: Long,
         operation: PendingIntent
     ) {
         try {
-            // Android 12+는 정확 알람 권한이 있는지 점검
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                if (am.canScheduleExactAlarms()) {
-                    am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, operation)
-                    return
+                if (this.canScheduleExactAlarms()) {
+                    this.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, operation)
+                } else {
+                    val contentPi = PendingIntent.getActivity(
+                        ctx, 0,
+                        Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+                    this.setAlarmClock(AlarmManager.AlarmClockInfo(triggerAtMillis, contentPi), operation)
                 }
-                // 권한이 없다면 아래 fallback으로 진행
             } else {
-                // 31 미만은 그대로 가능
-                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, operation)
-                return
+                this.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, operation)
             }
         } catch (_: SecurityException) {
-            // 아래 fallback으로 진행
+            val contentPi = PendingIntent.getActivity(
+                ctx, 0,
+                Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            this.setAlarmClock(AlarmManager.AlarmClockInfo(triggerAtMillis, contentPi), operation)
         }
-
-        // ✅ Fallback: setAlarmClock (정확/허용됨, 사용자 가시성 필요)
-        val contentPi = PendingIntent.getActivity(
-            ctx, 0,
-            Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        val info = AlarmManager.AlarmClockInfo(triggerAtMillis, contentPi)
-        am.setAlarmClock(info, operation)
     }
 }

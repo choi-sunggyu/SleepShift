@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:background="@drawable/gradient_background_dark"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+
+    <LinearLayout android:orientation="vertical" android:padding="20dp"
+        android:layout_width="match_parent" android:layout_height="wrap_content">
+
+        <TextView android:text="홈" android:textSize="24sp" android:textColor="#E5E7EB"
+            android:layout_width="wrap_content" android:layout_height="wrap_content" />
+
+        <LinearLayout android:orientation="vertical" android:background="#111827"
+            android:padding="16dp" android:layout_marginTop="12dp"
+            android:layout_width="match_parent" android:layout_height="wrap_content">
+
+            <TextView android:text="오늘의 추천 취침 시간" android:textColor="#9CA3AF"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+            <TextView android:id="@+id/tvScheduled" android:text="--:--"
+                android:textSize="40sp" android:textColor="#A78BFA" android:textStyle="bold"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+            <TextView android:id="@+id/tvCountdown" android:text="--:--:--"
+                android:textColor="#9CA3AF" android:layout_marginTop="4dp"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        </LinearLayout>
+
+        <LinearLayout android:orientation="vertical" android:background="#111827"
+            android:padding="16dp" android:layout_marginTop="12dp"
+            android:layout_width="match_parent" android:layout_height="wrap_content">
+
+            <TextView android:text="목표 진행률" android:textColor="#9CA3AF"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+            <ProgressBar
+                style="?android:attr/progressBarStyleHorizontal"
+                android:id="@+id/progressBar"
+                android:progress="0"
+                android:max="100"
+                android:progressTint="#A78BFA"
+                android:backgroundTint="#1f2937"
+                android:layout_width="match_parent" android:layout_height="10dp"/>
+            <TextView android:id="@+id/tvPercent" android:text="0%"
+                android:textColor="#9CA3AF" android:layout_marginTop="6dp"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+        </LinearLayout>
+
+        <LinearLayout android:orientation="horizontal"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="12dp">
+
+            <LinearLayout android:orientation="vertical" android:layout_weight="1"
+                android:background="#0f1626" android:padding="12dp"
+                android:layout_width="0dp" android:layout_height="wrap_content">
+                <TextView android:text="Success Streak" android:textColor="#9CA3AF"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                <TextView android:id="@+id/tvStreak" android:text="0 days"
+                    android:textColor="#E5E7EB" android:textStyle="bold"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+            </LinearLayout>
+
+            <Space android:layout_width="8dp" android:layout_height="8dp"/>
+
+            <LinearLayout android:orientation="vertical" android:layout_weight="1"
+                android:background="#0f1626" android:padding="12dp"
+                android:layout_width="0dp" android:layout_height="wrap_content">
+                <TextView android:text="Daily Shift" android:textColor="#9CA3AF"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                <TextView android:id="@+id/tvShift" android:text="30 min"
+                    android:textColor="#E5E7EB" android:textStyle="bold"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+            </LinearLayout>
+
+            <Space android:layout_width="8dp" android:layout_height="8dp"/>
+
+            <LinearLayout android:orientation="vertical" android:layout_weight="1"
+                android:background="#0f1626" android:padding="12dp"
+                android:layout_width="0dp" android:layout_height="wrap_content">
+                <TextView android:text="Target Bedtime" android:textColor="#9CA3AF"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                <TextView android:id="@+id/tvTarget" android:text="--:--"
+                    android:textColor="#E5E7EB" android:textStyle="bold"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout android:orientation="horizontal"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="12dp">
+
+            <Button android:id="@+id/btnPlus30" android:text="30분 더 활동하기"
+                android:textColor="#FFFFFF" android:background="@drawable/button_gradient"
+                android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"/>
+
+            <Space android:layout_width="8dp" android:layout_height="8dp"/>
+
+            <Button android:id="@+id/btnEarly" android:text="일찍 자기"
+                android:textColor="#FFFFFF" android:background="@drawable/button_gradient"
+                android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"/>
+        </LinearLayout>
+
+        <Button android:id="@+id/btnReset" android:text="Reset My Journey"
+            android:textColor="#E5E7EB" android:background="@android:color/transparent"
+            android:layout_marginTop="12dp"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+    </LinearLayout>
+</ScrollView>

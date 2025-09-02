@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:background="@drawable/gradient_background_dark"
+    android:orientation="vertical" android:padding="20dp"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+
+    <TextView android:text="취침 전 체크인" android:textSize="24sp" android:textColor="#E5E7EB"
+        android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+
+    <TextView android:text="오늘의 감정" android:textColor="#9CA3AF"
+        android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"/>
+    <Spinner android:id="@+id/spEmotion"
+        android:layout_width="match_parent" android:layout_height="wrap_content"/>
+
+    <CheckBox android:id="@+id/cbGoal" android:text="오늘의 목표를 달성했어요"
+        android:textColor="#E5E7EB" android:layout_marginTop="12dp"
+        android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+
+    <Button android:id="@+id/btnGoSleep" android:text="수면 모드로"
+        android:textColor="#FFFFFF" android:background="@drawable/button_gradient"
+        android:layout_marginTop="16dp"
+        android:layout_width="match_parent" android:layout_height="wrap_content"/>
+</LinearLayout>

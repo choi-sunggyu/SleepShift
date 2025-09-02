@@ -27,6 +27,13 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".feature.InitSurveyActivity" />
+        <activity android:name=".feature.HomeActivity" />
+        <activity android:name=".feature.CheckinActivity" />
+        <activity android:name=".feature.SleepModeActivity" />
+        <activity android:name=".feature.MorningGateActivity" />
+        <activity android:name=".feature.ReportActivity" />
+
         <receiver
             android:name=".alarm.AlarmReceiver"
             android:exported="false" />

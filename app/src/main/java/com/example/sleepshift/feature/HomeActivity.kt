@@ -28,6 +28,7 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var tvTarget: TextView
     private lateinit var btnPlus30: Button
     private lateinit var btnEarly: Button
+    private lateinit var btnReport: Button
     private lateinit var btnReset: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,6 +44,7 @@ class HomeActivity : AppCompatActivity() {
         tvTarget = findViewById(R.id.tvTarget)
         btnPlus30 = findViewById(R.id.btnPlus30)
         btnEarly = findViewById(R.id.btnEarly)
+        btnReport = findViewById(R.id.btnReport)
         btnReset = findViewById(R.id.btnReset)
 
         lifecycleScope.launch {
@@ -84,6 +86,9 @@ class HomeActivity : AppCompatActivity() {
             }
             btnEarly.setOnClickListener {
                 startActivity(android.content.Intent(this@HomeActivity, CheckinActivity::class.java))
+            }
+            btnReport.setOnClickListener {
+                startActivity(android.content.Intent(this@HomeActivity, ReportActivity::class.java))
             }
             btnReset.setOnClickListener {
                 // 초기화: settings/progress/기록 다 지움

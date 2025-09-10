@@ -26,7 +26,7 @@ class SleepModeActivity : AppCompatActivity() {
             val today = KstTime.todayYmd()
 
             // 오늘 기록 생성 success=false
-            repo.setDailyRecord(today, DailyRecord(lockStartTime = System.currentTimeMillis(), success = false))
+            repo.saveDailyRecord(today, DailyRecord(lockStartTime = System.currentTimeMillis(), success = false))
 
             val wakeEpoch = KstTime.nextOccurrenceEpoch(settings.goalWakeTime)
 

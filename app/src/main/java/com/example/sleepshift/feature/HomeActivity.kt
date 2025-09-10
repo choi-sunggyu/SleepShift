@@ -59,7 +59,7 @@ class HomeActivity : AppCompatActivity() {
             // 날짜 바뀌었으면 어제 기록 토대로 업데이트
             if (progress.lastProgressUpdate != KstTime.todayYmd()) {
                 progress = updateProgressFromYesterday(progress, settings, repo)
-                repo.setProgress(progress)
+                repo.saveProgress(progress)
             }
 
             // UI 바인딩
@@ -79,7 +79,7 @@ class HomeActivity : AppCompatActivity() {
                     val p = repo.getProgress() ?: return@launch
                     val newSched = KstTime.addMinutes(p.scheduledBedtime, 30)
                     val updated = p.copy(scheduledBedtime = newSched, lastProgressUpdate = KstTime.todayYmd())
-                    repo.setProgress(updated)
+                    repo.saveProgress(updated)
                     tvSched.text = updated.scheduledBedtime
                     preShown = false // 다시 30분 전 모달 허용
                 }
@@ -96,7 +96,7 @@ class HomeActivity : AppCompatActivity() {
                 // 실제로는 DataStore라서 clear가 복잡; 간단히 localStorage 유사 효과 위해 앱 데이터 재설정 유도
                 // 여기서는 settings만 제거 → 다시 Init으로
                 lifecycleScope.launch {
-                    repo.setSettings(
+                    repo.saveSettings(
                         SleepSettings(
                             avgBedTime="", avgWakeTime="", goalWakeTime="",
                             goalSleepDuration="", targetBedtime="",

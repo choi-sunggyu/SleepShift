@@ -28,6 +28,13 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".feature.AlarmActivity"
+            android:exported="false"
+            android:showOnLockScreen="true"
+            android:turnScreenOn="true"
+            android:showWhenLocked="true" />
+
         <!-- Sleepy 플로우만 사용 -->
         <activity android:name=".feature.InitSurveyActivity" />
         <activity android:name=".feature.HomeActivity" />

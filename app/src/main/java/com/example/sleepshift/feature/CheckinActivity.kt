@@ -28,7 +28,7 @@ class CheckinActivity : AppCompatActivity() {
         btnGo.setOnClickListener {
             lifecycleScope.launch {
                 val repo = SleepRepository(this@CheckinActivity)
-                repo.setCheckinRecord(
+                repo.saveCheckinRecord(
                     KstTime.todayYmd(),
                     CheckinRecord(
                         emotion = spEmotion.selectedItem.toString(),

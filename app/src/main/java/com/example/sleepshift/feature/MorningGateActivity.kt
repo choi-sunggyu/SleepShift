@@ -21,7 +21,7 @@ class MorningGateActivity : AppCompatActivity() {
             val today = KstTime.todayYmd()
             val rec = repo.getDailyRecord(today)
             if (rec != null && !rec.success) {
-                repo.setDailyRecord(today, rec.copy(success = true))
+                repo.saveDailyRecord(today, rec.copy(success = true))
             }
         }
 
@@ -30,7 +30,7 @@ class MorningGateActivity : AppCompatActivity() {
         btnNext.setOnClickListener {
             lifecycleScope.launch {
                 val repo = SleepRepository(this@MorningGateActivity)
-                repo.setMorningRoutine(MorningRoutine(date = KstTime.todayYmd(), key_task = etTask.text.toString()))
+                repo.saveMorningRoutine(MorningRoutine(date = KstTime.todayYmd(), key_task = etTask.text.toString()))
                 startActivity(android.content.Intent(this@MorningGateActivity, ReportActivity::class.java))
                 finish()
             }

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 기본 간격 -->
+    <dimen name="margin_small">8dp</dimen>
+    <dimen name="margin_medium">16dp</dimen>
+    <dimen name="margin_large">24dp</dimen>
+
+    <!-- 패딩 -->
+    <dimen name="padding_small">8dp</dimen>
+    <dimen name="padding_medium">16dp</dimen>
+    <dimen name="padding_large">24dp</dimen>
+
+    <!-- 카드 관련 -->
+    <dimen name="card_corner_radius">16dp</dimen>
+    <dimen name="card_elevation">2dp</dimen>
+
+    <!-- 버튼 크기 -->
+    <dimen name="button_height">56dp</dimen>
+    <dimen name="icon_size">24dp</dimen>
+
+    <!-- 프로그레스 점 크기 -->
+    <dimen name="progress_dot_size">8dp</dimen>
+</resources>

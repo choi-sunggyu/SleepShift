@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 메인 타이틀 스타일 -->
+    <style name="MainTitleStyle">
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textSize">28sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <!-- 서브타이틀 스타일 -->
+    <style name="SubtitleStyle">
+        <item name="android:textColor">@color/text_secondary</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <!-- 하트 숫자 스타일 -->
+    <style name="HeartNumberStyle">
+        <item name="android:textColor">@color/text_white</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <!-- 시간 표시 스타일 -->
+    <style name="TimeDisplayStyle">
+        <item name="android:textColor">@color/text_white</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <!-- 시간 라벨 스타일 -->
+    <style name="TimeLabelStyle">
+        <item name="android:textColor">@color/text_white</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <!-- 버튼 텍스트 스타일 -->
+    <style name="ButtonTextStyle">
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <!-- 카드 스타일 -->
+    <style name="MainCardStyle">
+        <item name="cardBackgroundColor">@color/background_secondary</item>
+        <item name="cardCornerRadius">20dp</item>
+        <item name="cardElevation">0dp</item>
+    </style>
+
+    <!-- 버튼 카드 스타일 -->
+    <style name="ButtonCardStyle">
+        <item name="cardBackgroundColor">@color/background_primary</item>
+        <item name="cardCornerRadius">16dp</item>
+        <item name="cardElevation">2dp</item>
+    </style>
+</resources>

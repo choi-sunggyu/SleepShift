@@ -1,167 +1,252 @@
 package com.example.sleepshift.feature
 
 import android.os.Bundle
-import android.widget.TextView
+import android.view.Gravity
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
+import androidx.core.content.ContextCompat
 import com.example.sleepshift.R
-import com.example.sleepshift.data.SleepRepository
-import com.example.sleepshift.util.KstTime
-import kotlinx.coroutines.launch
-import java.time.*
-import java.time.format.DateTimeFormatter
-import kotlin.math.max
+import java.text.SimpleDateFormat
+import java.util.*
 
 class ReportActivity : AppCompatActivity() {
+
+    private lateinit var tvMonthYear: TextView
+    private lateinit var calendarGrid: GridLayout
+    private lateinit var btnHome: ImageView
+    private lateinit var btnGoToBed: LinearLayout
+    private lateinit var btnSettings: ImageView
+
+    private val calendar = Calendar.getInstance()
+    private val today = Calendar.getInstance()
+
+    // 수면 데이터 (예시용 - 실제로는 데이터베이스에서 가져와야 함)
+    private val sleepData = mutableMapOf<String, SleepInfo>()
+
+    data class SleepInfo(
+        val bedTime: String,
+        val wakeTime: String,
+        val quality: SleepQuality
+    )
+
+    enum class SleepQuality {
+        GOOD, AVERAGE, POOR
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_report)
 
-        val tv = findViewById<TextView>(R.id.tvReport)
+        initViews()
+        setupClickListeners()
+        initSampleData()
+        updateCalendar()
+    }
 
-        lifecycleScope.launch {
-            val repo = SleepRepository(this@ReportActivity)
-            val settings = repo.getSettings()
-            val y = KstTime.yesterdayYmd()
-            val today = KstTime.todayYmd()
+    private fun initViews() {
+        tvMonthYear = findViewById(R.id.tvMonthYear)
+        calendarGrid = findViewById(R.id.calendarGrid)
+        btnHome = findViewById(R.id.btnHome)
+        btnGoToBed = findViewById(R.id.btnGoToBed)
+        btnSettings = findViewById(R.id.btnSettings)
+    }
 
-            val yDaily = repo.getDailyRecord(y)
-            val yCheck = repo.getCheckinRecord(y)
-            val prog = repo.getProgress()
-            val morning = repo.getMorningRoutine()
+    private fun setupClickListeners() {
+        btnHome.setOnClickListener {
+            finish() // 메인 화면으로 돌아가기
+        }
 
-            val actualDaily = if (yDaily != null && settings != null) {
-                val durSec = estimateSleepSecondsFrom(yDaily.lockStartTime, settings.goalWakeTime)
-                formatHM(durSec)
-            } else "-"
+        btnGoToBed.setOnClickListener {
+            // 자러가기 기능
+            // TODO: 취침 모드 구현
+        }
 
-            // ===== 월간 리포트(이번 달 1일 ~ 어제) =====
-            val monthly = buildMonthlyReport(repo, settings)
-
-            val report = buildString {
-                appendLine("■ 일간 리포트 (대상: $y)")
-                appendLine("기상 성공 여부: ${yDaily?.let { if (it.success) "성공" else "실패" } ?: "-"}")
-                appendLine("실제 수면 시간(대략): $actualDaily")
-                appendLine("어제 감정: ${yCheck?.emotion ?: "-"}")
-                appendLine("어제 목표 달성: ${yCheck?.let { if (it.goalAchieved) "예" else "아니오" } ?: "-"}")
-                appendLine("현재 연속 성공 일수: ${prog?.consecutiveSuccessDays ?: "-"}")
-                appendLine()
-                appendLine("■ 오늘($today)의 핵심 과업: ${if (morning?.date == today) morning.key_task else "-"}")
-                appendLine()
-                appendLine(monthly)
-            }
-            tv.text = report
+        btnSettings.setOnClickListener {
+            // 설정 화면으로 이동
+            // TODO: SettingsActivity 구현
         }
     }
 
-    // ---- 월간 리포트 구성 ----
-    private suspend fun buildMonthlyReport(
-        repo: SleepRepository,
-        settings: com.example.sleepshift.data.SleepSettings?
-    ): String {
-        val zone = ZoneId.of("Asia/Seoul")
-        val now = LocalDate.now(zone)
-        val monthStart = now.withDayOfMonth(1)
-        val monthEnd = now.minusDays(1) // 안정적으로 어제까지 집계
+    private fun initSampleData() {
+        // 샘플 수면 데이터 생성
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val cal = Calendar.getInstance()
 
-        if (monthEnd.isBefore(monthStart)) {
-            return "■ 월간 리포트 (${now.year}-${"%02d".format(now.monthValue)})\n집계할 데이터가 없습니다."
-        }
+        // 이번 달의 몇 일에 대한 샘플 데이터
+        for (i in 1..31) {
+            cal.set(Calendar.DAY_OF_MONTH, i)
+            val dateKey = sdf.format(cal.time)
 
-        var daysWithRecord = 0
-        var successDays = 0
-        var longestStreak = 0
-        var runningStreak = 0
-        var sumSec = 0L
-        var cntSec = 0
-
-        val emotionCounts = mutableMapOf<String, Int>()
-        var goalsAchievedCount = 0
-        var goalsCheckedCount = 0
-
-        val fmtYMD = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-
-        var d = monthStart
-        while (!d.isAfter(monthEnd)) {
-            val key = d.format(fmtYMD)
-
-            val rec = repo.getDailyRecord(key)
-            if (rec != null) {
-                daysWithRecord++
-                if (rec.success) {
-                    successDays++
-                    runningStreak++
-                    longestStreak = max(longestStreak, runningStreak)
-                } else {
-                    runningStreak = 0
-                }
-
-                if (settings != null) {
-                    val durSec = estimateSleepSecondsFrom(rec.lockStartTime, settings.goalWakeTime, d)
-                    if (durSec > 0) {
-                        sumSec += durSec
-                        cntSec++
-                    }
-                }
-            } else {
-                // 기록 없으면 연속 성공 끊김으로 간주하지 않음(선택사항)
+            when (i % 3) {
+                0 -> sleepData[dateKey] = SleepInfo("23:30", "07:30", SleepQuality.GOOD)
+                1 -> sleepData[dateKey] = SleepInfo("00:15", "08:00", SleepQuality.AVERAGE)
+                2 -> sleepData[dateKey] = SleepInfo("01:30", "09:00", SleepQuality.POOR)
             }
-
-            val check = repo.getCheckinRecord(key)
-            if (check != null) {
-                emotionCounts[check.emotion] = (emotionCounts[check.emotion] ?: 0) + 1
-                goalsCheckedCount++
-                if (check.goalAchieved) goalsAchievedCount++
-            }
-
-            d = d.plusDays(1)
-        }
-
-        val successRate =
-            if (daysWithRecord > 0) (successDays * 100.0 / daysWithRecord).let { String.format("%.1f", it) }
-            else "-"
-
-        val avgSleep =
-            if (cntSec > 0) formatHM(sumSec / cntSec) else "-"
-
-        val topEmotion = emotionCounts.entries.maxByOrNull { it.value }?.let { "${it.key} (${it.value})" } ?: "-"
-
-        val monthLabel = "${now.year}-${"%02d".format(now.monthValue)}"
-
-        return buildString {
-            appendLine("■ 월간 리포트 ($monthLabel)")
-            appendLine("집계 기간: ${monthStart.format(fmtYMD)} ~ ${monthEnd.format(fmtYMD)}")
-            appendLine("기록 일수: ${daysWithRecord}일")
-            appendLine("성공 일수: ${successDays}일")
-            appendLine("성공률: $successRate%")
-            appendLine("최대 연속 성공: ${if (longestStreak == 0) "-" else "${longestStreak}일"}")
-            appendLine("평균 수면 시간(대략): $avgSleep")
-            appendLine("가장 자주 선택된 감정: $topEmotion")
-            appendLine("목표 달성 체크: ${if (goalsCheckedCount == 0) "-" else "$goalsAchievedCount/$goalsCheckedCount"}")
         }
     }
 
-    /**
-     * lockStartTime(수면 모드 시작) 기준으로 '다음 발생하는 목표 기상 시각'까지의 대략적인 수면 시간을 초 단위로 반환.
-     * 기본적으로 lockStartTime이 속한 날짜를 기준으로 목표 기상시각을 계산.
-     */
-    private fun estimateSleepSecondsFrom(lockStartMillis: Long, goalWakeHHmm: String, startDate: LocalDate? = null): Long {
-        val zone = ZoneId.of("Asia/Seoul")
-        val startZdt = Instant.ofEpochMilli(lockStartMillis).atZone(zone)
-        val baseDate = startDate ?: startZdt.toLocalDate()
-        val goalTime = LocalTime.parse(goalWakeHHmm)
-        var wakeZdt = baseDate.atTime(goalTime).atZone(zone)
-        if (!wakeZdt.isAfter(startZdt)) {
-            wakeZdt = wakeZdt.plusDays(1)
+    private fun updateCalendar() {
+        // 월/년도 표시 업데이트
+        val monthFormat = SimpleDateFormat("yyyy년 M월", Locale.getDefault())
+        tvMonthYear.text = monthFormat.format(calendar.time)
+
+        // 달력 그리드 초기화
+        calendarGrid.removeAllViews()
+
+        // 이번 달의 첫 번째 날로 설정
+        val firstDayOfMonth = calendar.clone() as Calendar
+        firstDayOfMonth.set(Calendar.DAY_OF_MONTH, 1)
+
+        // 첫 번째 날의 요일 (일요일 = 1)
+        val firstDayOfWeek = firstDayOfMonth.get(Calendar.DAY_OF_WEEK) - 1
+
+        // 이번 달의 마지막 날
+        val lastDayOfMonth = firstDayOfMonth.getActualMaximum(Calendar.DAY_OF_MONTH)
+
+        // 빈 공간 추가 (첫 주의 앞쪽)
+        for (i in 0 until firstDayOfWeek) {
+            addEmptyDayView()
         }
-        val diff = (wakeZdt.toInstant().toEpochMilli() - lockStartMillis) / 1000
-        return if (diff > 0) diff else 0
+
+        // 날짜 추가
+        for (day in 1..lastDayOfMonth) {
+            addDayView(day)
+        }
     }
 
-    private fun formatHM(totalSec: Long): String {
-        val h = totalSec / 3600
-        val m = (totalSec % 3600) / 60
-        return "%02d:%02d".format(h, m)
+    private fun addEmptyDayView() {
+        val emptyView = android.view.View(this)
+        val layoutParams = GridLayout.LayoutParams()
+        layoutParams.width = 0
+        layoutParams.height = dpToPx(48)
+        layoutParams.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+        emptyView.layoutParams = layoutParams
+        calendarGrid.addView(emptyView)
+    }
+
+    private fun addDayView(day: Int) {
+        val dayContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            val layoutParams = GridLayout.LayoutParams()
+            layoutParams.width = 0
+            layoutParams.height = dpToPx(48)
+            layoutParams.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+            layoutParams.setMargins(dpToPx(2), dpToPx(2), dpToPx(2), dpToPx(2))
+            this.layoutParams = layoutParams
+
+            // 배경 설정
+            background = ContextCompat.getDrawable(this@ReportActivity, R.drawable.calendar_day_background)
+
+            // 클릭 가능하게 설정
+            isClickable = true
+            isFocusable = true
+            setOnClickListener {
+                onDayClicked(day)
+            }
+        }
+
+        // 날짜 텍스트
+        val dayText = TextView(this).apply {
+            text = day.toString()
+            textSize = 14f
+            gravity = Gravity.CENTER
+            setTextColor(ContextCompat.getColor(this@ReportActivity, R.color.text_primary))
+
+            // 오늘 날짜인지 확인
+            if (isToday(day)) {
+                background = ContextCompat.getDrawable(this@ReportActivity, R.drawable.calendar_day_today)
+                setTextColor(ContextCompat.getColor(this@ReportActivity, R.color.button_primary))
+            }
+        }
+
+        dayContainer.addView(dayText)
+
+        // 수면 데이터가 있으면 표시
+        val dateKey = getDateKey(day)
+        sleepData[dateKey]?.let { sleepInfo ->
+            addSleepIndicators(dayContainer, sleepInfo)
+        }
+
+        calendarGrid.addView(dayContainer)
+    }
+
+    private fun addSleepIndicators(container: LinearLayout, sleepInfo: SleepInfo) {
+        val indicatorContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            val layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            layoutParams.topMargin = dpToPx(2)
+            this.layoutParams = layoutParams
+        }
+
+        // 취침 시간 표시
+        val bedtimeIndicator = android.view.View(this).apply {
+            val layoutParams = LinearLayout.LayoutParams(dpToPx(6), dpToPx(6))
+            layoutParams.marginEnd = dpToPx(2)
+            this.layoutParams = layoutParams
+            background = ContextCompat.getDrawable(this@ReportActivity, R.drawable.sleep_indicator_blue)
+        }
+
+        // 기상 시간 표시
+        val waketimeIndicator = android.view.View(this).apply {
+            val layoutParams = LinearLayout.LayoutParams(dpToPx(6), dpToPx(6))
+            this.layoutParams = layoutParams
+            background = when (sleepInfo.quality) {
+                SleepQuality.GOOD -> ContextCompat.getDrawable(this@ReportActivity, R.drawable.sleep_indicator_green)
+                SleepQuality.AVERAGE -> ContextCompat.getDrawable(this@ReportActivity, R.drawable.sleep_indicator_orange)
+                SleepQuality.POOR -> ContextCompat.getDrawable(this@ReportActivity, R.drawable.sleep_indicator_orange)
+            }
+        }
+
+        indicatorContainer.addView(bedtimeIndicator)
+        indicatorContainer.addView(waketimeIndicator)
+        container.addView(indicatorContainer)
+    }
+
+    private fun onDayClicked(day: Int) {
+        val dateKey = getDateKey(day)
+        val sleepInfo = sleepData[dateKey]
+
+        if (sleepInfo != null) {
+            // 수면 데이터가 있으면 상세 정보 표시
+            showSleepDetail(day, sleepInfo)
+        } else {
+            // 수면 데이터가 없으면 기본 메시지
+            Toast.makeText(this, "${day}일에는 수면 데이터가 없습니다.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun showSleepDetail(day: Int, sleepInfo: SleepInfo) {
+        val message = "${day}일 수면 정보\n" +
+                "취침: ${sleepInfo.bedTime}\n" +
+                "기상: ${sleepInfo.wakeTime}\n" +
+                "수면 질: ${when(sleepInfo.quality) {
+                    SleepQuality.GOOD -> "좋음"
+                    SleepQuality.AVERAGE -> "보통"
+                    SleepQuality.POOR -> "나쁨"
+                }}"
+
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+    }
+
+    private fun isToday(day: Int): Boolean {
+        return today.get(Calendar.YEAR) == calendar.get(Calendar.YEAR) &&
+                today.get(Calendar.MONTH) == calendar.get(Calendar.MONTH) &&
+                today.get(Calendar.DAY_OF_MONTH) == day
+    }
+
+    private fun getDateKey(day: Int): String {
+        val dateCalendar = calendar.clone() as Calendar
+        dateCalendar.set(Calendar.DAY_OF_MONTH, day)
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        return sdf.format(dateCalendar.time)
+    }
+
+    private fun dpToPx(dp: Int): Int {
+        return (dp * resources.displayMetrics.density).toInt()
     }
 }

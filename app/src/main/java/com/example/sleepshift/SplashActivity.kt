@@ -6,8 +6,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.lifecycle.lifecycleScope
 import com.example.sleepshift.data.SleepRepository
-import com.example.sleepshift.feature.HomeActivity
 import com.example.sleepshift.feature.InitSurveyActivity
+import com.google.android.ads.mediationtestsuite.activities.HomeActivity
 import kotlinx.coroutines.launch
 
 class SplashActivity : AppCompatActivity() {

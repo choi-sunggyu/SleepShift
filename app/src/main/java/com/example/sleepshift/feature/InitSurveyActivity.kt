@@ -7,7 +7,6 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.sleepshift.R
-import com.example.sleepshift.data.SleepProgress
 import com.example.sleepshift.data.SleepRepository
 import com.example.sleepshift.data.SleepSettings
 import com.example.sleepshift.util.KstTime
@@ -15,10 +14,8 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.timepicker.MaterialTimePicker
 import com.google.android.material.timepicker.TimeFormat
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-import kotlin.math.max
 
 class InitSurveyActivity : AppCompatActivity() {
 

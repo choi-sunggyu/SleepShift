@@ -1,37 +1,329 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:background="@drawable/gradient_background_dark"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true">
+    android:background="#FFFFFF">
 
-    <LinearLayout
-        android:orientation="vertical"
-        android:padding="20dp"
+    <!-- 메인 컨텐츠 -->
+    <ScrollView
+        android:id="@+id/scrollView"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="match_parent"
+        android:layout_above="@+id/bottomSection"
+        android:layout_marginBottom="20dp">
 
-        <!-- 헤더 -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="일간 리포트"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            android:textColor="#E5E7EB"
-            android:layout_marginBottom="12dp" />
-
-        <!-- 리포트 본문 (ReportActivity가 텍스트를 채움) -->
-        <TextView
-            android:id="@+id/tvReport"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="#E5E7EB"
-            android:lineSpacingExtra="4dp"
-            android:textIsSelectable="true"
-            android:padding="16dp"
-            android:background="#111827"
-            android:fontFamily="monospace" />
+            android:orientation="vertical"
+            android:padding="24dp">
 
+            <!-- 상단 헤더 -->
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp">
+
+                <!-- Day 1 -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_alignParentStart="true">
+
+                    <TextView
+                        android:text="Day 1"
+                        android:textSize="28sp"
+                        android:textColor="#2D3748"
+                        android:fontFamily="sans-serif-medium"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+
+                    <TextView
+                        android:text="Dozee"
+                        android:textSize="14sp"
+                        android:textColor="#718096"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <!-- 우상단 아이콘들 -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <!-- 하트 아이콘과 숫자 -->
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:background="@drawable/heart_background"
+                        android:padding="8dp">
+
+                        <ImageView
+                            android:id="@+id/btnHeart"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_heart"
+                            android:layout_marginEnd="4dp" />
+
+                        <TextView
+                            android:text="130"
+                            android:textSize="14sp"
+                            android:textColor="#FFFFFF"
+                            android:fontFamily="sans-serif-medium"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+                    </LinearLayout>
+
+                    <!-- 점선 -->
+                    <View
+                        android:layout_width="20dp"
+                        android:layout_height="2dp"
+                        android:layout_marginHorizontal="8dp"
+                        android:background="@drawable/dotted_line" />
+
+                    <!-- 설정 아이콘 -->
+                    <ImageView
+                        android:id="@+id/btnSettings"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_settings"
+                        android:background="?android:attr/selectableItemBackgroundBorderless"
+                        android:padding="4dp" />
+                </LinearLayout>
+            </RelativeLayout>
+
+            <!-- 월/년도 표시 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:id="@+id/tvMonthYear"
+                    android:text="2024년 1월"
+                    android:textSize="18sp"
+                    android:textColor="#2D3748"
+                    android:fontFamily="sans-serif-medium"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content" />
+
+                <TextView
+                    android:text="SUN TU"
+                    android:textSize="12sp"
+                    android:textColor="#6366F1"
+                    android:background="@drawable/day_type_background"
+                    android:padding="6dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+
+            <!-- 요일 헤더 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:text="Su"
+                    android:textSize="12sp"
+                    android:textColor="#718096"
+                    android:gravity="center"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content" />
+
+                <TextView
+                    android:text="Mo"
+                    android:textSize="12sp"
+                    android:textColor="#718096"
+                    android:gravity="center"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content" />
+
+                <TextView
+                    android:text="Tu"
+                    android:textSize="12sp"
+                    android:textColor="#718096"
+                    android:gravity="center"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content" />
+
+                <TextView
+                    android:text="We"
+                    android:textSize="12sp"
+                    android:textColor="#718096"
+                    android:gravity="center"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content" />
+
+                <TextView
+                    android:text="Th"
+                    android:textSize="12sp"
+                    android:textColor="#718096"
+                    android:gravity="center"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content" />
+
+                <TextView
+                    android:text="F"
+                    android:textSize="12sp"
+                    android:textColor="#718096"
+                    android:gravity="center"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content" />
+
+                <TextView
+                    android:text="Sa"
+                    android:textSize="12sp"
+                    android:textColor="#718096"
+                    android:gravity="center"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+
+            <!-- 달력 그리드 -->
+            <GridLayout
+                android:id="@+id/calendarGrid"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:columnCount="7"
+                android:rowCount="6"
+                android:layout_marginBottom="16dp">
+
+                <!-- 달력 날짜들이 동적으로 추가될 예정 -->
+            </GridLayout>
+
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- 하단 섹션 -->
+    <LinearLayout
+        android:id="@+id/bottomSection"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:background="@drawable/bottom_section_background"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- 버튼 섹션 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
+
+            <!-- 자러가기 버튼 -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="12dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="#FFFFFF">
+
+                <LinearLayout
+                    android:id="@+id/btnGoToBed"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:padding="12dp">
+
+                    <TextView
+                        android:text="자러가기"
+                        android:textSize="16sp"
+                        android:textColor="#2D3748"
+                        android:fontFamily="sans-serif-medium"
+                        android:layout_marginEnd="8dp"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+
+                    <!-- 그라데이션 원형 버튼 -->
+                    <View
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:background="@drawable/gradient_circle" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- 홈 버튼 -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="#FFFFFF">
+
+                <ImageView
+                    android:id="@+id/btnHome"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_home"
+                    android:background="?android:attr/selectableItemBackgroundBorderless" />
+            </androidx.cardview.widget.CardView>
+        </LinearLayout>
+
+        <!-- 경험치 바 (3일 기준) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginTop="8dp">
+
+            <!-- Day 1 점 -->
+            <View
+                android:id="@+id/day1Dot"
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:layout_marginHorizontal="4dp"
+                android:background="@drawable/progress_dot_active" />
+
+            <!-- Day 2 점 -->
+            <View
+                android:id="@+id/day2Dot"
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:layout_marginHorizontal="4dp"
+                android:background="@drawable/progress_dot_inactive" />
+
+            <!-- Day 3 점 -->
+            <View
+                android:id="@+id/day3Dot"
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:layout_marginHorizontal="4dp"
+                android:background="@drawable/progress_dot_inactive" />
+
+            <!-- 연결선들 -->
+            <View
+                android:layout_width="0dp"
+                android:layout_height="2dp"
+                android:layout_weight="1"
+                android:layout_marginHorizontal="8dp"
+                android:background="@drawable/progress_line" />
+        </LinearLayout>
     </LinearLayout>
-</ScrollView>
+
+</RelativeLayout>

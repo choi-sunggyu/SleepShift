@@ -1,204 +1,144 @@
 package com.example.sleepshift.feature
 
-import android.app.AlertDialog
+import android.content.Intent
 import android.os.Bundle
-import android.widget.Button
-import android.widget.ProgressBar
+import android.view.View
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
 import com.example.sleepshift.R
-import com.example.sleepshift.data.*
-import com.example.sleepshift.util.KstTime
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 class HomeActivity : AppCompatActivity() {
 
-    private var ticker: Job? = null
-    private var preShown = false
+    private lateinit var btnSettings: TextView
+    private lateinit var btnGoToBed: LinearLayout
+    private lateinit var btnCalendar: TextView
+    private lateinit var tvBedtime: TextView
 
-    private lateinit var tvSched: TextView
-    private lateinit var tvCountdown: TextView
-    private lateinit var bar: ProgressBar
-    private lateinit var tvPercent: TextView
-    private lateinit var tvStreak: TextView
-    private lateinit var tvShift: TextView
-    private lateinit var tvTarget: TextView
-    private lateinit var btnPlus30: Button
-    private lateinit var btnEarly: Button
-    private lateinit var btnReport: Button
-    private lateinit var btnReset: Button
+    // 프로그레스 점들
+    private lateinit var day1Dot: View
+    private lateinit var day2Dot: View
+    private lateinit var day3Dot: View
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
 
-        tvSched = findViewById(R.id.tvScheduled)
-        tvCountdown = findViewById(R.id.tvCountdown)
-        bar = findViewById(R.id.progressBar)
-        tvPercent = findViewById(R.id.tvPercent)
-        tvStreak = findViewById(R.id.tvStreak)
-        tvShift = findViewById(R.id.tvShift)
-        tvTarget = findViewById(R.id.tvTarget)
-        btnPlus30 = findViewById(R.id.btnPlus30)
-        btnEarly = findViewById(R.id.btnEarly)
-        btnReport = findViewById(R.id.btnReport)
-        btnReset = findViewById(R.id.btnReset)
+        initViews()
+        setupClickListeners()
+        updateUI()
+    }
 
-        lifecycleScope.launch {
-            val repo = SleepRepository(this@HomeActivity)
-            val settings = repo.getSettings() ?: run {
-                startActivity(android.content.Intent(this@HomeActivity, InitSurveyActivity::class.java))
-                finish()
-                return@launch
+    private fun initViews() {
+        // 안전하게 findViewById 처리
+        try {
+            btnSettings = findViewById(R.id.btnSettings)
+            btnGoToBed = findViewById(R.id.btnGoToBed)
+            btnCalendar = findViewById(R.id.btnCalendar)
+            tvBedtime = findViewById(R.id.tvAlarmTime)
+
+            day1Dot = findViewById(R.id.day1Dot)
+            day2Dot = findViewById(R.id.day2Dot)
+            day3Dot = findViewById(R.id.day3Dot)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun setupClickListeners() {
+        // 설정 버튼
+        btnSettings.setOnClickListener {
+            openSettings()
+        }
+
+        // 자러가기 버튼
+        btnGoToBed.setOnClickListener {
+            goToBed()
+        }
+
+        // 달력 버튼 (리포트)
+        btnCalendar.setOnClickListener {
+            openReport()
+        }
+    }
+
+    private fun updateUI() {
+        // 취침 시간 업데이트
+        updateBedtime()
+
+        // 경험치 바 업데이트
+        updateProgressDots()
+    }
+
+    private fun updateBedtime() {
+        // 현재 설정된 취침 시간을 가져와서 표시
+        val bedtime = getCurrentBedtime() // 이 메소드는 구현 필요
+        tvBedtime.text = bedtime
+    }
+
+    private fun updateProgressDots() {
+        // 현재 진행 상황에 따라 점들의 상태 업데이트
+        val currentDay = getCurrentDay() // 이 메소드는 구현 필요
+
+        // 모든 점을 비활성화로 초기화
+        day1Dot.setBackgroundResource(R.drawable.progress_dot_inactive)
+        day2Dot.setBackgroundResource(R.drawable.progress_dot_inactive)
+        day3Dot.setBackgroundResource(R.drawable.progress_dot_inactive)
+
+        // 현재 날짜까지 활성화
+        when (currentDay) {
+            1 -> day1Dot.setBackgroundResource(R.drawable.progress_dot_active)
+            2 -> {
+                day1Dot.setBackgroundResource(R.drawable.progress_dot_active)
+                day2Dot.setBackgroundResource(R.drawable.progress_dot_active)
             }
-            var progress = repo.getProgress() ?: return@launch
-
-            // 날짜 바뀌었으면 어제 기록 토대로 업데이트
-            if (progress.lastProgressUpdate != KstTime.todayYmd()) {
-                progress = updateProgressFromYesterday(progress, settings, repo)
-                repo.saveProgress(progress)
-            }
-
-            // UI 바인딩
-            tvSched.text = progress.scheduledBedtime
-            tvStreak.text = "${progress.consecutiveSuccessDays} days"
-            tvShift.text = "${progress.dailyShiftMinutes} min"
-            tvTarget.text = settings.targetBedtime
-
-            // 진행률 %
-            val percent = calcPercent(settings.avgBedTime, settings.targetBedtime, progress.scheduledBedtime)
-            bar.progress = percent
-            tvPercent.text = "$percent%"
-
-            // 액션
-            btnPlus30.setOnClickListener {
-                lifecycleScope.launch {
-                    val p = repo.getProgress() ?: return@launch
-                    val newSched = KstTime.addMinutes(p.scheduledBedtime, 30)
-                    val updated = p.copy(scheduledBedtime = newSched, lastProgressUpdate = KstTime.todayYmd())
-                    repo.saveProgress(updated)
-                    tvSched.text = updated.scheduledBedtime
-                    preShown = false // 다시 30분 전 모달 허용
-                }
-            }
-            btnEarly.setOnClickListener {
-                startActivity(android.content.Intent(this@HomeActivity, CheckinActivity::class.java))
-            }
-            btnReport.setOnClickListener {
-                startActivity(android.content.Intent(this@HomeActivity, ReportActivity::class.java))
-            }
-            btnReset.setOnClickListener {
-                // 초기화: settings/progress/기록 다 지움
-                getSharedPreferences("dummy", MODE_PRIVATE).edit().clear().apply() // no-op placeholder
-                // 실제로는 DataStore라서 clear가 복잡; 간단히 localStorage 유사 효과 위해 앱 데이터 재설정 유도
-                // 여기서는 settings만 제거 → 다시 Init으로
-                lifecycleScope.launch {
-                    repo.saveSettings(
-                        SleepSettings(
-                            avgBedTime="", avgWakeTime="", goalWakeTime="",
-                            goalSleepDuration="", targetBedtime="",
-                            morningGoal="", reasonToChange=""
-                        )
-                    )
-                    // 위 빈 값 저장 대신, 진짜 reset을 원하면 앱 데이터 삭제나 별도 clear API를 구현해야 함.
-                    // 편의상 Init으로 보내며 사용자는 다시 입력.
-                    startActivity(android.content.Intent(this@HomeActivity, InitSurveyActivity::class.java))
-                    finish()
-                }
-            }
-
-            // 카운트다운 틱
-            ticker?.cancel()
-            ticker = lifecycleScope.launch {
-                while (true) {
-                    val sec = KstTime.secondsUntil(progress.scheduledBedtime)
-                    tvCountdown.text = formatHMS(sec)
-
-                    if (sec <= 1800 && !preShown) {
-                        preShown = true
-                        AlertDialog.Builder(this@HomeActivity)
-                            .setTitle("취침 준비 알림")
-                            .setMessage("30분 뒤에 잘 시간이에요. 가볍게 준비를 시작해요.")
-                            .setPositiveButton("확인") { d, _ ->
-                                d.dismiss()
-                                startActivity(android.content.Intent(this@HomeActivity, CheckinActivity::class.java))
-                            }
-                            .setNegativeButton("닫기", null)
-                            .show()
-                    }
-                    delay(1000)
-                }
+            3 -> {
+                day1Dot.setBackgroundResource(R.drawable.progress_dot_active)
+                day2Dot.setBackgroundResource(R.drawable.progress_dot_active)
+                day3Dot.setBackgroundResource(R.drawable.progress_dot_active)
             }
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        ticker?.cancel()
-    }
+    private fun goToBed() {
+        // 나이트 루틴 화면으로 이동
+        val intent = Intent(this, NightRoutineActivity::class.java)
+        startActivity(intent)
 
-    private fun updateProgressFromYesterday(
-        p: SleepProgress,
-        s: SleepSettings,
-        repo: SleepRepository
-    ): SleepProgress {
-        val y = KstTime.yesterdayYmd()
-        // runBlocking 없이 동기 호출을 피하기 위해 이미 호출측이 suspend 컨텍스트에서 실행
-        var streak = p.consecutiveSuccessDays
-        var shift = p.dailyShiftMinutes
-        var scheduled = p.scheduledBedtime
-
-        val yRec = runCatching { kotlinx.coroutines.runBlocking { repo.getDailyRecord(y) } }.getOrNull()
-
-        if (yRec != null) {
-            if (yRec.success) {
-                streak += 1
-                shift = when {
-                    streak >= 7 -> 60
-                    streak >= 4 -> 50
-                    streak >= 2 -> 40
-                    else -> 30
-                }
-                // scheduled = max(target, scheduled - shift)
-                val cand = KstTime.addMinutes(scheduled, -shift)
-                scheduled = maxOfHHmm(cand, s.targetBedtime)
-            } else {
-                streak = 0
-                shift = 30
-                // scheduled 유지
+        // 애니메이션 효과
+        btnGoToBed.animate()
+            .scaleX(0.95f)
+            .scaleY(0.95f)
+            .setDuration(100)
+            .withEndAction {
+                btnGoToBed.animate()
+                    .scaleX(1.0f)
+                    .scaleY(1.0f)
+                    .setDuration(100)
+                    .start()
             }
-        }
-        return p.copy(
-            scheduledBedtime = scheduled,
-            consecutiveSuccessDays = streak,
-            dailyShiftMinutes = shift,
-            lastProgressUpdate = KstTime.todayYmd()
-        )
+            .start()
     }
 
-    private fun maxOfHHmm(a: String, b: String): String {
-        val am = KstTime.hhmmToMinutes(a)
-        val bm = KstTime.hhmmToMinutes(b)
-        return if (am < bm) b else a
+    private fun openSettings() {
+        // 설정 화면으로 이동
+        // TODO: SettingsActivity 또는 Fragment 열기
     }
 
-    private fun calcPercent(from: String, to: String, cur: String): Int {
-        val f = KstTime.hhmmToMinutes(from)
-        val t = KstTime.hhmmToMinutes(to)
-        val c = KstTime.hhmmToMinutes(cur)
-        val total = (f - t + 1440) % 1440
-        val done = (f - c + 1440) % 1440
-        if (total == 0) return 100
-        return ((done * 100.0) / total).toInt().coerceIn(0, 100)
+    private fun openReport() {
+        // 달력 화면으로 이동
+        val intent = Intent(this, ReportActivity::class.java)
+        startActivity(intent)
     }
 
-    private fun formatHMS(totalSec: Long): String {
-        val h = totalSec / 3600
-        val m = (totalSec % 3600) / 60
-        val s = totalSec % 60
-        return String.format("%02d:%02d:%02d", h, m, s)
+    // 구현이 필요한 헬퍼 메소드들
+    private fun getCurrentBedtime(): String {
+        // SharedPreferences 또는 데이터베이스에서 설정된 취침 시간 가져오기
+        return "12:30" // 임시 값
+    }
+
+    private fun getCurrentDay(): Int {
+        // 현재 진행 중인 날짜 반환 (1-3)
+        return 1 // 임시 값
     }
 }

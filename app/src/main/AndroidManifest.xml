@@ -35,14 +35,12 @@
             android:turnScreenOn="true"
             android:showWhenLocked="true" />
 
-        <!-- Sleepy 플로우만 사용 -->
         <activity android:name=".feature.InitSurveyActivity" />
         <activity android:name=".feature.HomeActivity" />
+        <activity android:name=".feature.NightRoutineActivity" />
         <activity android:name=".feature.CheckinActivity" />
         <activity android:name=".feature.SleepModeActivity" />
         <activity android:name=".feature.MorningGateActivity" />
         <activity android:name=".feature.ReportActivity" />
-
-        <!-- 기존 알람/리시버/온보딩/메인은 제거 -->
     </application>
 </manifest>

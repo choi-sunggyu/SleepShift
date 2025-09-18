@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background_primary">
+
+    <!-- 팬더 이미지 영역 (375:422 비율) -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="422">
+
+        <ImageView
+            android:id="@+id/onboardingImage"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:src="@drawable/onboarding1"
+            android:scaleType="centerCrop"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintDimensionRatio="375:422" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- 하단 텍스트 영역 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="375"
+        android:orientation="vertical"
+        android:padding="32dp"
+        android:background="@color/background_primary">
+
+        <!-- 페이지 인디케이터 점 -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start"
+            android:orientation="horizontal"
+            android:layout_marginBottom="24dp">
+
+            <View
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:background="@drawable/indicator_active"
+                android:layout_marginEnd="8dp" />
+
+            <View
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:background="@drawable/indicator_inactive"
+                android:layout_marginEnd="8dp" />
+
+            <View
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:background="@drawable/indicator_inactive" />
+        </LinearLayout>
+
+        <!-- 메인 텍스트 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:fontFamily="sans-serif-medium"
+            android:lineSpacingExtra="4dp"
+            android:text="밤마다 늦게 자는 게 습관처럼\n반복되나요?"
+            android:textColor="@color/text_primary"
+            android:textSize="24sp" />
+
+        <!-- 서브 텍스트 -->
+        <TextView
+            android:text="하루를 망치는 늦잠, 이제 바꿀 수 있어요."
+            android:textSize="16sp"
+            android:textColor="@color/text_secondary"
+            android:lineSpacingExtra="2dp"
+            android:layout_marginBottom="32dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <!-- 여백 -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <!-- 다음 버튼 -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/btnNext"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="@color/button_primary"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="?android:attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:paddingVertical="16dp"
+                android:text="다음"
+                android:textColor="@color/text_white"
+                android:textSize="18sp"
+                android:fontFamily="sans-serif-medium" />
+        </androidx.cardview.widget.CardView>
+
+    </LinearLayout>
+
+</LinearLayout>

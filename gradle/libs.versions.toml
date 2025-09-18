@@ -1,5 +1,5 @@
 [versions]
-agp = "8.11.1"
+agp = "8.11.2"
 kotlin = "1.9.24"
 coreKtx = "1.16.0"
 junit = "4.13.2"
@@ -9,7 +9,7 @@ appcompat = "1.7.1"
 material = "1.12.0"
 activity = "1.10.1"
 constraintlayout = "2.2.1"
-filamentAndroid = "1.17.1"
+filamentAndroid = "1.53.1"  # 16KB 호환 버전으로 업데이트
 mediationTestSuite = "3.0.0"
 
 [libraries]
@@ -21,10 +21,10 @@ androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
-filament-android = { group = "com.google.ar.sceneform", name = "filament-android", version.ref = "filamentAndroid" }
+# 🔥 가장 중요한 수정: 올바른 그룹으로 변경
+filament-android = { group = "com.google.android.filament", name = "filament-android", version.ref = "filamentAndroid" }
 mediation-test-suite = { group = "com.google.android.ads", name = "mediation-test-suite", version.ref = "mediationTestSuite" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-

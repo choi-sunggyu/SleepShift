@@ -18,6 +18,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.SleepShift">
 
+        <!-- AdMob App ID 추가 -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3940256099942544~3347511713" />
+
         <!-- 런처: 스플래시 -->
         <activity
             android:name=".SplashActivity"
@@ -29,18 +34,40 @@
         </activity>
 
         <activity
+            android:name=".feature.onboarding.OnboardingActivity"
+            android:exported="false" />
+
+        <!-- 알람 액티비티 (잠금 화면에서 표시) -->
+        <activity
             android:name=".feature.AlarmActivity"
             android:exported="false"
+            android:launchMode="singleTop"
+            android:excludeFromRecents="true"
             android:showOnLockScreen="true"
             android:turnScreenOn="true"
             android:showWhenLocked="true" />
 
-        <activity android:name=".feature.InitSurveyActivity" />
-        <activity android:name=".feature.HomeActivity" />
-        <activity android:name=".feature.NightRoutineActivity" />
-        <activity android:name=".feature.CheckinActivity" />
-        <activity android:name=".feature.SleepModeActivity" />
-        <activity android:name=".feature.MorningGateActivity" />
-        <activity android:name=".feature.ReportActivity" />
+        <!-- 기타 액티비티들 -->
+        <activity
+            android:name=".feature.survey.InitSurveyActivity"
+            android:exported="false" />
+        <activity
+            android:name=".feature.home.HomeActivity"
+            android:exported="false" />
+        <activity
+            android:name=".feature.NightRoutineActivity"
+            android:exported="false" />
+        <activity
+            android:name=".feature.CheckinActivity"
+            android:exported="false" />
+        <activity
+            android:name=".feature.SleepModeActivity"
+            android:exported="false" />
+        <activity
+            android:name=".feature.MorningGateActivity"
+            android:exported="false" />
+        <activity
+            android:name=".feature.ReportActivity"
+            android:exported="false" />
     </application>
 </manifest>

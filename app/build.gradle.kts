@@ -6,16 +6,23 @@ plugins {
 
 android {
     namespace = "com.example.sleepshift"
-    compileSdk = 34
+    compileSdk = 35  // 35로 업데이트
 
     defaultConfig {
         applicationId = "com.example.sleepshift"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 34  // 35로 업데이트
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    // 16KB 호환성을 위한 packaging 설정 수정
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
     }
 
     buildFeatures {
@@ -32,35 +39,34 @@ android {
 }
 
 dependencies {
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
-    implementation("androidx.core:core-ktx:1.12.0")
-    implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("com.google.android.material:material:1.9.0")
-    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-
+    // 중복 제거 및 최신 버전으로 통합
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
 
-    // DataStore (Preferences)
+    // Lifecycle
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.4")  // 버전 통일
+
+    // DataStore
     implementation("androidx.datastore:datastore-preferences:1.1.1")
+
+    // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
-    // ✅ JSON 직렬화용
+
+    // JSON
     implementation("com.google.code.gson:gson:2.10.1")
 
-    // Room (for storing sleep data)
+    // Room
     implementation("androidx.room:room-runtime:2.6.1")
-    implementation(libs.filament.android)
+    implementation("androidx.room:room-ktx:2.6.1")
     implementation(libs.mediation.test.suite)
     kapt("androidx.room:room-compiler:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
 
-    // Lifecycle ViewModel
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.2")
+    // Filament - 최신 버전으로 업데이트 (16KB 호환성)
+    implementation("com.google.android.filament:filament-android:1.53.1")  // libs 참조 대신 직접 버전 명시
 
     // MediaPlayer
-    implementation("androidx.media:media:1.6.0")
+    implementation("androidx.media:media:1.7.0")  // 최신 버전으로 업데이트
 }

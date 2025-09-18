@@ -1,4 +1,4 @@
-package com.example.sleepshift.feature
+package com.example.sleepshift.feature.survey
 
 import android.os.Bundle
 import android.widget.Button
@@ -9,6 +9,7 @@ import androidx.lifecycle.lifecycleScope
 import com.example.sleepshift.R
 import com.example.sleepshift.data.SleepRepository
 import com.example.sleepshift.data.SleepSettings
+import com.example.sleepshift.feature.home.HomeActivity
 import com.example.sleepshift.util.KstTime
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.timepicker.MaterialTimePicker

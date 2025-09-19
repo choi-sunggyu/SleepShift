@@ -49,7 +49,7 @@
 
         <!-- 기타 액티비티들 -->
         <activity
-            android:name=".feature.survey.InitSurveyActivity"
+            android:name=".feature.survey.SurveyActivity"
             android:exported="false" />
         <activity
             android:name=".feature.home.HomeActivity"

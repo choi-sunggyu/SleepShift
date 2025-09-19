@@ -1,7 +1,7 @@
 package com.example.sleepshift.feature.onboarding
 
 import com.example.sleepshift.feature.home.HomeActivity
-import com.example.sleepshift.feature.survey.InitSurveyActivity
+import com.example.sleepshift.feature.survey.SurveyActivity
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
@@ -40,17 +40,23 @@ class OnboardingActivity : AppCompatActivity() {
         })
     }
 
-    // Fragment에서 호출할 메서드들
-    fun goToNextPage() {
+    // Fragment에서 호출할 메서드
+    fun moveToNextPage() {
         val currentItem = viewPager.currentItem
-        android.util.Log.d("OnboardingActivity", "goToNextPage called. Current: $currentItem, Total: $totalPages")
+        android.util.Log.d("OnboardingActivity", "moveToNextPage called. Current: $currentItem, Total: $totalPages")
 
         if (currentItem < totalPages - 1) {
             viewPager.currentItem = currentItem + 1
             android.util.Log.d("OnboardingActivity", "Moving to page: ${currentItem + 1}")
         } else {
-            android.util.Log.d("OnboardingActivity", "Already at last page")
+            // 마지막 페이지에서 온보딩 완료
+            finishOnboarding()
         }
+    }
+
+    // 기존 goToNextPage()와 동일한 기능으로 통합
+    fun goToNextPage() {
+        moveToNextPage()
     }
 
     fun finishOnboarding() {
@@ -69,7 +75,7 @@ class OnboardingActivity : AppCompatActivity() {
         val intent = if (surveyCompleted) {
             Intent(this, HomeActivity::class.java)
         } else {
-            Intent(this, InitSurveyActivity::class.java)
+            Intent(this, SurveyActivity::class.java)  // InitSurveyActivity → SurveyActivity로 변경
         }
 
         startActivity(intent)

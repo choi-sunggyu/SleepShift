@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
+    <color name="text_hint">#9CA3AF</color>
+    <color name="indicator_inactive">#E5E7EB</color>
+
     <!-- 라이트 테마 색상 -->
     <color name="background_primary">#FFFFFF</color>
     <color name="background_secondary">#F7FAFC</color>
@@ -16,8 +20,8 @@
     <color name="accent_orange_end">#FF5722</color>
 
     <!-- 버튼 색상 -->
-    <color name="button_primary">#6366F1</color>
-    <color name="button_secondary">#8B5CF6</color>
+    <color name="button_primary">#006FFD</color>
+    <color name="button_secondary">#006FFD</color>
     <color name="button_success">#10B981</color>
 
     <!-- 구분선과 테두리 -->

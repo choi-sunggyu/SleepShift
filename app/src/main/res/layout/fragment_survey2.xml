@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background_primary"
+    android:padding="24dp">
+
+    <!-- Progress Bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:layout_marginBottom="32dp"
+        android:orientation="horizontal">
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@color/button_primary"
+            android:layout_marginEnd="4dp" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@color/button_primary"
+            android:layout_marginEnd="4dp" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@color/indicator_inactive"
+            android:layout_marginEnd="4dp" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@color/indicator_inactive"
+            android:layout_marginEnd="4dp" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@color/indicator_inactive" />
+    </LinearLayout>
+
+    <!-- Title -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="잠드는 습관을 바꾸고 싶은 가장 큰 이유는 무엇인가요?"
+        android:textSize="24sp"
+        android:textColor="@color/text_primary"
+        android:fontFamily="sans-serif-medium"
+        android:lineSpacingExtra="4dp"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="(여러 개 선택 가능)"
+        android:textSize="14sp"
+        android:textColor="@color/text_secondary"
+        android:layout_marginBottom="32dp" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/btnReason1"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:text="유대한 대문에 놓게 잘드는 게 싫어서"
+                android:textSize="16sp"
+                android:textColor="@color/text_primary"
+                android:background="@drawable/survey_option_unselected"
+                android:gravity="center_vertical"
+                android:padding="16dp"
+                android:layout_marginBottom="12dp"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/btnReason2"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:text="일찍한 리듬을 만들고 싶어서"
+                android:textSize="16sp"
+                android:textColor="@color/text_primary"
+                android:background="@drawable/survey_option_selected"
+                android:gravity="center_vertical"
+                android:padding="16dp"
+                android:layout_marginBottom="12dp"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/btnReason3"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:text="시간 절약을 하고 싶어서"
+                android:textSize="16sp"
+                android:textColor="@color/text_primary"
+                android:background="@drawable/survey_option_unselected"
+                android:gravity="center_vertical"
+                android:padding="16dp"
+                android:layout_marginBottom="12dp"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/btnReason4"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:text="나만의 저녁 루틴을 만들고 싶어서"
+                android:textSize="16sp"
+                android:textColor="@color/text_primary"
+                android:background="@drawable/survey_option_unselected"
+                android:gravity="center_vertical"
+                android:padding="16dp"
+                android:layout_marginBottom="12dp"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/btnReason5"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:text="다른 이유 (직접 입력)"
+                android:textSize="16sp"
+                android:textColor="@color/text_primary"
+                android:background="@drawable/survey_option_unselected"
+                android:gravity="center_vertical"
+                android:padding="16dp"
+                android:layout_marginBottom="12dp"
+                android:clickable="true"
+                android:focusable="true" />
+
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Next Button -->
+    <Button
+        android:id="@+id/btnNext"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="다음"
+        android:textSize="18sp"
+        android:textColor="@color/text_white"
+        android:background="@color/button_primary"
+        android:fontFamily="sans-serif-medium"
+        android:layout_marginTop="16dp" />
+
+</LinearLayout>

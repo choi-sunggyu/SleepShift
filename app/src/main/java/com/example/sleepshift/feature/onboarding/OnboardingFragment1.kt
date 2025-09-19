@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.cardview.widget.CardView
 import androidx.fragment.app.Fragment
 import com.example.sleepshift.R
 
@@ -19,12 +20,27 @@ class OnboardingFragment1 : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        // 첫 번째 페이지 초기화 코드
         setupViews(view)
     }
 
     private fun setupViews(view: View) {
-        // 뷰 초기화 및 이벤트 리스너 설정
-        // 예: 애니메이션, 텍스트 설정 등
+        setupClickListeners(view)
+    }
+
+    private fun setupClickListeners(view: View) {
+        // CardView 전체 영역을 클릭 가능하게 설정
+        val btnNext = view.findViewById<CardView>(R.id.btnNext)
+
+        btnNext.setOnClickListener {
+            navigateToNextOnboarding()
+        }
+
+        // CardView 안의 TextView도 클릭 가능하게 설정 (더 확실한 방법)
+        btnNext.isClickable = true
+        btnNext.isFocusable = true
+    }
+
+    private fun navigateToNextOnboarding() {
+        (activity as? OnboardingActivity)?.moveToNextPage()
     }
 }

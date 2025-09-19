@@ -9,7 +9,7 @@ import androidx.lifecycle.lifecycleScope
 import com.example.sleepshift.data.SleepRepository
 import com.example.sleepshift.feature.home.HomeActivity
 import com.example.sleepshift.feature.onboarding.OnboardingActivity
-import com.example.sleepshift.feature.survey.InitSurveyActivity
+import com.example.sleepshift.feature.survey.SurveyActivity
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -81,7 +81,7 @@ class SplashActivity : AppCompatActivity() {
     }
 
     private fun navigateToSurvey() {
-        val intent = Intent(this, InitSurveyActivity::class.java)
+        val intent = Intent(this, SurveyActivity::class.java)
         startActivity(intent)
         finish()
 

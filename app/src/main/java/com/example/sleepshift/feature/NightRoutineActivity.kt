@@ -1,184 +1,259 @@
 package com.example.sleepshift.feature
 
+import android.app.TimePickerDialog
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
+import android.graphics.Color
 import android.os.Bundle
-import android.os.PowerManager
-import android.view.WindowManager
+import android.view.View
+import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.RelativeLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
+import androidx.viewpager2.widget.ViewPager2
 import com.example.sleepshift.R
+import com.example.sleepshift.feature.adapter.MoodPagerAdapter
 
 class NightRoutineActivity : AppCompatActivity() {
 
-    private lateinit var tvSelectedEmotion: TextView
-    private lateinit var btnSettings: TextView
-    private lateinit var btnStartSleep: LinearLayout
+    private lateinit var sharedPreferences: SharedPreferences
 
-    // 감정 선택 버튼들
-    private lateinit var btnEmotionExcellent: LinearLayout
-    private lateinit var btnEmotionGood: LinearLayout
-    private lateinit var btnEmotionNeutral: LinearLayout
-    private lateinit var btnEmotionBad: LinearLayout
+    // Views
+    private lateinit var tvPawCoinCount: TextView
+    private lateinit var btnSettings: ImageView
+    private lateinit var viewPagerMood: ViewPager2
+    private lateinit var tvSelectedMood: TextView
+    private lateinit var indicatorLayout: LinearLayout
+    private lateinit var alarmTimeSection: RelativeLayout
+    private lateinit var tvAlarmTime: TextView
+    private lateinit var btnSleepCheckIn: LinearLayout
 
-    private var selectedEmotion = "좋음" // 기본 선택
+    // Adapter
+    private lateinit var moodAdapter: MoodPagerAdapter
+    private var selectedMoodPosition = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_night_routine)
 
+        // SharedPreferences 초기화
+        sharedPreferences = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
+
         initViews()
+        setupMoodViewPager()
         setupClickListeners()
-        setupEmotionSelection()
+        updateUI()
     }
 
     private fun initViews() {
-        tvSelectedEmotion = findViewById(R.id.tvSelectedEmotion)
+        tvPawCoinCount = findViewById(R.id.tvPawCoinCount)
         btnSettings = findViewById(R.id.btnSettings)
-        btnStartSleep = findViewById(R.id.btnStartSleep)
+        viewPagerMood = findViewById(R.id.viewPagerMood)
+        tvSelectedMood = findViewById(R.id.tvSelectedMood)
+        indicatorLayout = findViewById(R.id.indicatorLayout)
+        alarmTimeSection = findViewById(R.id.alarmTimeSection)
+        tvAlarmTime = findViewById(R.id.tvAlarmTime)
+        btnSleepCheckIn = findViewById(R.id.btnSleepCheckIn)
+    }
 
-        btnEmotionExcellent = findViewById(R.id.btnEmotionExcellent)
-        btnEmotionGood = findViewById(R.id.btnEmotionGood)
-        btnEmotionNeutral = findViewById(R.id.btnEmotionNeutral)
-        btnEmotionBad = findViewById(R.id.btnEmotionBad)
+    private fun setupMoodViewPager() {
+        moodAdapter = MoodPagerAdapter()
+        viewPagerMood.adapter = moodAdapter
+
+        // 기본 선택 위치 (중간)
+        selectedMoodPosition = 2
+        viewPagerMood.setCurrentItem(selectedMoodPosition, false)
+
+        // 인디케이터 설정
+        setupIndicators()
+
+        // ViewPager 페이지 변경 리스너
+        viewPagerMood.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                super.onPageSelected(position)
+                selectedMoodPosition = position
+                updateSelectedMood()
+                updateIndicators()
+            }
+        })
+
+        // 초기 상태 설정
+        updateSelectedMood()
+    }
+
+    private fun setupIndicators() {
+        indicatorLayout.removeAllViews()
+
+        for (i in 0 until 7) { // 7개의 감정
+            val indicator = View(this)
+            val size = 8.dpToPx()
+            val layoutParams = LinearLayout.LayoutParams(size, size)
+            layoutParams.setMargins(4.dpToPx(), 0, 4.dpToPx(), 0)
+
+            indicator.layoutParams = layoutParams
+            indicator.background = ContextCompat.getDrawable(this, R.drawable.indicator_inactive)
+
+            indicatorLayout.addView(indicator)
+        }
+
+        updateIndicators()
+    }
+
+    private fun updateIndicators() {
+        for (i in 0 until indicatorLayout.childCount) {
+            val indicator = indicatorLayout.getChildAt(i)
+            if (i == selectedMoodPosition) {
+                indicator.background = ContextCompat.getDrawable(this, R.drawable.indicator_active)
+            } else {
+                indicator.background = ContextCompat.getDrawable(this, R.drawable.indicator_inactive)
+            }
+        }
+    }
+
+    private fun updateSelectedMood() {
+        val currentMood = moodAdapter.getMoodAt(selectedMoodPosition)
+        tvSelectedMood.text = currentMood.moodName
     }
 
     private fun setupClickListeners() {
+        // 설정 버튼
         btnSettings.setOnClickListener {
-            // 설정 화면으로 이동
             openSettings()
         }
 
-        btnStartSleep.setOnClickListener {
-            startSleepMode()
+        // 알람 시간 섹션
+        alarmTimeSection.setOnClickListener {
+            showAlarmTimePickerDialog()
+        }
+
+        // 수면 체크인 버튼
+        btnSleepCheckIn.setOnClickListener {
+            startSleepCheckIn()
         }
     }
 
-    private fun setupEmotionSelection() {
-        // 감정 선택 버튼들 설정
-        btnEmotionExcellent.setOnClickListener {
-            selectEmotion("매우 좋음", btnEmotionExcellent)
-        }
+    private fun updateUI() {
+        // 발바닥 코인 개수 업데이트
+        val coinCount = getPawCoinCount()
+        tvPawCoinCount.text = coinCount.toString()
 
-        btnEmotionGood.setOnClickListener {
-            selectEmotion("좋음", btnEmotionGood)
-        }
-
-        btnEmotionNeutral.setOnClickListener {
-            selectEmotion("보통", btnEmotionNeutral)
-        }
-
-        btnEmotionBad.setOnClickListener {
-            selectEmotion("나쁨", btnEmotionBad)
-        }
-
-        // 기본 선택 상태 설정
-        selectEmotion("좋음", btnEmotionGood)
+        // 알람 시간 업데이트
+        val alarmHour = sharedPreferences.getInt("alarm_hour", 7)
+        val alarmMinute = sharedPreferences.getInt("alarm_minute", 0)
+        tvAlarmTime.text = String.format("%02d:%02d", alarmHour, alarmMinute)
     }
 
-    private fun selectEmotion(emotion: String, selectedButton: LinearLayout) {
-        selectedEmotion = emotion
-        tvSelectedEmotion.text = emotion
+    private fun showAlarmTimePickerDialog() {
+        val currentHour = sharedPreferences.getInt("alarm_hour", 7)
+        val currentMinute = sharedPreferences.getInt("alarm_minute", 0)
 
-        // 모든 버튼을 기본 상태로 리셋
-        resetEmotionButtons()
+        val timePickerDialog = TimePickerDialog(
+            this,
+            { _, hourOfDay, minute ->
+                // 오늘 밤에만 적용되는 알람 시간 저장
+                with(sharedPreferences.edit()) {
+                    putInt("tonight_alarm_hour", hourOfDay)
+                    putInt("tonight_alarm_minute", minute)
+                    putBoolean("tonight_custom_alarm", true)
+                    apply()
+                }
 
-        // 선택된 버튼만 하이라이트
-        selectedButton.background = ContextCompat.getDrawable(this, R.drawable.emotion_selected_background)
+                tvAlarmTime.text = String.format("%02d:%02d", hourOfDay, minute)
+                Toast.makeText(this, "오늘 밤 알람 시간이 ${String.format("%02d:%02d", hourOfDay, minute)}로 설정되었습니다", Toast.LENGTH_SHORT).show()
+            },
+            currentHour,
+            currentMinute,
+            true // 24시간 형식
+        )
 
-        // 선택된 버튼의 텍스트 색상 변경
-        val textView = selectedButton.getChildAt(1) as TextView
-        textView.setTextColor(ContextCompat.getColor(this, R.color.button_primary))
-        textView.typeface = android.graphics.Typeface.DEFAULT_BOLD
+        timePickerDialog.setTitle("오늘 밤 알람 시간 설정")
+        timePickerDialog.show()
     }
 
-    private fun resetEmotionButtons() {
-        val buttons = listOf(btnEmotionExcellent, btnEmotionGood, btnEmotionNeutral, btnEmotionBad)
+    private fun startSleepCheckIn() {
+        // 선택된 감정과 시간 저장
+        saveTodayMoodData()
 
-        buttons.forEach { button ->
-            button.background = ContextCompat.getDrawable(this, R.drawable.emotion_unselected_background)
-            val textView = button.getChildAt(1) as TextView
-            textView.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
-            textView.typeface = android.graphics.Typeface.DEFAULT
-        }
+        // 발바닥 코인 지급 (수면 체크인 보상)
+        addPawCoins(10)
+
+        // 화면 잠금 액티비티로 이동
+        val intent = Intent(this, LockScreenActivity::class.java)
+        startActivity(intent)
+
+        // 버튼 클릭 애니메이션
+        animateButton()
     }
 
-    private fun startSleepMode() {
-        // 감정 데이터 저장
-        saveEmotionData()
+    private fun saveTodayMoodData() {
+        val currentMood = moodAdapter.getMoodAt(selectedMoodPosition)
+        val currentTime = System.currentTimeMillis()
 
-        // 화면 밝기 최소화
-        dimScreen()
-
-        // 수면 모드 시작 안내
-        Toast.makeText(this, "수면 모드가 시작됩니다. 좋은 밤 되세요! 🌙", Toast.LENGTH_LONG).show()
-
-        // 3초 후 화면 잠금 시도
-        window.decorView.postDelayed({
-            lockScreen()
-        }, 3000)
-    }
-
-    private fun saveEmotionData() {
-        // SharedPreferences 또는 데이터베이스에 감정 데이터 저장
-        val sharedPref = getSharedPreferences("sleep_data", Context.MODE_PRIVATE)
-        with(sharedPref.edit()) {
-            putString("today_emotion", selectedEmotion)
-            putLong("sleep_start_time", System.currentTimeMillis())
+        with(sharedPreferences.edit()) {
+            putString("today_mood", currentMood.moodName)
+            putInt("today_mood_position", selectedMoodPosition)
+            putLong("sleep_checkin_time", currentTime)
             apply()
         }
+
+        Toast.makeText(this, "오늘의 기분: ${currentMood.moodName}", Toast.LENGTH_SHORT).show()
     }
 
-    private fun dimScreen() {
-        // 화면 밝기를 최소로 설정
-        val layoutParams = window.attributes
-        layoutParams.screenBrightness = 0.01f // 최소 밝기
-        window.attributes = layoutParams
+    private fun addPawCoins(amount: Int) {
+        val currentCount = getPawCoinCount()
+        val newCount = currentCount + amount
 
-        // 화면이 꺼지지 않도록 설정 (선택사항)
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-    }
-
-    private fun lockScreen() {
-        try {
-            // 디바이스 관리자 권한이 있는 경우 화면 잠금
-            val devicePolicyManager = getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager
-            devicePolicyManager.lockNow()
-        } catch (e: Exception) {
-            // 권한이 없는 경우 대체 방법
-            alternativeLockScreen()
+        with(sharedPreferences.edit()) {
+            putInt("paw_coin_count", newCount)
+            apply()
         }
+
+        // UI 업데이트
+        tvPawCoinCount.text = newCount.toString()
+
+        Toast.makeText(this, "+${amount} 발바닥 코인 획득!", Toast.LENGTH_SHORT).show()
     }
 
-    private fun alternativeLockScreen() {
-        // 대체 방법: 화면을 완전히 어둡게 하고 홈으로 이동
-        try {
-            // 홈 화면으로 이동
-            val homeIntent = Intent(Intent.ACTION_MAIN).apply {
-                addCategory(Intent.CATEGORY_HOME)
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+    private fun getPawCoinCount(): Int {
+        return sharedPreferences.getInt("paw_coin_count", 130)
+    }
+
+    private fun animateButton() {
+        btnSleepCheckIn.animate()
+            .scaleX(0.95f)
+            .scaleY(0.95f)
+            .setDuration(100)
+            .withEndAction {
+                btnSleepCheckIn.animate()
+                    .scaleX(1.0f)
+                    .scaleY(1.0f)
+                    .setDuration(100)
+                    .start()
             }
-            startActivity(homeIntent)
-
-            // 또는 전원 버튼 누르기 시뮬레이션 (권한 필요)
-            val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
-            // powerManager.goToSleep(SystemClock.uptimeMillis()) // API 28부터 권한 필요
-
-        } catch (e: Exception) {
-            Toast.makeText(this, "화면 잠금을 위해 전원 버튼을 눌러주세요", Toast.LENGTH_LONG).show()
-        }
+            .start()
     }
 
     private fun openSettings() {
-        // 설정 화면으로 이동
-        Toast.makeText(this, "설정 화면으로 이동", Toast.LENGTH_SHORT).show()
+        val intent = Intent(this, SettingsActivity::class.java)
+        startActivity(intent)
+    }
+
+    // Extension function for dp to px conversion
+    private fun Int.dpToPx(): Int {
+        return (this * resources.displayMetrics.density).toInt()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateUI()
     }
 
     override fun onBackPressed() {
-        // 뒤로가기 버튼으로 홈 화면으로 돌아가기
         super.onBackPressed()
         finish()
     }

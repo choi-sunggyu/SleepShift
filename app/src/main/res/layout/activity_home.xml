@@ -9,9 +9,9 @@
     <ScrollView
         android:id="@+id/scrollView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="555dp"
         android:layout_above="@+id/bottomSection"
-        android:layout_marginBottom="20dp">
+        android:layout_marginBottom="50dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -25,27 +25,28 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp">
 
-                <!-- Day 1 -->
+                <!-- Day 카운트와 Dozee -->
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:layout_alignParentStart="true">
+                    android:layout_alignParentStart="true"
+                    android:orientation="vertical">
 
                     <TextView
-                        android:text="Day 1"
-                        android:textSize="28sp"
-                        android:textColor="#2D3748"
+                        android:id="@+id/tvDayCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
                         android:fontFamily="sans-serif-medium"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
+                        android:text="Day 1"
+                        android:textColor="#2D3748"
+                        android:textSize="28sp" />
 
                     <TextView
-                        android:text="Dozee"
-                        android:textSize="14sp"
-                        android:textColor="#718096"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
+                        android:layout_height="wrap_content"
+                        android:text="Dozeo"
+                        android:textColor="#718096"
+                        android:textSize="14sp" />
                 </LinearLayout>
 
                 <!-- 우상단 아이콘들 -->
@@ -53,94 +54,124 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_alignParentEnd="true"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
-                    <!-- 하트 아이콘과 숫자 -->
-                    <LinearLayout
+                    <!-- 발바닥 코인 카드 -->
+                    <androidx.cardview.widget.CardView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:background="@drawable/heart_background"
-                        android:padding="8dp">
+                        android:layout_marginEnd="12dp"
+                        app:cardBackgroundColor="#F7FAFC"
+                        app:cardCornerRadius="25dp"
+                        app:cardElevation="2dp">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="50dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:paddingStart="20dp"
+                            android:paddingEnd="20dp">
+
+                            <!-- 발바닥 코인 원형 배경 -->
+                            <ImageView
+                                android:id="@+id/imgPawCoin"
+                                android:layout_width="50dp"
+                                android:layout_height="50dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_paw_coin" />
+
+                            <TextView
+                                android:id="@+id/tvPawCoinCount"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="sans-serif-bold"
+                                android:text="130"
+                                android:textColor="#2D3748"
+                                android:textSize="18sp" />
+                        </LinearLayout>
+                    </androidx.cardview.widget.CardView>
+
+                    <!-- 설정 버튼 카드 -->
+                    <androidx.cardview.widget.CardView
+                        android:layout_width="50dp"
+                        android:layout_height="50dp"
+                        app:cardBackgroundColor="#F7FAFC"
+                        app:cardCornerRadius="25dp"
+                        app:cardElevation="2dp">
 
                         <ImageView
-                            android:id="@+id/btnHeart"
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
-                            android:src="@drawable/ic_heart"
-                            android:layout_marginEnd="4dp" />
-
-                        <TextView
-                            android:text="130"
-                            android:textSize="14sp"
-                            android:textColor="#FFFFFF"
-                            android:fontFamily="sans-serif-medium"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" />
-                    </LinearLayout>
-
-                    <!-- 설정 아이콘 -->
-                    <ImageView
-                        android:id="@+id/btnSettings"
-                        android:layout_width="30dp"
-                        android:layout_height="30dp"
-                        android:src="@drawable/ic_settings"
-                        android:background="?android:attr/selectableItemBackgroundBorderless"
-                        android:padding="4dp" />
+                            android:id="@+id/btnSettings"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_gravity="center"
+                            android:background="?android:attr/selectableItemBackgroundBorderless"
+                            android:src="@drawable/ic_settings" />
+                    </androidx.cardview.widget.CardView>
                 </LinearLayout>
             </RelativeLayout>
 
             <!-- 팬더 이미지 섹션 -->
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
-                android:layout_height="300dp"
-                app:cardBackgroundColor="#F7FAFC"
+                android:layout_height="400dp"
+                android:layout_marginBottom="24dp"
+                app:cardBackgroundColor="#F0F0F0"
                 app:cardCornerRadius="20dp"
-                app:cardElevation="0dp"
-                android:layout_marginBottom="24dp">
+                app:cardElevation="0dp">
 
                 <RelativeLayout
+                    android:id="@+id/pandaContainer"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:padding="16dp">
 
-                    <!-- 팬더 이미지 -->
-                    <ImageView
-                        android:id="@+id/imgPanda"
-                        android:layout_width="297dp"
-                        android:layout_height="260dp"
-                        android:layout_centerInParent="true"
-                        android:scaleType="centerCrop"
-                        android:src="@drawable/panda_meditation" />
+                    <!-- 팬더 이미지와 폰 -->
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center">
 
-                    <!-- 오늘의 취침시간 표시 -->
+                        <ImageView
+                            android:id="@+id/imgPanda"
+                            android:layout_width="250dp"
+                            android:layout_height="250dp"
+                            android:layout_centerInParent="true"
+                            android:scaleType="centerCrop"
+                            android:src="@drawable/panda_meditation" />
+
+                    </RelativeLayout>
+
+                    <!-- 이동하는 오늘의 취침시간 표시 -->
                     <LinearLayout
+                        android:id="@+id/bedtimeFloatingBubble"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_alignParentEnd="true"
                         android:layout_alignParentBottom="true"
-                        android:background="@drawable/time_bubble_background"
+                        android:layout_marginEnd="16dp"
+                        android:layout_marginBottom="16dp"
+                        android:background="@drawable/bedtime_bubble_background"
+                        android:gravity="center"
                         android:orientation="vertical"
-                        android:padding="12dp"
-                        android:gravity="center">
+                        android:padding="12dp">
 
                         <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
                             android:text="오늘의 취침시간"
-                            android:textSize="12sp"
                             android:textColor="#FFFFFF"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" />
+                            android:textSize="10sp" />
 
                         <TextView
-                            android:id="@+id/tvAlarmTime"
-                            android:text="12:30"
-                            android:textSize="16sp"
-                            android:textColor="#FFFFFF"
-                            android:fontFamily="sans-serif-medium"
+                            android:id="@+id/tvBedtime"
                             android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" />
+                            android:layout_height="wrap_content"
+                            android:fontFamily="sans-serif-medium"
+                            android:text="12:30"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp" />
                     </LinearLayout>
                 </RelativeLayout>
             </androidx.cardview.widget.CardView>
@@ -152,7 +183,7 @@
     <LinearLayout
         android:id="@+id/bottomSection"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="161dp"
         android:layout_alignParentBottom="true"
         android:background="@drawable/bottom_section_background"
         android:orientation="vertical"
@@ -162,102 +193,170 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="16dp">
+            android:layout_marginBottom="16dp"
+            android:orientation="horizontal">
 
             <!-- 자러가기 버튼 -->
             <androidx.cardview.widget.CardView
                 android:layout_width="0dp"
-                android:layout_height="56dp"
-                android:layout_weight="1"
+                android:layout_height="80dp"
                 android:layout_marginEnd="12dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="2dp"
-                app:cardBackgroundColor="#FFFFFF">
+                android:layout_weight="1"
+                app:cardBackgroundColor="#FFFFFF"
+                app:cardCornerRadius="28dp"
+                app:cardElevation="2dp">
 
                 <LinearLayout
                     android:id="@+id/btnGoToBed"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:orientation="horizontal"
-                    android:gravity="center"
                     android:background="?android:attr/selectableItemBackground"
+                    android:gravity="center"
+                    android:orientation="vertical"
                     android:padding="12dp">
 
-                    <!-- 그라데이션 원형 버튼 -->
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginEnd="8dp"
                         android:fontFamily="sans-serif-medium"
                         android:text="자러가기"
                         android:textColor="#2D3748"
-                        android:textSize="26sp" />
+                        android:textSize="20sp" />
 
-                    <View
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:background="@drawable/gradient_circle" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:fontFamily="sans-serif"
+                        android:text="Go to bed"
+                        android:textColor="#718096"
+                        android:textSize="12sp" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
             <!-- 달력 버튼 -->
-            <androidx.cardview.widget.CardView
-                android:layout_width="56dp"
+            <ImageView
+                android:id="@+id/btnCalendar"
+                android:layout_width="60dp"
                 android:layout_height="56dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="2dp"
-                app:cardBackgroundColor="#FFFFFF">
-
-                <ImageView
-                    android:id="@+id/btnCalendar"
-                    android:layout_width="30dp"
-                    android:layout_height="30dp"
-                    android:layout_gravity="center"
-                    android:src="@drawable/ic_calendar"
-                    android:background="?android:attr/selectableItemBackgroundBorderless" />
-            </androidx.cardview.widget.CardView>
+                android:layout_gravity="center"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_calendar" />
         </LinearLayout>
 
-        <!-- 경험치 바 (3일 기준) -->
+        <!-- 경험치 바 (점들로 표시) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
+            android:layout_marginTop="8dp"
             android:gravity="center"
-            android:layout_marginTop="8dp">
+            android:orientation="horizontal">
 
-            <!-- Day 1 점 -->
+            <!-- 여러 개의 점들 (총 15개 정도) -->
             <View
-                android:id="@+id/day1Dot"
-                android:layout_width="8dp"
-                android:layout_height="8dp"
-                android:layout_marginHorizontal="4dp"
+                android:id="@+id/progressDot1"
+                android:layout_width="6dp"
+                android:layout_height="6dp"
+                android:layout_marginHorizontal="3dp"
                 android:background="@drawable/progress_dot_active" />
 
-            <!-- Day 2 점 -->
             <View
-                android:id="@+id/day2Dot"
-                android:layout_width="8dp"
-                android:layout_height="8dp"
-                android:layout_marginHorizontal="4dp"
+                android:id="@+id/progressDot2"
+                android:layout_width="6dp"
+                android:layout_height="6dp"
+                android:layout_marginHorizontal="3dp"
                 android:background="@drawable/progress_dot_inactive" />
 
-            <!-- Day 3 점 -->
             <View
-                android:id="@+id/day3Dot"
-                android:layout_width="8dp"
-                android:layout_height="8dp"
-                android:layout_marginHorizontal="4dp"
+                android:id="@+id/progressDot3"
+                android:layout_width="6dp"
+                android:layout_height="6dp"
+                android:layout_marginHorizontal="3dp"
                 android:background="@drawable/progress_dot_inactive" />
 
-            <!-- 연결선들 -->
             <View
-                android:layout_width="0dp"
-                android:layout_height="2dp"
-                android:layout_weight="1"
-                android:layout_marginHorizontal="8dp"
-                android:background="@drawable/progress_line" />
+                android:id="@+id/progressDot4"
+                android:layout_width="6dp"
+                android:layout_height="6dp"
+                android:layout_marginHorizontal="3dp"
+                android:background="@drawable/progress_dot_inactive" />
+
+            <View
+                android:id="@+id/progressDot5"
+                android:layout_width="6dp"
+                android:layout_height="6dp"
+                android:layout_marginHorizontal="3dp"
+                android:background="@drawable/progress_dot_inactive" />
+
+            <View
+                android:id="@+id/progressDot6"
+                android:layout_width="6dp"
+                android:layout_height="6dp"
+                android:layout_marginHorizontal="3dp"
+                android:background="@drawable/progress_dot_inactive" />
+
+            <View
+                android:id="@+id/progressDot7"
+                android:layout_width="6dp"
+                android:layout_height="6dp"
+                android:layout_marginHorizontal="3dp"
+                android:background="@drawable/progress_dot_inactive" />
+
+            <View
+                android:id="@+id/progressDot8"
+                android:layout_width="6dp"
+                android:layout_height="6dp"
+                android:layout_marginHorizontal="3dp"
+                android:background="@drawable/progress_dot_inactive" />
+
+            <View
+                android:id="@+id/progressDot9"
+                android:layout_width="6dp"
+                android:layout_height="6dp"
+                android:layout_marginHorizontal="3dp"
+                android:background="@drawable/progress_dot_inactive" />
+
+            <View
+                android:id="@+id/progressDot10"
+                android:layout_width="6dp"
+                android:layout_height="6dp"
+                android:layout_marginHorizontal="3dp"
+                android:background="@drawable/progress_dot_inactive" />
+
+            <View
+                android:id="@+id/progressDot11"
+                android:layout_width="6dp"
+                android:layout_height="6dp"
+                android:layout_marginHorizontal="3dp"
+                android:background="@drawable/progress_dot_inactive" />
+
+            <View
+                android:id="@+id/progressDot12"
+                android:layout_width="6dp"
+                android:layout_height="6dp"
+                android:layout_marginHorizontal="3dp"
+                android:background="@drawable/progress_dot_inactive" />
+
+            <View
+                android:id="@+id/progressDot13"
+                android:layout_width="6dp"
+                android:layout_height="6dp"
+                android:layout_marginHorizontal="3dp"
+                android:background="@drawable/progress_dot_inactive" />
+
+            <View
+                android:id="@+id/progressDot14"
+                android:layout_width="6dp"
+                android:layout_height="6dp"
+                android:layout_marginHorizontal="3dp"
+                android:background="@drawable/progress_dot_inactive" />
+
+            <View
+                android:id="@+id/progressDot15"
+                android:layout_width="6dp"
+                android:layout_height="6dp"
+                android:layout_marginHorizontal="3dp"
+                android:background="@drawable/progress_dot_inactive" />
         </LinearLayout>
     </LinearLayout>
 

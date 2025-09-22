@@ -55,6 +55,9 @@
             android:name=".feature.home.HomeActivity"
             android:exported="false" />
         <activity
+            android:name=".feature.SettingsActivity"
+            android:exported="false" />
+        <activity
             android:name=".feature.NightRoutineActivity"
             android:exported="false" />
         <activity

@@ -116,8 +116,7 @@
                             android:layout_height="24dp"
                             android:layout_gravity="center"
                             android:src="@drawable/ic_settings"
-                            android:background="?android:attr/selectableItemBackgroundBorderless"
-                            android:tint="#2D3748" />
+                            android:background="?android:attr/selectableItemBackgroundBorderless" />
                     </androidx.cardview.widget.CardView>
                 </LinearLayout>
             </RelativeLayout>
@@ -151,11 +150,14 @@
                     <!-- 팬더 얼굴 슬라이드 -->
                     <androidx.viewpager2.widget.ViewPager2
                         android:id="@+id/viewPagerMood"
-                        android:layout_width="200dp"
+                        android:layout_width="match_parent"
                         android:layout_height="120dp"
                         android:layout_centerHorizontal="true"
                         android:layout_below="@id/tvMoodTitle"
-                        android:layout_marginTop="20dp" />
+                        android:layout_marginTop="20dp"
+                        android:paddingStart="60dp"
+                        android:paddingEnd="60dp"
+                        android:clipToPadding="false" />
 
                     <!-- 감정 이름 표시 -->
                     <TextView

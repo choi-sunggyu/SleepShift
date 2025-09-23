@@ -35,7 +35,7 @@ class CheckinActivity : AppCompatActivity() {
                         goalAchieved = cbGoal.isChecked
                     )
                 )
-                startActivity(android.content.Intent(this@CheckinActivity, SleepModeActivity::class.java))
+                startActivity(android.content.Intent(this@CheckinActivity, LockScreenActivity::class.java))
                 finish()
             }
         }

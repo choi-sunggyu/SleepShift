@@ -7,13 +7,9 @@ import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.sleepshift.R
 
-data class MoodItem(
-    val drawableRes: Int,
-    val moodName: String
-)
-
 class MoodPagerAdapter : RecyclerView.Adapter<MoodPagerAdapter.MoodViewHolder>() {
 
+    // 7개의 팬더 감정 이미지와 텍스트
     private val moodList = listOf(
         MoodItem(R.drawable.panda_happy, "기쁨"),
         MoodItem(R.drawable.panda_excited, "신남"),
@@ -22,6 +18,11 @@ class MoodPagerAdapter : RecyclerView.Adapter<MoodPagerAdapter.MoodViewHolder>()
         MoodItem(R.drawable.panda_sad, "슬픔"),
         MoodItem(R.drawable.panda_angry, "화남"),
         MoodItem(R.drawable.panda_anxious, "불안")
+    )
+
+    data class MoodItem(
+        val imageRes: Int,
+        val moodName: String
     )
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MoodViewHolder {
@@ -42,7 +43,7 @@ class MoodPagerAdapter : RecyclerView.Adapter<MoodPagerAdapter.MoodViewHolder>()
         private val pandaImageView: ImageView = itemView.findViewById(R.id.imgPandaMood)
 
         fun bind(moodItem: MoodItem) {
-            pandaImageView.setImageResource(moodItem.drawableRes)
+            pandaImageView.setImageResource(moodItem.imageRes)
         }
     }
 }

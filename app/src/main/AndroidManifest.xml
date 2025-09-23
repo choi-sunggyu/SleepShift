@@ -64,7 +64,7 @@
             android:name=".feature.CheckinActivity"
             android:exported="false" />
         <activity
-            android:name=".feature.SleepModeActivity"
+            android:name=".feature.LockScreenActivity"
             android:exported="false" />
         <activity
             android:name=".feature.MorningGateActivity"

@@ -3,7 +3,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/lock_screen_background">
+    android:background="@drawable/lock_screen_background"
+    android:scaleType="centerCrop">
 
     <!-- 상단 메시지 영역 -->
     <LinearLayout
@@ -12,7 +13,6 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="80dp"
         android:orientation="vertical"
-        android:gravity="center"
         android:paddingHorizontal="32dp">
 
         <!-- 성규님 잘자요! -->
@@ -27,52 +27,38 @@
             android:layout_height="wrap_content" />
 
         <TextView
-            android:text="B에서 깨어날게요"
+            android:text="6시에 깨워드릴게요"
             android:textSize="16sp"
             android:textColor="#E2E8F0"
             android:layout_marginTop="8dp"
             android:gravity="center"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" />
-    </LinearLayout>
 
-    <!-- 발바닥 코인 표시 -->
-    <LinearLayout
-        android:id="@+id/coinSection"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/topMessageSection"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="24dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:background="@drawable/coin_section_background"
-        android:paddingHorizontal="20dp"
-        android:paddingVertical="12dp">
-
-        <ImageView
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:src="@drawable/ic_paw_coin"
-            android:layout_marginEnd="8dp" />
-
-        <TextView
-            android:id="@+id/tvCoinCount"
-            android:text="3"
-            android:textSize="18sp"
-            android:textColor="#FFFFFF"
-            android:fontFamily="sans-serif-medium"
+        <!-- 발바닥 코인 표시 -->
+        <LinearLayout
+            android:id="@+id/coinSection"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
-    </LinearLayout>
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:paddingVertical="6dp">
 
-    <!-- 중앙 팬더 이미지 영역 (배경 이미지에 포함될 예정) -->
-    <View
-        android:id="@+id/pandaImagePlaceholder"
-        android:layout_width="match_parent"
-        android:layout_height="300dp"
-        android:layout_centerInParent="true"
-        android:layout_marginHorizontal="50dp" />
+            <ImageView
+                android:layout_width="32.45dp"
+                android:layout_height="32.45dp"
+                android:layout_marginEnd="8dp"
+                android:src="@drawable/ic_paw_coin" />
+
+            <TextView
+                android:id="@+id/tvCoinCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:text="3"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp" />
+        </LinearLayout>
+    </LinearLayout>
 
     <!-- 하단 잠금 해제 버튼 -->
     <LinearLayout
@@ -120,9 +106,9 @@
         <androidx.cardview.widget.CardView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            app:cardCornerRadius="35dp"
+            app:cardCornerRadius="12dp"
             app:cardElevation="6dp"
-            app:cardBackgroundColor="#FFFFFF">
+            app:cardBackgroundColor="#80FFFFFF">
 
             <LinearLayout
                 android:id="@+id/btnUnlock"
@@ -139,30 +125,37 @@
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:src="@drawable/ic_lock"
-                    android:layout_marginEnd="12dp"
-                    android:tint="#2D3748" />
+                    android:layout_marginEnd="12dp" />
 
-                <TextView
-                    android:id="@+id/tvUnlockText"
-                    android:text="잠금해제"
-                    android:textSize="18sp"
-                    android:textColor="#2D3748"
-                    android:fontFamily="sans-serif-medium"
+                <LinearLayout
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvUnlockText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="40dp"
+                        android:fontFamily="sans-serif-medium"
+                        android:text="잠금해제"
+                        android:textColor="#2D3748"
+                        android:textSize="30sp" />
+
+                    <!-- 안내 메시지 -->
+                    <TextView
+                        android:id="@+id/tvUnlockHint"
+                        android:text="해제를 원하시면 3초간 누르세요"
+                        android:textSize="14sp"
+                        android:textColor="#5A6B7D"
+                        android:gravity="center"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+
+                </LinearLayout>
+
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
-        <!-- 안내 메시지 -->
-        <TextView
-            android:id="@+id/tvUnlockHint"
-            android:text="3초간 길게 눌러서 잠금 해제하세요"
-            android:textSize="14sp"
-            android:textColor="#A0AEC0"
-            android:gravity="center"
-            android:layout_marginTop="16dp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
     </LinearLayout>
 
 </RelativeLayout>

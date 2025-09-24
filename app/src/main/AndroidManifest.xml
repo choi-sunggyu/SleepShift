@@ -2,11 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- 알림/정확알람/부팅 복구를 쓰지 않으면 권한 전부 제거 가능 -->
-    <!-- 필요 시 아래 주석 해제
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <application
         android:allowBackup="true"
@@ -39,7 +40,7 @@
 
         <!-- 알람 액티비티 (잠금 화면에서 표시) -->
         <activity
-            android:name=".feature.AlarmActivity"
+            android:name=".alarm.AlarmActivity"
             android:exported="false"
             android:launchMode="singleTop"
             android:excludeFromRecents="true"
@@ -72,5 +73,14 @@
         <activity
             android:name=".feature.ReportActivity"
             android:exported="false" />
+
+        <receiver android:name=".feature.alarm.AlarmReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter android:priority="1000">
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="com.example.sleepshift.ALARM_TRIGGER" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

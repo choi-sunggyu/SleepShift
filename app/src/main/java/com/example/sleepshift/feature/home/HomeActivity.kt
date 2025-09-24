@@ -1,6 +1,7 @@
 package com.example.sleepshift.feature.home
 
 import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
 import android.content.Context
@@ -9,15 +10,16 @@ import android.content.SharedPreferences
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.View
+import android.view.animation.AccelerateDecelerateInterpolator
 import androidx.appcompat.app.AppCompatActivity
-import com.example.sleepshift.R
 import com.example.sleepshift.databinding.ActivityHomeBinding
 import com.example.sleepshift.feature.NightRoutineActivity
 import com.example.sleepshift.feature.ReportActivity
 import com.example.sleepshift.feature.SettingsActivity
-import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.random.Random
+
 
 class HomeActivity : AppCompatActivity() {
 
@@ -115,49 +117,80 @@ class HomeActivity : AppCompatActivity() {
 
         // 모든 점을 비활성화로 초기화
         progressDots.forEach { dot ->
-            dot.setBackgroundResource(R.drawable.progress_dot_inactive)
+            dot.setBackgroundResource(com.example.sleepshift.R.drawable.progress_dot_inactive)
         }
 
         // 현재 날짜까지 활성화 (최대 15개)
         val activeDots = minOf(currentDay, 15)
         for (i in 0 until activeDots) {
-            progressDots[i].setBackgroundResource(R.drawable.progress_dot_active)
+            progressDots[i].setBackgroundResource(com.example.sleepshift.R.drawable.progress_dot_active)
         }
     }
 
     private fun startFloatingAnimation() {
-        floatingRunnable = object : Runnable {
-            override fun run() {
-                animateFloatingBubble()
-                // 5-10초 후 다시 실행
-                floatingHandler.postDelayed(this, Random.nextLong(5000, 10000))
+        val bubble: View = findViewById(com.example.sleepshift.R.id.bedtimeFloatingBubble)
+
+
+        // 위아래로 부드럽게 이동하는 애니메이션
+        val moveUp = ObjectAnimator.ofFloat(bubble, "translationY", 0f, -50f)
+        moveUp.setDuration(2000) // 2초 동안 위로 이동
+        moveUp.interpolator = AccelerateDecelerateInterpolator()
+
+        val moveDown = ObjectAnimator.ofFloat(bubble, "translationY", -50f, 0f)
+        moveDown.setDuration(2000) // 2초 동안 아래로 이동
+        moveDown.interpolator = AccelerateDecelerateInterpolator()
+
+
+        // 애니메이션 시퀀스 생성
+        val animatorSet = AnimatorSet()
+        animatorSet.playSequentially(moveUp, moveDown)
+        animatorSet.addListener(object : AnimatorListenerAdapter() {
+            override fun onAnimationEnd(animation: Animator) {
+                // 애니메이션이 끝나면 다시 시작 (무한 반복)
+                animation.start()
             }
-        }
-        floatingHandler.post(floatingRunnable!!)
+        })
+
+
+        // 애니메이션 시작
+        animatorSet.start()
     }
 
     private fun animateFloatingBubble() {
         val bubble = binding.bedtimeFloatingBubble
         val container = binding.pandaContainer
 
-        // 컨테이너 크기 계산
-        val containerWidth = container.width - bubble.width
-        val containerHeight = container.height - bubble.height
+        // 현재 위치를 기준으로 상대적 이동
+        val currentX = bubble.translationX
+        val currentY = bubble.translationY
 
-        if (containerWidth <= 0 || containerHeight <= 0) return
+        // 위아래로 부드럽게 움직이는 범위 (-30dp ~ +30dp)
+        val moveRange = 80f // 이동 범위 (dp 단위)
 
-        // 랜덤 위치 계산 (가장자리에서 약간 떨어진 위치)
-        val margin = 50
-        val newX = Random.nextInt(margin, containerWidth - margin).toFloat()
-        val newY = Random.nextInt(margin, containerHeight - margin).toFloat()
+        // 현재 위치에서 상대적으로 이동할 거리 계산
+        val deltaY = Random.nextFloat() * moveRange - (moveRange / 2) // -40 ~ +40 범위
+        val deltaX = Random.nextFloat() * (moveRange / 2) - (moveRange / 4) // -20 ~ +20 범위
+
+        // 새로운 위치 계산
+        val newY = currentY + deltaY
+        val newX = currentX + deltaX
+
+        // 컨테이너 경계를 벗어나지 않도록 제한
+        val maxY = 100f
+        val minY = -100f
+        val maxX = 150f
+        val minX = -150f
+
+        val clampedY = newY.coerceIn(minY, maxY)
+        val clampedX = newX.coerceIn(minX, maxX)
 
         // 부드러운 애니메이션으로 이동
-        val animatorX = ObjectAnimator.ofFloat(bubble, "translationX", newX)
-        val animatorY = ObjectAnimator.ofFloat(bubble, "translationY", newY)
+        val animatorX = ObjectAnimator.ofFloat(bubble, "translationX", clampedX)
+        val animatorY = ObjectAnimator.ofFloat(bubble, "translationY", clampedY)
 
         val animatorSet = AnimatorSet()
         animatorSet.playTogether(animatorX, animatorY)
-        animatorSet.duration = 2000 // 2초간 이동
+        animatorSet.duration = 3000 // 3초간 부드럽게 이동
         animatorSet.start()
     }
 

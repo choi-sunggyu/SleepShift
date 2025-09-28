@@ -82,7 +82,7 @@
                 android:layout_height="wrap_content" />
 
             <TextView
-                android:text="길게 눌러서 잠금 해제"
+                android:text="길게 눌러서 알람 해제"
                 android:textSize="14sp"
                 android:textColor="#E2E8F0"
                 android:gravity="center"
@@ -91,13 +91,13 @@
                 android:layout_height="wrap_content" />
         </LinearLayout>
 
-        <!-- 잠금 해제 버튼 -->
+        <!-- 알람 해제 버튼 -->
         <androidx.cardview.widget.CardView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:cardCornerRadius="25dp"
             app:cardElevation="6dp"
-            app:cardBackgroundColor="#F2F2F2">
+            app:cardBackgroundColor="#40FFFFFF">
 
             <LinearLayout
                 android:id="@+id/btnUnlock"
@@ -114,7 +114,6 @@
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:src="@drawable/ic_lock"
-
                     android:layout_marginEnd="12dp" />
 
                 <LinearLayout
@@ -127,8 +126,8 @@
                         android:layout_width="wrap_content"
                         android:layout_height="40dp"
                         android:fontFamily="sans-serif-medium"
-                        android:text="잠금해제"
-                        android:textColor="#C2FFFFFF"
+                        android:text="알람해제"
+                        android:textColor="#000000"
                         android:textSize="30sp" />
 
                     <!-- 안내 메시지 -->
@@ -136,7 +135,7 @@
                         android:id="@+id/tvUnlockHint"
                         android:text="해제를 원하시면 3초간 누르세요"
                         android:textSize="14sp"
-                        android:textColor="#C2FFFFFF"
+                        android:textColor="#E0000000"
                         android:gravity="center"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content" />

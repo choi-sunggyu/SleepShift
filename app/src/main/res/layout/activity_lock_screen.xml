@@ -26,6 +26,7 @@
             android:layout_height="wrap_content" />
 
         <TextView
+            android:id="@+id/tvWakeTimeMessage"
             android:text="6시에 깨워드릴게요"
             android:textSize="16sp"
             android:textColor="#E2E8F0"

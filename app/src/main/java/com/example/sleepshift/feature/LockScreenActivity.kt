@@ -37,6 +37,9 @@ class LockScreenActivity : AppCompatActivity() {
     private var isLongPressing = false
     private val handler = Handler(Looper.getMainLooper())
 
+    // 코인 사용 관련
+    private val UNLOCK_COST = 1 // 잠금 해제에 필요한 코인
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_lock_screen)
@@ -67,17 +70,57 @@ class LockScreenActivity : AppCompatActivity() {
     }
 
     private fun setupUI() {
-        // 사용자 이름 표시 (SharedPreferences에서 가져오기 또는 기본값)
+        // 사용자 이름 표시
         val userName = sharedPreferences.getString("user_name", "성규")
         tvGoodNightMessage.text = "${userName}님 잘자요!"
 
         // 발바닥 코인 개수 표시
-        val coinCount = sharedPreferences.getInt("paw_coin_count", 130)
+        updateCoinDisplay()
+
+        // 알람 시간 표시
+        val alarmTime = sharedPreferences.getString("today_alarm_time", "07:00")
+        val wakeTimeText = findViewById<TextView>(R.id.tvWakeTimeMessage)
+        wakeTimeText?.text = "${alarmTime}에 깨워드릴게요"
+
+        // 코인 부족시 버튼 비활성화 처리
+        checkUnlockAvailability()
+    }
+
+    private fun updateCoinDisplay() {
+        val coinCount = getCurrentCoins()
         tvCoinCount.text = coinCount.toString()
+    }
+
+    private fun getCurrentCoins(): Int {
+        return sharedPreferences.getInt("paw_coin_count", 0)
+    }
+
+    private fun checkUnlockAvailability() {
+        val currentCoins = getCurrentCoins()
+
+        if (currentCoins < UNLOCK_COST) {
+            // 코인 부족시 버튼 비활성화
+            btnUnlock.alpha = 0.5f
+            tvUnlockHint.text = "코인이 부족합니다 (${UNLOCK_COST}개 필요)"
+            btnUnlock.isEnabled = false
+        } else {
+            // 코인 충분시 버튼 활성화
+            btnUnlock.alpha = 1.0f
+            tvUnlockHint.text = "해제를 원하시면 3초간 누르세요 (코인 ${UNLOCK_COST}개 사용)"
+            btnUnlock.isEnabled = true
+        }
     }
 
     private fun setupUnlockButton() {
         btnUnlock.setOnTouchListener { _, event ->
+            // 코인이 부족하면 터치 무시
+            if (getCurrentCoins() < UNLOCK_COST) {
+                if (event.action == MotionEvent.ACTION_DOWN) {
+                    showInsufficientCoinsMessage()
+                }
+                return@setOnTouchListener false
+            }
+
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     startLongPressCountdown()
@@ -90,6 +133,16 @@ class LockScreenActivity : AppCompatActivity() {
                 else -> false
             }
         }
+    }
+
+    private fun showInsufficientCoinsMessage() {
+        val currentCoins = getCurrentCoins()
+        val needed = UNLOCK_COST - currentCoins
+        Toast.makeText(
+            this,
+            "발바닥 코인이 부족합니다!\n현재: ${currentCoins}개, 필요: ${UNLOCK_COST}개\n(${needed}개 더 필요)",
+            Toast.LENGTH_LONG
+        ).show()
     }
 
     private fun startLongPressCountdown() {
@@ -152,7 +205,6 @@ class LockScreenActivity : AppCompatActivity() {
     private fun updateLockIcon(countdown: Int) {
         when (countdown) {
             3 -> {
-                // 자물쇠 아이콘을 3으로 변경하거나 특별한 표시
                 tvUnlockText.text = "3"
                 tvUnlockText.textSize = 24f
             }
@@ -173,14 +225,25 @@ class LockScreenActivity : AppCompatActivity() {
     }
 
     private fun unlockScreen() {
+        // 코인 사용 처리
+        val success = usePawCoins(UNLOCK_COST)
+
+        if (!success) {
+            // 코인 사용 실패 (코인 부족)
+            Toast.makeText(this, "코인이 부족하여 잠금 해제를 할 수 없습니다", Toast.LENGTH_LONG).show()
+            cancelLongPressCountdown()
+            checkUnlockAvailability() // UI 업데이트
+            return
+        }
+
         // 성공 메시지
-        Toast.makeText(this, "잠금이 해제되었습니다! 좋은 밤 되세요", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, "잠금이 해제되었습니다! (코인 ${UNLOCK_COST}개 사용)", Toast.LENGTH_LONG).show()
 
         // 화면 밝기 복원
         setScreenBrightness(-1f) // 시스템 기본값으로 복원
 
-        // 발바닥 코인 지급 (수면 완료 보상)
-        giveWakeUpReward()
+        // 잠금 해제 기록 저장
+        recordUnlockTime()
 
         // 홈 화면으로 이동
         val intent = Intent(this, HomeActivity::class.java)
@@ -189,17 +252,31 @@ class LockScreenActivity : AppCompatActivity() {
         finish()
     }
 
-    private fun giveWakeUpReward() {
-        // 기상 보상으로 발바닥 코인 지급
-        val currentCoins = sharedPreferences.getInt("paw_coin_count", 130)
-        val newCoins = currentCoins + 5 // 기상 보상 5코인
+    private fun usePawCoins(amount: Int): Boolean {
+        val currentCoins = getCurrentCoins()
 
+        if (currentCoins >= amount) {
+            val newCoins = currentCoins - amount
+
+            sharedPreferences.edit()
+                .putInt("paw_coin_count", newCoins)
+                .apply()
+
+            android.util.Log.d("LockScreen", "코인 사용: ${amount}개, 잔액: ${newCoins}개")
+            return true
+        }
+
+        android.util.Log.d("LockScreen", "코인 부족: 현재 ${currentCoins}개, 필요 ${amount}개")
+        return false
+    }
+
+    private fun recordUnlockTime() {
+        // 잠금 해제 시간 기록
         sharedPreferences.edit()
-            .putInt("paw_coin_count", newCoins)
-            .putLong("last_wakeup_time", System.currentTimeMillis())
+            .putLong("last_unlock_time", System.currentTimeMillis())
+            .putInt("daily_unlock_count",
+                sharedPreferences.getInt("daily_unlock_count", 0) + 1)
             .apply()
-
-        Toast.makeText(this, "+5 발바닥 코인 (기상 보상)", Toast.LENGTH_SHORT).show()
     }
 
     private fun setScreenBrightness(brightness: Float) {
@@ -210,7 +287,19 @@ class LockScreenActivity : AppCompatActivity() {
 
     override fun onBackPressed() {
         // 뒤로가기 버튼 비활성화 (잠금 화면이므로)
-        Toast.makeText(this, "잠금 해제 버튼을 길게 눌러주세요", Toast.LENGTH_SHORT).show()
+        val currentCoins = getCurrentCoins()
+        if (currentCoins < UNLOCK_COST) {
+            Toast.makeText(this, "코인이 부족합니다. 알람을 해제하여 코인을 획득하세요!", Toast.LENGTH_LONG).show()
+        } else {
+            Toast.makeText(this, "잠금 해제 버튼을 길게 눌러주세요", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // 화면 복귀시 코인 상태 업데이트
+        updateCoinDisplay()
+        checkUnlockAvailability()
     }
 
     override fun onDestroy() {

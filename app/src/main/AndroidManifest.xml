@@ -40,7 +40,7 @@
 
         <!-- 알람 액티비티 (잠금 화면에서 표시) -->
         <activity
-            android:name=".alarm.AlarmActivity"
+            android:name=".feature.alarm.AlarmActivity"
             android:exported="false"
             android:launchMode="singleTop"
             android:excludeFromRecents="true"
@@ -62,13 +62,7 @@
             android:name=".feature.NightRoutineActivity"
             android:exported="false" />
         <activity
-            android:name=".feature.CheckinActivity"
-            android:exported="false" />
-        <activity
             android:name=".feature.LockScreenActivity"
-            android:exported="false" />
-        <activity
-            android:name=".feature.MorningGateActivity"
             android:exported="false" />
         <activity
             android:name=".feature.ReportActivity"

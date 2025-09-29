@@ -8,12 +8,12 @@ import android.os.CountDownTimer
 import android.os.Handler
 import android.os.Looper
 import android.os.Vibrator
-import android.util.Log
 import android.view.MotionEvent
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
 import com.example.sleepshift.R
 import com.example.sleepshift.databinding.ActivityAlarmBinding
+import com.example.sleepshift.feature.MorningRoutineActivity
 import com.example.sleepshift.feature.home.HomeActivity
 import com.example.sleepshift.util.DailyAlarmManager
 import com.example.sleepshift.util.ConsecutiveSuccessManager
@@ -234,28 +234,24 @@ class AlarmActivity : AppCompatActivity() {
     private fun showSuccessAnimation() {
         val currentStreak = consecutiveSuccessManager.getCurrentStreak()
 
-        // 연속 성공 일수에 따른 메시지
-        val message = when {
-            currentStreak >= 2 -> "알람 해제 완료!\n연속 ${currentStreak}일째 성공 중!"
-            currentStreak == 1 -> "알람 해제 완료!\n1일 연속 성공!"
-            else -> "알람 해제 완료!\n발바닥 코인을 획득했습니다"
-        }
+        // 알람 해제 성공 메시지
+        val message = "알람 해제 완료!\n모닝 루틴을 시작합니다"
 
         binding.tvGoodNightMessage.text = message
         binding.bottomSection.visibility = android.view.View.GONE
 
+        // 1초 후 모닝 루틴 화면으로 이동
         Handler(Looper.getMainLooper()).postDelayed({
-            val intent = Intent(this, HomeActivity::class.java)
+            val intent = Intent(this, MorningRoutineActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             startActivity(intent)
             finish()
-        }, 2000)
+        }, 1000)
     }
 
     override fun onBackPressed() {
-        super.onBackPressed()
         // 뒤로 가기 버튼 비활성화
-        Log.d("AlarmActivity", "뒤로가기 버튼 무시됨 - 알람을 해제해야 합니다")
+        android.util.Log.d("AlarmActivity", "뒤로가기 버튼 무시됨 - 알람을 해제해야 합니다")
     }
 
     override fun onDestroy() {

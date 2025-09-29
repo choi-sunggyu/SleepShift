@@ -244,7 +244,7 @@
                 android:src="@drawable/ic_calendar" />
         </LinearLayout>
 
-        <!-- 경험치 바 (점들로 표시) -->
+        <!-- 경험치 바 (점들로 표시) - 3개만 사용 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -252,110 +252,26 @@
             android:gravity="center"
             android:orientation="horizontal">
 
-            <!-- 여러 개의 점들 (총 15개 정도) -->
+            <!-- 연속 성공 점 3개 -->
             <View
                 android:id="@+id/progressDot1"
-                android:layout_width="6dp"
-                android:layout_height="6dp"
-                android:layout_marginHorizontal="3dp"
-                android:background="@drawable/progress_dot_active" />
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:layout_marginHorizontal="8dp"
+                android:background="@drawable/progress_dot_inactive" />
 
             <View
                 android:id="@+id/progressDot2"
-                android:layout_width="6dp"
-                android:layout_height="6dp"
-                android:layout_marginHorizontal="3dp"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:layout_marginHorizontal="8dp"
                 android:background="@drawable/progress_dot_inactive" />
 
             <View
                 android:id="@+id/progressDot3"
-                android:layout_width="6dp"
-                android:layout_height="6dp"
-                android:layout_marginHorizontal="3dp"
-                android:background="@drawable/progress_dot_inactive" />
-
-            <View
-                android:id="@+id/progressDot4"
-                android:layout_width="6dp"
-                android:layout_height="6dp"
-                android:layout_marginHorizontal="3dp"
-                android:background="@drawable/progress_dot_inactive" />
-
-            <View
-                android:id="@+id/progressDot5"
-                android:layout_width="6dp"
-                android:layout_height="6dp"
-                android:layout_marginHorizontal="3dp"
-                android:background="@drawable/progress_dot_inactive" />
-
-            <View
-                android:id="@+id/progressDot6"
-                android:layout_width="6dp"
-                android:layout_height="6dp"
-                android:layout_marginHorizontal="3dp"
-                android:background="@drawable/progress_dot_inactive" />
-
-            <View
-                android:id="@+id/progressDot7"
-                android:layout_width="6dp"
-                android:layout_height="6dp"
-                android:layout_marginHorizontal="3dp"
-                android:background="@drawable/progress_dot_inactive" />
-
-            <View
-                android:id="@+id/progressDot8"
-                android:layout_width="6dp"
-                android:layout_height="6dp"
-                android:layout_marginHorizontal="3dp"
-                android:background="@drawable/progress_dot_inactive" />
-
-            <View
-                android:id="@+id/progressDot9"
-                android:layout_width="6dp"
-                android:layout_height="6dp"
-                android:layout_marginHorizontal="3dp"
-                android:background="@drawable/progress_dot_inactive" />
-
-            <View
-                android:id="@+id/progressDot10"
-                android:layout_width="6dp"
-                android:layout_height="6dp"
-                android:layout_marginHorizontal="3dp"
-                android:background="@drawable/progress_dot_inactive" />
-
-            <View
-                android:id="@+id/progressDot11"
-                android:layout_width="6dp"
-                android:layout_height="6dp"
-                android:layout_marginHorizontal="3dp"
-                android:background="@drawable/progress_dot_inactive" />
-
-            <View
-                android:id="@+id/progressDot12"
-                android:layout_width="6dp"
-                android:layout_height="6dp"
-                android:layout_marginHorizontal="3dp"
-                android:background="@drawable/progress_dot_inactive" />
-
-            <View
-                android:id="@+id/progressDot13"
-                android:layout_width="6dp"
-                android:layout_height="6dp"
-                android:layout_marginHorizontal="3dp"
-                android:background="@drawable/progress_dot_inactive" />
-
-            <View
-                android:id="@+id/progressDot14"
-                android:layout_width="6dp"
-                android:layout_height="6dp"
-                android:layout_marginHorizontal="3dp"
-                android:background="@drawable/progress_dot_inactive" />
-
-            <View
-                android:id="@+id/progressDot15"
-                android:layout_width="6dp"
-                android:layout_height="6dp"
-                android:layout_marginHorizontal="3dp"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:layout_marginHorizontal="8dp"
                 android:background="@drawable/progress_dot_inactive" />
         </LinearLayout>
     </LinearLayout>

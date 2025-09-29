@@ -6,9 +6,11 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
+import com.example.sleepshift.SplashActivity
 import com.example.sleepshift.data.SleepRepository
 import com.example.sleepshift.data.SleepSettings
 import com.example.sleepshift.data.SleepProgress
+import com.example.sleepshift.feature.LoadingActivity
 import com.example.sleepshift.feature.home.HomeActivity
 import com.example.sleepshift.util.KstTime
 import com.example.sleepshift.util.DailyAlarmManager // 새로 추가
@@ -79,36 +81,37 @@ class SurveyActivity : AppCompatActivity() {
             val repo = SleepRepository(this@SurveyActivity)
             val targetBedtime = goalWakeTime.minusMinutes(goalSleepDuration.toLong())
 
-            // ===== 새로운 알고리즘 적용 =====
-            val alarmManager = DailyAlarmManager(this@SurveyActivity)
-
-            // 알고리즘용 SharedPreferences 저장
+            // SharedPreferences 변수 선언 추가
             val sharedPref = getSharedPreferences("SleepShiftPrefs", MODE_PRIVATE)
+
+            // SharedPreferences 저장 (올바른 플래그 사용)
             with(sharedPref.edit()) {
-                // a: 평균 취침시간 (알람시간 계산의 기준이 되는 현재 수면패턴)
+                // 알고리즘 관련 데이터
                 putString("survey_average_bedtime", avgBedTime.format(hhmm))
-                // b: 희망 기상시간 (최종 도달하고자 하는 기상시간)
                 putString("survey_desired_wake_time", goalWakeTime.format(hhmm))
-                // c: 최소 수면시간 (분단위)
                 putInt("survey_min_sleep_minutes", goalSleepDuration)
-                // x: 목표 기상시간 (= 희망 기상시간과 동일)
                 putString("survey_target_wake_time", goalWakeTime.format(hhmm))
 
-                // 앱 시작 날짜 설정 (Day 1 계산용)
+                // 앱 시작 날짜
                 putLong("app_install_date", System.currentTimeMillis())
+
+                // 설문 완료 플래그
                 putBoolean("survey_completed", true)
 
-                // 알람 활성화 플래그
+                // 알람 활성화
                 putBoolean("alarm_enabled", true)
 
                 apply()
             }
 
-            // 첫 번째 알람 시간 계산 및 설정 (Day 1)
-            alarmManager.updateDailyAlarm(1)
-            // ===== 알고리즘 적용 완료 =====
+            // SplashActivity의 헬퍼 메소드 사용
+            SplashActivity.markSurveyCompleted(this@SurveyActivity)
 
-            // 기존 Room DB 저장 (기존 코드와 호환성 유지)
+            // 첫 번째 알람 시간 계산 및 설정
+            val alarmManager = DailyAlarmManager(this@SurveyActivity)
+            alarmManager.updateDailyAlarm(1)
+
+            // 기존 Room DB 저장
             var scheduled = avgBedTime.minusMinutes(20)
             if (isBefore(scheduled, targetBedtime)) {
                 scheduled = targetBedtime
@@ -134,10 +137,8 @@ class SurveyActivity : AppCompatActivity() {
             repo.saveSettings(settings)
             repo.saveProgress(progress)
 
-            Toast.makeText(this@SurveyActivity, "수면 일정이 설정되었습니다!", Toast.LENGTH_SHORT).show()
-
-            // 홈으로 이동
-            val intent = Intent(this@SurveyActivity, HomeActivity::class.java)
+            // 로딩 화면으로 이동
+            val intent = Intent(this@SurveyActivity, LoadingActivity::class.java)
             startActivity(intent)
             finish()
         }

@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 class SplashActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // 다크 모드 고정 (원치 않으면 이 줄 삭제)
+        // 다크 모드 고정
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
 
         super.onCreate(savedInstanceState)
@@ -24,9 +24,7 @@ class SplashActivity : AppCompatActivity() {
 
         // 앱 진입 흐름 결정
         lifecycleScope.launch {
-            // 스플래시 화면 최소 표시 시간
             delay(SPLASH_DELAY)
-
             determineStartDestination()
         }
     }
@@ -38,45 +36,28 @@ class SplashActivity : AppCompatActivity() {
         val isOnboardingCompleted = sharedPrefs.getBoolean(KEY_ONBOARDING_COMPLETED, false)
 
         if (!isOnboardingCompleted) {
-            // 온보딩이 완료되지 않았으면 온보딩으로 이동
+            // 첫 실행 -> 온보딩
             navigateToOnboarding()
             return
         }
 
-        // 2. 초기 설문 완료 여부 확인
+        // 2. 설문조사 완료 여부 확인
         val isSurveyCompleted = sharedPrefs.getBoolean(KEY_SURVEY_COMPLETED, false)
 
         if (!isSurveyCompleted) {
-            // 온보딩은 완료했지만 설문이 완료되지 않았으면 설문으로 이동
+            // 온보딩 완료했지만 설문 미완료 -> 설문조사
             navigateToSurvey()
             return
         }
 
-        // 3. 저장된 수면 설정 존재 여부 확인 (기존 로직 유지)
-        try {
-            val repo = SleepRepository(this@SplashActivity)
-            val hasSettings = repo.getSettings() != null
-
-            if (hasSettings) {
-                // 모든 설정이 완료되었으면 홈으로 이동
-                navigateToHome()
-            } else {
-                // 설정이 없으면 설문으로 이동 (혹시 모를 경우를 대비)
-                navigateToSurvey()
-            }
-        } catch (e: Exception) {
-            // 오류 발생 시 안전하게 설문으로 이동
-            e.printStackTrace()
-            navigateToSurvey()
-        }
+        // 3. 모든 설정 완료 -> 홈 화면
+        navigateToHome()
     }
 
     private fun navigateToOnboarding() {
         val intent = Intent(this, OnboardingActivity::class.java)
         startActivity(intent)
         finish()
-
-        // 페이드 인/아웃 애니메이션
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
     }
 
@@ -84,7 +65,6 @@ class SplashActivity : AppCompatActivity() {
         val intent = Intent(this, SurveyActivity::class.java)
         startActivity(intent)
         finish()
-
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
     }
 
@@ -92,16 +72,15 @@ class SplashActivity : AppCompatActivity() {
         val intent = Intent(this, HomeActivity::class.java)
         startActivity(intent)
         finish()
-
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
     }
 
-    // 온보딩 완료 시 호출할 수 있는 헬퍼 메소드 (다른 Activity에서 사용)
     companion object {
-        private const val SPLASH_DELAY = 1500L // 1.5초 스플래시 화면 표시
+        private const val SPLASH_DELAY = 1500L
         private const val PREFS_NAME = "SleepShiftPrefs"
         private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
         private const val KEY_SURVEY_COMPLETED = "survey_completed"
+
         fun markOnboardingCompleted(context: Context) {
             val sharedPrefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             sharedPrefs.edit().putBoolean(KEY_ONBOARDING_COMPLETED, true).apply()

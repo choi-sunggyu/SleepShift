@@ -5,17 +5,22 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.view.animation.AnimationUtils
+import android.widget.ProgressBar
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.example.sleepshift.R
-import com.example.sleepshift.databinding.ActivityLoadingBinding
 import com.example.sleepshift.feature.home.HomeActivity
 
 class LoadingActivity : AppCompatActivity() {
 
-    private lateinit var binding: ActivityLoadingBinding
     private val handler = Handler(Looper.getMainLooper())
     private var currentProgress = 0
+
+    // Views
+    private lateinit var tvLoadingTitle: TextView
+    private lateinit var circularProgressBar: ProgressBar
+    private lateinit var tvProgress: TextView
+    private lateinit var tvLoadingMessage: TextView
 
     // 로딩 단계별 메시지
     private val loadingMessages = listOf(
@@ -27,11 +32,18 @@ class LoadingActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityLoadingBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        setContentView(R.layout.activity_loading)
 
+        initViews()
         setupUI()
         startLoading()
+    }
+
+    private fun initViews() {
+        tvLoadingTitle = findViewById(R.id.tvLoadingTitle)
+        circularProgressBar = findViewById(R.id.circularProgressBar)
+        tvProgress = findViewById(R.id.tvProgress)
+        tvLoadingMessage = findViewById(R.id.tvLoadingMessage)
     }
 
     private fun setupUI() {
@@ -39,11 +51,11 @@ class LoadingActivity : AppCompatActivity() {
         val sharedPreferences = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
         val userName = sharedPreferences.getString("user_name", "사용자") ?: "사용자"
 
-        binding.tvLoadingTitle.text = "${userName}님의 수면 패턴 생성중"
+        tvLoadingTitle.text = "${userName}님의 수면 패턴 생성중"
 
         // 초기 진행률 설정
-        binding.circularProgressBar.progress = 0
-        binding.tvProgress.text = "0%"
+        circularProgressBar.progress = 0
+        tvProgress.text = "0%"
     }
 
     private fun startLoading() {
@@ -61,8 +73,8 @@ class LoadingActivity : AppCompatActivity() {
                     currentProgress = (progressPerStep * currentStep).toInt()
 
                     // 프로그레스바 업데이트
-                    binding.circularProgressBar.progress = currentProgress
-                    binding.tvProgress.text = "${currentProgress}%"
+                    circularProgressBar.progress = currentProgress
+                    tvProgress.text = "${currentProgress}%"
 
                     // 메시지 업데이트 (25%, 50%, 75%, 100%)
                     updateLoadingMessage(currentProgress)
@@ -87,12 +99,12 @@ class LoadingActivity : AppCompatActivity() {
             else -> 3
         }
 
-        if (binding.tvLoadingMessage.text != loadingMessages[messageIndex]) {
-            binding.tvLoadingMessage.text = loadingMessages[messageIndex]
+        if (tvLoadingMessage.text != loadingMessages[messageIndex]) {
+            tvLoadingMessage.text = loadingMessages[messageIndex]
 
             // 텍스트 변경시 페이드 애니메이션
-            binding.tvLoadingMessage.alpha = 0f
-            binding.tvLoadingMessage.animate()
+            tvLoadingMessage.alpha = 0f
+            tvLoadingMessage.animate()
                 .alpha(1f)
                 .setDuration(300)
                 .start()
@@ -102,14 +114,16 @@ class LoadingActivity : AppCompatActivity() {
     private fun finishLoading() {
         // 완료 후 잠시 대기
         handler.postDelayed({
-            // 홈 화면으로 이동
-            val intent = Intent(this, HomeActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            startActivity(intent)
+            if (!isFinishing) {
+                // 홈 화면으로 이동
+                val intent = Intent(this, HomeActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                startActivity(intent)
 
-            // 페이드 아웃 효과
-            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
-            finish()
+                // 페이드 아웃 효과
+                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+                finish()
+            }
         }, 500)
     }
 
@@ -119,6 +133,7 @@ class LoadingActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
+        super.onBackPressed()
         // 로딩 중에는 뒤로가기 비활성화
     }
 }

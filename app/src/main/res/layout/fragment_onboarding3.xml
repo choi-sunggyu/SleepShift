@@ -14,7 +14,7 @@
 
         <ImageView
             android:id="@+id/onboardingImage"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="0dp"
             android:src="@drawable/onboarding3"
             android:scaleType="centerCrop"
@@ -74,7 +74,7 @@
 
         <!-- 서브 텍스트 -->
         <TextView
-            android:text="Dozee와 함께하면, 매일 아침이 더 기분좋게 시작해집니다."
+            android:text="Dozeo와 함께라면, 매일 아침이 더 가볍고 상쾌해집니다."
             android:textSize="16sp"
             android:textColor="@color/text_secondary"
             android:lineSpacingExtra="2dp"

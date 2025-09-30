@@ -14,7 +14,7 @@
 
         <ImageView
             android:id="@+id/onboardingImage"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="0dp"
             android:src="@drawable/onboarding1"
             android:scaleType="centerCrop"
@@ -93,6 +93,9 @@
             android:id="@+id/btnNext"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?android:attr/selectableItemBackground"
             app:cardBackgroundColor="@color/button_primary"
             app:cardCornerRadius="12dp"
             app:cardElevation="4dp">
@@ -100,15 +103,12 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="?android:attr/selectableItemBackground"
-                android:clickable="true"
-                android:focusable="true"
+                android:fontFamily="sans-serif-medium"
                 android:gravity="center"
                 android:paddingVertical="16dp"
                 android:text="다음"
                 android:textColor="@color/text_white"
-                android:textSize="18sp"
-                android:fontFamily="sans-serif-medium" />
+                android:textSize="18sp" />
         </androidx.cardview.widget.CardView>
 
     </LinearLayout>

@@ -137,8 +137,9 @@ class SurveyActivity : AppCompatActivity() {
             repo.saveSettings(settings)
             repo.saveProgress(progress)
 
-            // 로딩 화면으로 이동
-            val intent = Intent(this@SurveyActivity, LoadingActivity::class.java)
+            // 홈 화면으로 바로 이동 (수정된 부분)
+            val intent = Intent(this@SurveyActivity, HomeActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             startActivity(intent)
             finish()
         }

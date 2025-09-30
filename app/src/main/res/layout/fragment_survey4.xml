@@ -99,7 +99,7 @@
         android:text="다음"
         android:textSize="18sp"
         android:textColor="@color/text_white"
-        android:background="@color/button_primary"
+        android:background="@drawable/button_prim"
         android:fontFamily="sans-serif-medium" />
 
 </LinearLayout>

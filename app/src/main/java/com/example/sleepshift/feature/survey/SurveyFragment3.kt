@@ -13,6 +13,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 class SurveyFragment3 : Fragment() {
 
     private var selectedSleepDuration: Int = 8 * 60 // 8시간 (분)
+    private var btnSelectTime: Button? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -28,14 +29,14 @@ class SurveyFragment3 : Fragment() {
     }
 
     private fun setupViews(view: View) {
-        val btnSelectTime = view.findViewById<Button>(R.id.btnSelectTime)
+        btnSelectTime = view.findViewById(R.id.btnSelectTime)
         val btnNext = view.findViewById<Button>(R.id.btnNext)
 
         // 초기 버튼 텍스트 설정
-        updateButtonText(btnSelectTime)
+        updateButtonText()
 
         // 시간 선택 버튼
-        btnSelectTime.setOnClickListener {
+        btnSelectTime?.setOnClickListener {
             showDurationPicker()
         }
 
@@ -46,14 +47,14 @@ class SurveyFragment3 : Fragment() {
         }
     }
 
-    private fun updateButtonText(button: Button) {
-        button.text = minutesToHHmm(selectedSleepDuration)
+    private fun updateButtonText() {
+        btnSelectTime?.text = minutesToHHmm(selectedSleepDuration)
     }
 
     private fun showDurationPicker() {
-        val view = layoutInflater.inflate(R.layout.dialog_duration_picker, null)
-        val npH = view.findViewById<NumberPicker>(R.id.npHours)
-        val npM = view.findViewById<NumberPicker>(R.id.npMinutes)
+        val dialogView = layoutInflater.inflate(R.layout.dialog_duration_picker, null)
+        val npH = dialogView.findViewById<NumberPicker>(R.id.npHours)
+        val npM = dialogView.findViewById<NumberPicker>(R.id.npMinutes)
 
         val initialHours = selectedSleepDuration / 60
         val initialMinutes = selectedSleepDuration % 60
@@ -73,12 +74,13 @@ class SurveyFragment3 : Fragment() {
 
         MaterialAlertDialogBuilder(requireContext())
             .setTitle("목표 수면 시간")
-            .setView(view)
+            .setView(dialogView)
             .setPositiveButton("확인") { dlg, _ ->
                 val h = npH.value
                 val m = if (npM.value == 1) 30 else 0
                 selectedSleepDuration = h * 60 + m
-                updateButtonText(view.rootView.findViewById(R.id.btnSelectTime))
+                updateButtonText() // 수정: Fragment의 버튼 참조
+                updateActivityData()
                 dlg.dismiss()
             }
             .setNegativeButton("취소") { dlg, _ -> dlg.dismiss() }

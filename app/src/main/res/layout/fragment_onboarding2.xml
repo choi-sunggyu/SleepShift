@@ -14,7 +14,7 @@
 
         <ImageView
             android:id="@+id/onboardingImage"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="0dp"
             android:src="@drawable/onboarding2"
             android:scaleType="centerCrop"
@@ -68,13 +68,13 @@
             android:layout_marginBottom="16dp"
             android:fontFamily="sans-serif-medium"
             android:lineSpacingExtra="4dp"
-            android:text="Dozee가 나에게 꼭 맞는 취침\n루틴을 추천해 드려요"
+            android:text="Dozeo가 나에게 꼭 맞는 취침\n루틴을 추천해 드려요"
             android:textColor="@color/text_primary"
             android:textSize="24sp" />
 
         <!-- 서브 텍스트 -->
         <TextView
-            android:text="개인 상황과 목표에 맞게 수면 습관을 설계해드려요"
+            android:text="개인 성향과 목표에 맞춰 수면 습관을 설계합니다"
             android:textSize="16sp"
             android:textColor="@color/text_secondary"
             android:lineSpacingExtra="2dp"

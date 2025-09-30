@@ -16,6 +16,7 @@ class SurveyFragment4 : Fragment() {
 
     private val hhmm: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     private var selectedWakeTime: LocalTime = LocalTime.of(7, 0)
+    private var btnSelectTime: Button? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -31,14 +32,14 @@ class SurveyFragment4 : Fragment() {
     }
 
     private fun setupViews(view: View) {
-        val btnSelectTime = view.findViewById<Button>(R.id.btnSelectTime)
+        btnSelectTime = view.findViewById(R.id.btnSelectTime)
         val btnNext = view.findViewById<Button>(R.id.btnNext)
 
         // 초기 버튼 텍스트 설정
-        updateButtonText(btnSelectTime)
+        updateButtonText()
 
         // 시간 선택 버튼
-        btnSelectTime.setOnClickListener {
+        btnSelectTime?.setOnClickListener {
             showTimePicker()
         }
 
@@ -49,8 +50,8 @@ class SurveyFragment4 : Fragment() {
         }
     }
 
-    private fun updateButtonText(button: Button) {
-        button.text = selectedWakeTime.format(hhmm)
+    private fun updateButtonText() {
+        btnSelectTime?.text = selectedWakeTime.format(hhmm)
     }
 
     private fun showTimePicker() {
@@ -63,7 +64,8 @@ class SurveyFragment4 : Fragment() {
 
         picker.addOnPositiveButtonClickListener {
             selectedWakeTime = LocalTime.of(picker.hour, picker.minute)
-            updateButtonText(view?.findViewById(R.id.btnSelectTime) ?: return@addOnPositiveButtonClickListener)
+            updateButtonText() // 수정: Fragment의 버튼 참조
+            updateActivityData()
         }
 
         picker.show(parentFragmentManager, "wake_time_picker")

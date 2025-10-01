@@ -69,4 +69,7 @@ dependencies {
 
     // MediaPlayer
     implementation("androidx.media:media:1.7.0")  // 최신 버전으로 업데이트
+
+    implementation("androidx.cardview:cardview:1.0.0")
+    implementation("androidx.viewpager2:viewpager2:1.0.0")
 }

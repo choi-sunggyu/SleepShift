@@ -9,9 +9,9 @@
     <ScrollView
         android:id="@+id/scrollView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
         android:layout_above="@+id/bottomSection"
-        android:layout_marginBottom="20dp">
+        android:layout_alignParentTop="true">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -124,7 +124,8 @@
             <!-- 오늘의 기분 섹션 -->
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
-                android:layout_height="300dp"
+                android:layout_height="wrap_content"
+                android:minHeight="280dp"
                 app:cardBackgroundColor="#F0F0F0"
                 app:cardCornerRadius="20dp"
                 app:cardElevation="0dp"
@@ -132,7 +133,7 @@
 
                 <RelativeLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
+                    android:layout_height="wrap_content"
                     android:padding="24dp">
 
                     <!-- 오늘의 기분 제목 -->
@@ -188,6 +189,7 @@
                         android:layout_below="@id/tvSelectedMood"
                         android:layout_centerHorizontal="true"
                         android:layout_marginTop="12dp"
+                        android:layout_marginBottom="16dp"
                         android:orientation="horizontal" />
 
                 </RelativeLayout>
@@ -200,7 +202,7 @@
                 app:cardBackgroundColor="#FFFFFF"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="2dp"
-                android:layout_marginBottom="24dp">
+                android:layout_marginBottom="8dp">
 
                 <RelativeLayout
                     android:id="@+id/alarmTimeSection"
@@ -228,19 +230,17 @@
                         android:layout_centerVertical="true"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content" />
-
-
                 </RelativeLayout>
             </androidx.cardview.widget.CardView>
 
             <TextView
                 android:layout_width="wrap_content"
-                android:layout_height="18dp"
-                android:layout_below="@id/tvAlarmTime"
-                android:layout_alignParentEnd="true"
+                android:layout_height="wrap_content"
                 android:text="알람 변경시 곰젤리 2개가 소요됩니다"
                 android:textColor="#A0AEC0"
-                android:textSize="12sp" />
+                android:textSize="12sp"
+                android:layout_marginStart="4dp"
+                android:layout_marginBottom="16dp" />
         </LinearLayout>
     </ScrollView>
 
@@ -262,7 +262,7 @@
             android:gravity="center">
 
             <androidx.cardview.widget.CardView
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardCornerRadius="28dp"
                 app:cardElevation="4dp"
@@ -270,7 +270,7 @@
 
                 <LinearLayout
                     android:id="@+id/btnSleepCheckIn"
-                    android:layout_width="364dp"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:background="?android:attr/selectableItemBackground"
                     android:gravity="center"
@@ -278,19 +278,21 @@
                     android:paddingHorizontal="32dp"
                     android:paddingVertical="16dp">
 
-                    <!-- 발바닥 코인 아이콘 -->
-
+                    <!-- 수면 체크인 텍스트 -->
                     <TextView
-                        android:layout_width="158dp"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:fontFamily="sans-serif-medium"
                         android:text="수면 체크인"
                         android:textColor="#000000"
-                        android:textSize="30sp" />
+                        android:textSize="24sp"
+                        android:gravity="center" />
 
+                    <!-- 발바닥 코인 아이콘 -->
                     <ImageView
-                        android:layout_width="70dp"
-                        android:layout_height="70dp"
+                        android:layout_width="60dp"
+                        android:layout_height="60dp"
                         android:layout_gravity="center"
                         android:src="@drawable/ic_paw_coin" />
 

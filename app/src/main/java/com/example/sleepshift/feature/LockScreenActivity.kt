@@ -77,8 +77,11 @@ class LockScreenActivity : AppCompatActivity() {
         // 발바닥 코인 개수 표시
         updateCoinDisplay()
 
-        // 알람 시간 표시
-        val alarmTime = sharedPreferences.getString("today_alarm_time", "07:00")
+        // 알람 시간 표시 - 수정된 부분
+        val alarmHour = sharedPreferences.getInt("alarm_hour", 7)
+        val alarmMinute = sharedPreferences.getInt("alarm_minute", 0)
+        val alarmTime = String.format("%02d:%02d", alarmHour, alarmMinute)
+
         val wakeTimeText = findViewById<TextView>(R.id.tvWakeTimeMessage)
         wakeTimeText?.text = "${alarmTime}에 깨워드릴게요"
 
@@ -101,12 +104,12 @@ class LockScreenActivity : AppCompatActivity() {
         if (currentCoins < UNLOCK_COST) {
             // 코인 부족시 버튼 비활성화
             btnUnlock.alpha = 0.5f
-            tvUnlockHint.text = "코인이 부족합니다 (${UNLOCK_COST}개 필요)"
+            tvUnlockHint.text = "곰젤리 (${UNLOCK_COST}개 필요)"
             btnUnlock.isEnabled = false
         } else {
             // 코인 충분시 버튼 활성화
             btnUnlock.alpha = 1.0f
-            tvUnlockHint.text = "해제를 원하시면 3초간 누르세요 (코인 ${UNLOCK_COST}개 사용)"
+            tvUnlockHint.text = "해제를 원하시면 3초간 누르세요"
             btnUnlock.isEnabled = true
         }
     }
@@ -198,8 +201,6 @@ class LockScreenActivity : AppCompatActivity() {
             .scaleY(1.0f)
             .setDuration(200)
             .start()
-
-        Toast.makeText(this, "잠금 해제가 취소되었습니다", Toast.LENGTH_SHORT).show()
     }
 
     private fun updateLockIcon(countdown: Int) {
@@ -286,6 +287,7 @@ class LockScreenActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
+        super.onBackPressed()
         // 뒤로가기 버튼 비활성화 (잠금 화면이므로)
         val currentCoins = getCurrentCoins()
         if (currentCoins < UNLOCK_COST) {

@@ -167,7 +167,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:gravity="center"
-                            android:text="Su"
+                            android:text="Sun"
                             android:textColor="#718096"
                             android:textSize="12sp" />
 
@@ -176,7 +176,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:gravity="center"
-                            android:text="Mo"
+                            android:text="Mon"
                             android:textColor="#718096"
                             android:textSize="12sp" />
 
@@ -185,7 +185,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:gravity="center"
-                            android:text="Tu"
+                            android:text="Tue"
                             android:textColor="#718096"
                             android:textSize="12sp" />
 
@@ -194,7 +194,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:gravity="center"
-                            android:text="We"
+                            android:text="Wed"
                             android:textColor="#718096"
                             android:textSize="12sp" />
 
@@ -203,7 +203,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:gravity="center"
-                            android:text="Th"
+                            android:text="Thu"
                             android:textColor="#718096"
                             android:textSize="12sp" />
 
@@ -212,7 +212,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:gravity="center"
-                            android:text="F"
+                            android:text="Fri"
                             android:textColor="#718096"
                             android:textSize="12sp" />
 
@@ -221,7 +221,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:gravity="center"
-                            android:text="Sa"
+                            android:text="Sat"
                             android:textColor="#718096"
                             android:textSize="12sp" />
                     </LinearLayout>
@@ -299,7 +299,7 @@
 
             <!-- 홈 버튼 -->
             <androidx.cardview.widget.CardView
-                android:layout_width="76dp"
+                android:layout_width="80dp"
                 android:layout_height="match_parent"
                 app:cardBackgroundColor="#FFFFFF"
                 app:cardCornerRadius="16dp"

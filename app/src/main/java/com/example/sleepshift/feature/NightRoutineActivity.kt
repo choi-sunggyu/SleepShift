@@ -156,15 +156,14 @@ class NightRoutineActivity : AppCompatActivity() {
         val currentMinute = sharedPreferences.getInt("alarm_minute", 0)
 
         TimePickerDialog(this, { _, hour, minute ->
-            // 오늘 밤 알람 시간 저장
+            // 알람 시간 저장 - 수정된 부분
             sharedPreferences.edit()
-                .putInt("tonight_alarm_hour", hour)
-                .putInt("tonight_alarm_minute", minute)
-                .putBoolean("tonight_custom_alarm", true)
+                .putInt("alarm_hour", hour)
+                .putInt("alarm_minute", minute)
                 .apply()
 
             tvAlarmTime.text = String.format("%02d:%02d", hour, minute)
-            Toast.makeText(this, "오늘 밤 알람: ${String.format("%02d:%02d", hour, minute)}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "알람 시간: ${String.format("%02d:%02d", hour, minute)}", Toast.LENGTH_SHORT).show()
         }, currentHour, currentMinute, true).show()
     }
 

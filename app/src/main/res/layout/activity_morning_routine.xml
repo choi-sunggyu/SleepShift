@@ -84,7 +84,7 @@
     <!-- 루틴 리스트 -->
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
         android:layout_below="@id/headerSection"
         android:layout_above="@id/bottomSection">
 
@@ -113,17 +113,18 @@
 
                     <!-- 아이콘 -->
                     <androidx.cardview.widget.CardView
-                        android:layout_width="100dp"
-                        android:layout_height="100dp"
+                        android:layout_width="80dp"
+                        android:layout_height="80dp"
                         app:cardCornerRadius="16dp"
                         app:cardElevation="0dp"
                         app:cardBackgroundColor="#E0E7FF">
 
                         <ImageView
-                            android:layout_width="100dp"
-                            android:layout_height="100dp"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
                             android:layout_gravity="center"
                             android:scaleType="centerInside"
+                            android:padding="16dp"
                             android:src="@drawable/ic_water" />
                     </androidx.cardview.widget.CardView>
 
@@ -183,17 +184,18 @@
                     android:gravity="center_vertical">
 
                     <androidx.cardview.widget.CardView
-                        android:layout_width="100dp"
-                        android:layout_height="100dp"
+                        android:layout_width="80dp"
+                        android:layout_height="80dp"
                         app:cardCornerRadius="16dp"
                         app:cardElevation="0dp"
                         app:cardBackgroundColor="#FEF3C7">
 
                         <ImageView
-                            android:layout_width="100dp"
-                            android:layout_height="100dp"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
                             android:layout_gravity="center"
                             android:src="@drawable/ic_sun"
+                            android:padding="16dp"
                             android:scaleType="centerInside" />
                     </androidx.cardview.widget.CardView>
 
@@ -252,17 +254,18 @@
                     android:gravity="center_vertical">
 
                     <androidx.cardview.widget.CardView
-                        android:layout_width="100dp"
-                        android:layout_height="100dp"
+                        android:layout_width="80dp"
+                        android:layout_height="80dp"
                         app:cardCornerRadius="16dp"
                         app:cardElevation="0dp"
                         app:cardBackgroundColor="#DDD6FE">
 
                         <ImageView
-                            android:layout_width="100dp"
-                            android:layout_height="100dp"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
                             android:layout_gravity="center"
                             android:src="@drawable/ic_notebook"
+                            android:padding="16dp"
                             android:scaleType="centerInside" />
                     </androidx.cardview.widget.CardView>
 

@@ -177,13 +177,6 @@ class NightRoutineActivity : AppCompatActivity() {
             .putLong("sleep_checkin_time", System.currentTimeMillis())
             .apply()
 
-        // 코인 지급
-        val currentCoins = sharedPreferences.getInt("paw_coin_count", 130)
-        sharedPreferences.edit()
-            .putInt("paw_coin_count", currentCoins + 10)
-            .apply()
-
-        Toast.makeText(this, "수면 체크인 완료! +10 코인", Toast.LENGTH_SHORT).show()
 
         // 잠금 화면으로 이동
         val intent = Intent(this, LockScreenActivity::class.java)

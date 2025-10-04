@@ -2,11 +2,13 @@ package com.example.sleepshift.feature
 
 import android.app.TimePickerDialog
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.widget.RadioButton
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.sleepshift.databinding.ActivitySettingsBinding
+import com.example.sleepshift.feature.onboarding.OnboardingActivity
 import com.example.sleepshift.util.DailyAlarmManager
 
 class SettingsActivity : AppCompatActivity() {
@@ -140,6 +142,11 @@ class SettingsActivity : AppCompatActivity() {
         binding.btnSetTargetWakeTime.setOnClickListener {
             showTimePicker("target_wake_time", binding.tvTargetWakeTime)
         }
+
+        // 초기화 버튼
+        binding.btnReset.setOnClickListener {
+            showResetConfirmDialog()
+        }
     }
 
     private fun showTimePicker(key: String, displayTextView: android.widget.TextView) {
@@ -168,5 +175,49 @@ class SettingsActivity : AppCompatActivity() {
             minute,
             true
         ).show()
+    }
+
+    /**
+     * 초기화 확인 다이얼로그
+     */
+    private fun showResetConfirmDialog() {
+        android.app.AlertDialog.Builder(this)
+            .setTitle("앱 초기화")
+            .setMessage(
+                "정말 초기화하시겠습니까?\n\n" +
+                        "다음 데이터가 모두 삭제됩니다:\n" +
+                        "• 사용자 정보\n" +
+                        "• 수면 기록\n" +
+                        "• 알람 설정\n" +
+                        "• 발바닥 코인\n\n" +
+                        "이 작업은 되돌릴 수 없습니다."
+            )
+            .setPositiveButton("초기화") { dialog, _ ->
+                resetApp()
+                dialog.dismiss()
+            }
+            .setNegativeButton("취소") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .setCancelable(true)
+            .show()
+    }
+
+    /**
+     * 앱 데이터 초기화 및 온보딩으로 이동
+     */
+    private fun resetApp() {
+        // SharedPreferences 완전 삭제
+        sharedPreferences.edit().clear().apply()
+
+        android.util.Log.d("SettingsActivity", "앱 데이터 초기화 완료")
+
+        Toast.makeText(this, "초기화되었습니다. 온보딩을 시작합니다.", Toast.LENGTH_SHORT).show()
+
+        // 온보딩으로 이동
+        val intent = Intent(this, OnboardingActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        finish()
     }
 }

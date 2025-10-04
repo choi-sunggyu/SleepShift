@@ -90,6 +90,8 @@ class SurveyFragment3 : Fragment() {
     private fun updateActivityData() {
         val surveyActivity = activity as? SurveyActivity
         surveyActivity?.goalSleepDuration = selectedSleepDuration
+
+        android.util.Log.d("SurveyFragment3", "목표 수면시간: $selectedSleepDuration 분 (${minutesToHHmm(selectedSleepDuration)})")
     }
 
     private fun minutesToHHmm(min: Int): String = "%02d:%02d".format(min / 60, min % 60)

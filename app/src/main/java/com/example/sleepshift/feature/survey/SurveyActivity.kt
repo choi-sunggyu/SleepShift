@@ -78,54 +78,53 @@ class SurveyActivity : AppCompatActivity() {
     }
 
     private fun finishSurvey() {
-        android.util.Log.d("SurveyActivity", "finishSurvey called")
-
-        // ⭐ 이름 유효성 체크
-        if (userName.isEmpty()) {
-            Toast.makeText(this, "이름을 입력해주세요", Toast.LENGTH_SHORT).show()
-            viewPager.currentItem = 0  // 첫 페이지로 돌아가기
-            return
-        }
-
         lifecycleScope.launch {
             val repo = SleepRepository(this@SurveyActivity)
             val targetBedtime = goalWakeTime.minusMinutes(goalSleepDuration.toLong())
 
-            // SharedPreferences 변수 선언
             val sharedPref = getSharedPreferences("SleepShiftPrefs", MODE_PRIVATE)
 
-            // SharedPreferences 저장
             with(sharedPref.edit()) {
-                // ⭐ 사용자 이름 저장
                 putString("user_name", userName)
 
-                // 알고리즘 관련 데이터
-                putString("survey_average_bedtime", avgBedTime.format(hhmm))
-                putString("survey_desired_wake_time", goalWakeTime.format(hhmm))
-                putInt("survey_min_sleep_minutes", goalSleepDuration)
-                putString("survey_target_wake_time", goalWakeTime.format(hhmm))
+                // ⭐ 키 수정 (survey_ 접두사 제거)
+                putString("avg_bedtime", avgBedTime.format(hhmm))  // "02:00"
+                putString("target_wake_time", goalWakeTime.format(hhmm))  // "06:30"
+                putInt("min_sleep_minutes", goalSleepDuration)  // 420
 
                 // 앱 시작 날짜
                 putLong("app_install_date", System.currentTimeMillis())
 
                 // 설문 완료 플래그
                 putBoolean("survey_completed", true)
-
-                // 알람 활성화
                 putBoolean("alarm_enabled", true)
 
-                // 코인 초기화 (10개로 시작)
+                // 코인 초기화
                 putInt("paw_coin_count", 10)
                 putBoolean("is_first_run", false)
 
                 apply()
             }
 
-            android.util.Log.d("SurveyActivity", "설문 완료 플래그 저장됨: survey_completed = true")
-            android.util.Log.d("SurveyActivity", "초기 코인 10개 설정됨")
-            android.util.Log.d("SurveyActivity", "사용자 이름 저장됨: $userName")
+            // ⭐ 저장 직후 다시 읽어서 확인
+            val savedBedtime = sharedPref.getString("avg_bedtime", "없음")
+            val savedWakeTime = sharedPref.getString("target_wake_time", "없음")
+            val savedSleepMinutes = sharedPref.getInt("min_sleep_minutes", -1)
 
-            // SplashActivity의 헬퍼 메소드 사용
+
+            android.util.Log.d("SurveyActivity", """
+                === 저장 직후 확인 ===
+                입력값:
+                  avgBedTime: ${avgBedTime.format(hhmm)}
+                  goalWakeTime: ${goalWakeTime.format(hhmm)}
+                  goalSleepDuration: $goalSleepDuration
+                
+                저장된 값 확인:
+                  avg_bedtime: $savedBedtime
+                  target_wake_time: $savedWakeTime
+                  min_sleep_minutes: $savedSleepMinutes
+            """.trimIndent())
+
             SplashActivity.markSurveyCompleted(this@SurveyActivity)
 
             // 첫 번째 알람 설정
@@ -163,7 +162,6 @@ class SurveyActivity : AppCompatActivity() {
             repo.saveSettings(settings)
             repo.saveProgress(progress)
 
-            // HomeActivity로 이동
             val intent = Intent(this@SurveyActivity, HomeActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             startActivity(intent)

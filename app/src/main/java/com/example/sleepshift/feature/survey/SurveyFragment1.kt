@@ -74,6 +74,11 @@ class SurveyFragment1 : Fragment() {
         val surveyActivity = activity as? SurveyActivity
         surveyActivity?.avgBedTime = selectedBedTime
         surveyActivity?.avgWakeTime = selectedWakeTime
+
+        android.util.Log.d("SurveyFragment1", """
+            avgBedTime: ${selectedBedTime.format(hhmm)}
+            avgWakeTime: ${selectedWakeTime.format(hhmm)}
+        """.trimIndent())
     }
 
     private fun showTimePicker(initialTime: LocalTime, onTimeSelected: (Int, Int) -> Unit) {

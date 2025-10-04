@@ -74,5 +74,7 @@ class SurveyFragment4 : Fragment() {
     private fun updateActivityData() {
         val surveyActivity = activity as? SurveyActivity
         surveyActivity?.goalWakeTime = selectedWakeTime
+
+        android.util.Log.d("SurveyFragment4", "목표 기상시간: ${selectedWakeTime.format(hhmm)}")
     }
 }

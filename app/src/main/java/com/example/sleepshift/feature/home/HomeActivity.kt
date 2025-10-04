@@ -75,18 +75,22 @@ class HomeActivity : AppCompatActivity() {
     private fun setupDailyAlarm() {
         val surveyCompleted = sharedPreferences.getBoolean("survey_completed", false)
 
+        // ⭐ 저장된 값 확인
+        val avgBedtime = sharedPreferences.getString("avg_bedtime", "없음")
+        val targetWakeTime = sharedPreferences.getString("target_wake_time", "없음")
+        val minSleepMinutes = sharedPreferences.getInt("min_sleep_minutes", -1)
+
+        android.util.Log.d("HomeActivity", """
+            === HomeActivity에서 읽은 값 ===
+            survey_completed: $surveyCompleted
+            avg_bedtime: $avgBedtime
+            target_wake_time: $targetWakeTime
+            min_sleep_minutes: $minSleepMinutes
+        """.trimIndent())
+
         if (surveyCompleted) {
             val currentDay = getCurrentDay()
-            android.util.Log.d("HomeActivity", "Day $currentDay 알람 설정 시작")
-
-            try {
-                alarmManager.updateDailyAlarm(currentDay)
-                android.util.Log.d("HomeActivity", "알람 설정 완료")
-            } catch (e: Exception) {
-                android.util.Log.e("HomeActivity", "알람 설정 실패: ${e.message}")
-            }
-        } else {
-            android.util.Log.d("HomeActivity", "설문조사 미완료 - 알람 설정 생략")
+            alarmManager.updateDailyAlarm(currentDay)
         }
     }
 

@@ -71,7 +71,7 @@ class LockScreenActivity : AppCompatActivity() {
 
     private fun setupUI() {
         // 사용자 이름 표시
-        val userName = sharedPreferences.getString("user_name", "성규")
+        val userName = sharedPreferences.getString("user_name", "사용자")
         tvGoodNightMessage.text = "${userName}님 잘자요!"
 
         // 발바닥 코인 개수 표시

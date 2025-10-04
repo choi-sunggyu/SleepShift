@@ -119,6 +119,7 @@
                 android:minHeight="350dp"
                 android:layout_marginBottom="24dp"
                 app:cardCornerRadius="20dp"
+                app:cardBackgroundColor="#FFFFFF"
                 app:cardElevation="0dp">
 
                 <RelativeLayout
@@ -128,11 +129,11 @@
                     android:minHeight="350dp"
                     android:padding="16dp">
 
-                    <!-- 팬더 이미지와 폰 -->
+                    <!-- 팬더 이미지 -->
                     <ImageView
                         android:id="@+id/imgPanda"
-                        android:layout_width="333dp"
-                        android:layout_height="356dp"
+                        android:layout_width="346dp"
+                        android:layout_height="377dp"
                         android:layout_centerInParent="true"
                         android:adjustViewBounds="true"
                         android:maxWidth="280dp"

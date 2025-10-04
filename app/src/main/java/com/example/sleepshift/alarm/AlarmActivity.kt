@@ -70,8 +70,8 @@ class AlarmActivity : AppCompatActivity() {
 
     private fun setupUI() {
         val userName = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
-            .getString("user_name", "성규") ?: "성규"
-        binding.tvGoodNightMessage.text = "${userName}님\n좋은 아침 입니다 !"
+            .getString("user_name", "사용자") ?: "사용자"
+        binding.tvGoodMorningMessage.text = "${userName}님\n좋은 아침 입니다 !"
 
         val coinReward = calculateCoinReward()
         binding.tvCoinCount.text = coinReward.toString()
@@ -238,7 +238,7 @@ class AlarmActivity : AppCompatActivity() {
         // 알람 해제 성공 메시지
         val message = "알람 해제 완료!\n모닝 루틴을 시작합니다"
 
-        binding.tvGoodNightMessage.text = message
+        binding.tvGoodMorningMessage.text = message
         binding.bottomSection.visibility = android.view.View.GONE
 
         // 1초 후 모닝 루틴 화면으로 이동

@@ -1,5 +1,6 @@
 package com.example.sleepshift.feature
 
+import android.content.Context
 import android.os.Bundle
 import android.view.Gravity
 import android.widget.*
@@ -17,10 +18,14 @@ class ReportActivity : AppCompatActivity() {
     private lateinit var btnGoToBed: LinearLayout
     private lateinit var btnSettings: ImageView
 
+    // ⭐ 변수명 변경
+    private lateinit var tvPawCoinCount: TextView
+    private lateinit var sharedPreferences: android.content.SharedPreferences
+
     private val calendar = Calendar.getInstance()
     private val today = Calendar.getInstance()
 
-    // 수면 데이터 (예시용 - 실제로는 데이터베이스에서 가져와야 함)
+    // 수면 데이터
     private val sleepData = mutableMapOf<String, SleepInfo>()
 
     data class SleepInfo(
@@ -37,10 +42,16 @@ class ReportActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_report)
 
+        // SharedPreferences 초기화
+        sharedPreferences = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
+
         initViews()
         setupClickListeners()
         initSampleData()
         updateCalendar()
+
+        // 코인 개수 표시
+        updateCoinCount()
     }
 
     private fun initViews() {
@@ -49,6 +60,19 @@ class ReportActivity : AppCompatActivity() {
         btnHome = findViewById(R.id.btnHome)
         btnGoToBed = findViewById(R.id.btnGoToBed)
         btnSettings = findViewById(R.id.btnSettings)
+
+        // ⭐ 올바른 ID로 변경
+        tvPawCoinCount = findViewById(R.id.tvPawCoinCount)
+    }
+
+    /**
+     * 코인 개수 업데이트
+     */
+    private fun updateCoinCount() {
+        val coinCount = sharedPreferences.getInt("paw_coin_count", 10)
+        tvPawCoinCount.text = coinCount.toString()
+
+        android.util.Log.d("ReportActivity", "코인 개수: $coinCount")
     }
 
     private fun setupClickListeners() {
@@ -58,21 +82,23 @@ class ReportActivity : AppCompatActivity() {
 
         btnGoToBed.setOnClickListener {
             // 자러가기 기능
-            // TODO: 취침 모드 구현
+            val intent = android.content.Intent(this, NightRoutineActivity::class.java)
+            startActivity(intent)
         }
 
         btnSettings.setOnClickListener {
             // 설정 화면으로 이동
-            // TODO: SettingsActivity 구현
+            val intent = android.content.Intent(this, SettingsActivity::class.java)
+            startActivity(intent)
         }
     }
 
+    // ... 나머지 코드는 동일 ...
+
     private fun initSampleData() {
-        // 샘플 수면 데이터 생성
         val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val cal = Calendar.getInstance()
 
-        // 이번 달의 몇 일에 대한 샘플 데이터
         for (i in 1..31) {
             cal.set(Calendar.DAY_OF_MONTH, i)
             val dateKey = sdf.format(cal.time)
@@ -86,29 +112,21 @@ class ReportActivity : AppCompatActivity() {
     }
 
     private fun updateCalendar() {
-        // 월/년도 표시 업데이트
         val monthFormat = SimpleDateFormat("yyyy년 M월", Locale.getDefault())
         tvMonthYear.text = monthFormat.format(calendar.time)
 
-        // 달력 그리드 초기화
         calendarGrid.removeAllViews()
 
-        // 이번 달의 첫 번째 날로 설정
         val firstDayOfMonth = calendar.clone() as Calendar
         firstDayOfMonth.set(Calendar.DAY_OF_MONTH, 1)
 
-        // 첫 번째 날의 요일 (일요일 = 1)
         val firstDayOfWeek = firstDayOfMonth.get(Calendar.DAY_OF_WEEK) - 1
-
-        // 이번 달의 마지막 날
         val lastDayOfMonth = firstDayOfMonth.getActualMaximum(Calendar.DAY_OF_MONTH)
 
-        // 빈 공간 추가 (첫 주의 앞쪽)
         for (i in 0 until firstDayOfWeek) {
             addEmptyDayView()
         }
 
-        // 날짜 추가
         for (day in 1..lastDayOfMonth) {
             addDayView(day)
         }
@@ -135,10 +153,8 @@ class ReportActivity : AppCompatActivity() {
             layoutParams.setMargins(dpToPx(2), dpToPx(2), dpToPx(2), dpToPx(2))
             this.layoutParams = layoutParams
 
-            // 배경 설정
             background = ContextCompat.getDrawable(this@ReportActivity, R.drawable.calendar_day_background)
 
-            // 클릭 가능하게 설정
             isClickable = true
             isFocusable = true
             setOnClickListener {
@@ -146,14 +162,12 @@ class ReportActivity : AppCompatActivity() {
             }
         }
 
-        // 날짜 텍스트
         val dayText = TextView(this).apply {
             text = day.toString()
             textSize = 14f
             gravity = Gravity.CENTER
             setTextColor(ContextCompat.getColor(this@ReportActivity, R.color.text_primary))
 
-            // 오늘 날짜인지 확인
             if (isToday(day)) {
                 background = ContextCompat.getDrawable(this@ReportActivity, R.drawable.calendar_day_today)
                 setTextColor(ContextCompat.getColor(this@ReportActivity, R.color.button_primary))
@@ -162,7 +176,6 @@ class ReportActivity : AppCompatActivity() {
 
         dayContainer.addView(dayText)
 
-        // 수면 데이터가 있으면 표시
         val dateKey = getDateKey(day)
         sleepData[dateKey]?.let { sleepInfo ->
             addSleepIndicators(dayContainer, sleepInfo)
@@ -183,7 +196,6 @@ class ReportActivity : AppCompatActivity() {
             this.layoutParams = layoutParams
         }
 
-        // 취침 시간 표시
         val bedtimeIndicator = android.view.View(this).apply {
             val layoutParams = LinearLayout.LayoutParams(dpToPx(6), dpToPx(6))
             layoutParams.marginEnd = dpToPx(2)
@@ -191,7 +203,6 @@ class ReportActivity : AppCompatActivity() {
             background = ContextCompat.getDrawable(this@ReportActivity, R.drawable.sleep_indicator_blue)
         }
 
-        // 기상 시간 표시
         val waketimeIndicator = android.view.View(this).apply {
             val layoutParams = LinearLayout.LayoutParams(dpToPx(6), dpToPx(6))
             this.layoutParams = layoutParams
@@ -212,10 +223,8 @@ class ReportActivity : AppCompatActivity() {
         val sleepInfo = sleepData[dateKey]
 
         if (sleepInfo != null) {
-            // 수면 데이터가 있으면 상세 정보 표시
             showSleepDetail(day, sleepInfo)
         } else {
-            // 수면 데이터가 없으면 기본 메시지
             Toast.makeText(this, "${day}일에는 수면 데이터가 없습니다.", Toast.LENGTH_SHORT).show()
         }
     }
@@ -248,5 +257,10 @@ class ReportActivity : AppCompatActivity() {
 
     private fun dpToPx(dp: Int): Int {
         return (dp * resources.displayMetrics.density).toInt()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateCoinCount()
     }
 }

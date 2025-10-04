@@ -9,9 +9,9 @@
     <ScrollView
         android:id="@+id/scrollView"
         android:layout_width="match_parent"
-        android:layout_height="555dp"
+        android:layout_height="0dp"
         android:layout_above="@+id/bottomSection"
-        android:layout_marginBottom="50dp">
+        android:layout_alignParentTop="true">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -19,7 +19,7 @@
             android:orientation="vertical"
             android:padding="24dp">
 
-            <!-- 상단 헤더 (메인 화면과 동일) -->
+            <!-- 상단 헤더 -->
             <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -49,7 +49,7 @@
                         android:textSize="14sp" />
                 </LinearLayout>
 
-                <!-- 우상단 아이콘들 (메인 화면과 동일) -->
+                <!-- 우상단 아이콘들 -->
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -74,7 +74,7 @@
                             android:paddingStart="20dp"
                             android:paddingEnd="20dp">
 
-                            <!-- 발바닥 코인 원형 배경 -->
+                            <!-- 발바닥 코인 아이콘 -->
                             <ImageView
                                 android:id="@+id/imgPawCoin"
                                 android:layout_width="50dp"
@@ -87,7 +87,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:fontFamily="sans-serif-bold"
-                                android:text="130"
+                                android:text="10"
                                 android:textColor="#2D3748"
                                 android:textSize="18sp" />
                         </LinearLayout>
@@ -112,7 +112,7 @@
                 </LinearLayout>
             </RelativeLayout>
 
-            <!-- 달력 섹션 (팬더 카드 대신 달력) -->
+            <!-- 달력 섹션 (팬더 카드와 동일한 스타일) -->
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -242,15 +242,18 @@
         </LinearLayout>
     </ScrollView>
 
-    <!-- 하단 섹션 (메인 화면과 동일) -->
+    <!-- 하단 섹션 -->
     <LinearLayout
         android:id="@+id/bottomSection"
         android:layout_width="match_parent"
-        android:layout_height="161dp"
+        android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:background="@drawable/bottom_section_background"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="20dp"
+        android:paddingBottom="20dp">
 
         <!-- 버튼 섹션 -->
         <LinearLayout
@@ -289,7 +292,6 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
                         android:fontFamily="sans-serif"
                         android:text="Go to bed"
                         android:textColor="#718096"
@@ -300,7 +302,7 @@
             <!-- 홈 버튼 -->
             <androidx.cardview.widget.CardView
                 android:layout_width="80dp"
-                android:layout_height="match_parent"
+                android:layout_height="80dp"
                 app:cardBackgroundColor="#FFFFFF"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="2dp">
@@ -311,6 +313,7 @@
                     android:layout_height="match_parent"
                     android:layout_gravity="center"
                     android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:padding="16dp"
                     android:src="@drawable/ic_home" />
             </androidx.cardview.widget.CardView>
         </LinearLayout>

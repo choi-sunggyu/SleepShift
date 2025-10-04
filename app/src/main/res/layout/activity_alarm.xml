@@ -16,7 +16,7 @@
 
         <!-- 성규님 잘자요! -->
         <TextView
-            android:id="@+id/tvGoodNightMessage"
+            android:id="@+id/tvGoodMorningMessage"
             android:text="성규님 \n좋은 아침 입니다 !"
             android:textSize="28sp"
             android:textColor="#FFFFFF"

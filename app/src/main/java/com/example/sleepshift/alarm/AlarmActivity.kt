@@ -8,6 +8,7 @@ import android.os.CountDownTimer
 import android.os.Handler
 import android.os.Looper
 import android.os.Vibrator
+import android.util.Log
 import android.view.MotionEvent
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
@@ -250,8 +251,9 @@ class AlarmActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
+        super.onBackPressed()
         // 뒤로 가기 버튼 비활성화
-        android.util.Log.d("AlarmActivity", "뒤로가기 버튼 무시됨 - 알람을 해제해야 합니다")
+        Log.d("AlarmActivity", "뒤로가기 버튼 무시됨 - 알람을 해제해야 합니다")
     }
 
     override fun onDestroy() {

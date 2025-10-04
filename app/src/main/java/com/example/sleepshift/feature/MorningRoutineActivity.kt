@@ -13,12 +13,14 @@ import com.example.sleepshift.R
 import com.example.sleepshift.databinding.ActivityMorningRoutineBinding
 import com.example.sleepshift.feature.home.HomeActivity
 import com.example.sleepshift.util.ConsecutiveSuccessManager
+import java.util.*
 
 class MorningRoutineActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMorningRoutineBinding
     private lateinit var consecutiveSuccessManager: ConsecutiveSuccessManager
     private var countDownTimer: CountDownTimer? = null
+    private lateinit var sharedPreferences: android.content.SharedPreferences
 
     // 루틴 완료 상태
     private val routineCompleted = mutableMapOf(
@@ -38,7 +40,19 @@ class MorningRoutineActivity : AppCompatActivity() {
         binding = ActivityMorningRoutineBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        sharedPreferences = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
         consecutiveSuccessManager = ConsecutiveSuccessManager(this)
+
+        // ⭐ 새로운 뒤로가기 처리 방식
+        onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                // 뒤로가기 비활성화
+                Toast.makeText(this@MorningRoutineActivity, "모닝 루틴을 완료해주세요!", Toast.LENGTH_SHORT).show()
+            }
+        })
+
+        // 저장된 미션 상태 불러오기
+        loadRoutineStatus()
 
         setupUI()
         setupRoutineCards()
@@ -46,66 +60,184 @@ class MorningRoutineActivity : AppCompatActivity() {
         startTimer()
     }
 
+    /**
+     * ⭐ 오늘 날짜의 미션 완료 상태 불러오기
+     */
+    private fun loadRoutineStatus() {
+        val today = getTodayDateString()
+        val savedDate = sharedPreferences.getString("routine_date", "")
+
+        // 날짜가 바뀌었으면 미션 초기화
+        if (savedDate != today) {
+            resetRoutines()
+            sharedPreferences.edit().putString("routine_date", today).apply()
+            android.util.Log.d("MorningRoutine", "새로운 날 - 미션 초기화")
+        } else {
+            // 오늘 날짜면 저장된 상태 불러오기
+            routineCompleted[1] = sharedPreferences.getBoolean("routine_1_completed", false)
+            routineCompleted[2] = sharedPreferences.getBoolean("routine_2_completed", false)
+            routineCompleted[3] = sharedPreferences.getBoolean("routine_3_completed", false)
+
+            // UI 업데이트
+            if (routineCompleted[1] == true) updateRoutineUI(1, binding.routineCard1, binding.tvRoutine1Status, true)
+            if (routineCompleted[2] == true) updateRoutineUI(2, binding.routineCard2, binding.tvRoutine2Status, true)
+            if (routineCompleted[3] == true) updateRoutineUI(3, binding.routineCard3, binding.tvRoutine3Status, true)
+
+            android.util.Log.d("MorningRoutine", "미션 상태 불러옴: ${routineCompleted.values.count { it }}/3 완료")
+        }
+    }
+
+    /**
+     * ⭐ 미션 상태 초기화
+     */
+    private fun resetRoutines() {
+        routineCompleted[1] = false
+        routineCompleted[2] = false
+        routineCompleted[3] = false
+
+        sharedPreferences.edit().apply {
+            putBoolean("routine_1_completed", false)
+            putBoolean("routine_2_completed", false)
+            putBoolean("routine_3_completed", false)
+            apply()
+        }
+    }
+
+    /**
+     * ⭐ 오늘 날짜 문자열 반환
+     */
+    private fun getTodayDateString(): String {
+        val calendar = Calendar.getInstance()
+        return "${calendar.get(Calendar.YEAR)}-${calendar.get(Calendar.MONTH)+1}-${calendar.get(Calendar.DAY_OF_MONTH)}"
+    }
+
     private fun setupUI() {
-        // 코인 개수 표시
-        val coinCount = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
-            .getInt("paw_coin_count", 130)
+        // 코인 개수 표시 (10개 기본값으로 수정)
+        val coinCount = sharedPreferences.getInt("paw_coin_count", 10)
         binding.tvCoinCount.text = coinCount.toString()
 
         // 설정 버튼
         binding.btnSettings.setOnClickListener {
-            // 설정 화면으로 이동 (필요시)
+            val intent = Intent(this, SettingsActivity::class.java)
+            startActivity(intent)
         }
     }
 
     private fun setupRoutineCards() {
         // 루틴 1: 물 한 잔 마시기
-        binding.routineCard1.setOnClickListener {
-            toggleRoutine(1, binding.routineCard1, binding.tvRoutine1Status)
+        binding.tvRoutine1Status.setOnClickListener {
+            completeRoutine(1, binding.routineCard1, binding.tvRoutine1Status)
         }
 
         // 루틴 2: 햇빛 보기
-        binding.routineCard2.setOnClickListener {
-            toggleRoutine(2, binding.routineCard2, binding.tvRoutine2Status)
+        binding.tvRoutine2Status.setOnClickListener {
+            completeRoutine(2, binding.routineCard2, binding.tvRoutine2Status)
         }
 
         // 루틴 3: 오늘 꿈 쓰기
-        binding.routineCard3.setOnClickListener {
-            toggleRoutine(3, binding.routineCard3, binding.tvRoutine3Status)
+        binding.tvRoutine3Status.setOnClickListener {
+            completeRoutine(3, binding.routineCard3, binding.tvRoutine3Status)
         }
     }
 
-    private fun toggleRoutine(routineId: Int, card: CardView, statusText: android.widget.TextView) {
+    /**
+     * ⭐ 미션 완료 처리 (한 번 완료하면 취소 불가)
+     */
+    private fun completeRoutine(routineId: Int, card: CardView, statusButton: android.widget.Button) {
         val isCompleted = routineCompleted[routineId] ?: false
 
-        if (!isCompleted) {
-            // 완료 처리
-            routineCompleted[routineId] = true
-            card.setCardBackgroundColor(getColor(R.color.routine_completed_bg))
-            statusText.text = "완료!"
-            statusText.setTextColor(getColor(R.color.routine_completed_text))
+        if (isCompleted) {
+            // 이미 완료된 미션은 클릭해도 반응 없음
+            Toast.makeText(this, "이미 완료한 루틴입니다", Toast.LENGTH_SHORT).show()
+            return
+        }
 
-            // 체크 애니메이션
-            card.animate()
-                .scaleX(0.95f)
-                .scaleY(0.95f)
-                .setDuration(100)
+        // ⭐ 완료 처리
+        routineCompleted[routineId] = true
+
+        // ⭐ SharedPreferences에 저장
+        sharedPreferences.edit()
+            .putBoolean("routine_${routineId}_completed", true)
+            .apply()
+
+        // UI 업데이트
+        updateRoutineUI(routineId, card, statusButton, true)
+
+        // 완료 애니메이션
+        card.animate()
+            .scaleX(1.05f)
+            .scaleY(1.05f)
+            .setDuration(150)
+            .withEndAction {
+                card.animate()
+                    .scaleX(1.0f)
+                    .scaleY(1.0f)
+                    .setDuration(150)
+                    .start()
+            }
+            .start()
+
+        // 완료 메시지
+        val routineNames = mapOf(
+            1 to "물 한 잔 마시기",
+            2 to "햇빛 보기",
+            3 to "오늘 꿈 쓰기"
+        )
+        Toast.makeText(this, "✓ ${routineNames[routineId]} 완료!", Toast.LENGTH_SHORT).show()
+
+        // 모든 미션 완료 체크
+        checkAllRoutinesCompleted()
+    }
+
+    /**
+     * ⭐ 미션 UI 업데이트
+     */
+    private fun updateRoutineUI(
+        routineId: Int,
+        card: CardView,
+        statusButton: android.widget.Button,
+        isCompleted: Boolean
+    ) {
+        if (isCompleted) {
+            // 완료 상태
+            card.setCardBackgroundColor(getColor(R.color.routine_completed_bg))
+            statusButton.text = "✓ 완료"
+            statusButton.setTextColor(getColor(R.color.routine_completed_text))
+            statusButton.setBackgroundColor(getColor(android.R.color.transparent))
+        } else {
+            // 미완료 상태
+            card.setCardBackgroundColor(getColor(android.R.color.white))
+            statusButton.text = "터치!"
+            statusButton.setTextColor(getColor(R.color.routine_incomplete_text))
+        }
+    }
+
+    /**
+     * ⭐ 모든 미션 완료 시 자동 안내
+     */
+    private fun checkAllRoutinesCompleted() {
+        val allCompleted = routineCompleted.values.all { it }
+
+        if (allCompleted) {
+            Toast.makeText(
+                this,
+                "🎉 모든 루틴 완료! 이제 잠금 해제할 수 있습니다",
+                Toast.LENGTH_LONG
+            ).show()
+
+            // 잠금 해제 버튼 강조 애니메이션
+            binding.btnUnlock.animate()
+                .scaleX(1.1f)
+                .scaleY(1.1f)
+                .setDuration(300)
                 .withEndAction {
-                    card.animate()
+                    binding.btnUnlock.animate()
                         .scaleX(1.0f)
                         .scaleY(1.0f)
-                        .setDuration(100)
+                        .setDuration(300)
                         .start()
                 }
                 .start()
-
-            Toast.makeText(this, "루틴 완료!", Toast.LENGTH_SHORT).show()
-        } else {
-            // 완료 취소
-            routineCompleted[routineId] = false
-            card.setCardBackgroundColor(getColor(android.R.color.white))
-            statusText.text = "터치시"
-            statusText.setTextColor(getColor(R.color.routine_incomplete_text))
         }
     }
 
@@ -231,12 +363,6 @@ class MorningRoutineActivity : AppCompatActivity() {
             startActivity(intent)
             finish()
         }, 2000)
-    }
-
-    override fun onBackPressed() {
-        super.onBackPressed()
-        // 뒤로가기 비활성화
-        Toast.makeText(this, "모닝 루틴을 완료해주세요!", Toast.LENGTH_SHORT).show()
     }
 
     override fun onDestroy() {

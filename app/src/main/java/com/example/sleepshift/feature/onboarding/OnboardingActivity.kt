@@ -1,5 +1,6 @@
 package com.example.sleepshift.feature.onboarding
 
+import com.example.sleepshift.SplashActivity
 import com.example.sleepshift.feature.home.HomeActivity
 import com.example.sleepshift.feature.survey.SurveyActivity
 import android.content.Intent
@@ -34,7 +35,6 @@ class OnboardingActivity : AppCompatActivity() {
         viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 super.onPageSelected(position)
-                // 현재 페이지 로그로 확인
                 android.util.Log.d("OnboardingActivity", "Current page: $position")
             }
         })
@@ -62,22 +62,25 @@ class OnboardingActivity : AppCompatActivity() {
     fun finishOnboarding() {
         android.util.Log.d("OnboardingActivity", "finishOnboarding called")
 
-        // SharedPreferences에 온보딩 완료 표시
-        val sharedPref = getSharedPreferences("app_prefs", MODE_PRIVATE)
-        with(sharedPref.edit()) {
-            putBoolean("onboarding_completed", true)
-            apply()
-        }
+        // ⭐⭐⭐ SplashActivity의 헬퍼 메소드 사용 (올바른 SharedPreferences에 저장)
+        SplashActivity.markOnboardingCompleted(this)
+        android.util.Log.d("OnboardingActivity", "온보딩 완료 플래그 저장됨")
 
-        // 설문조사 완료 여부 확인
+        // 설문조사 완료 여부 확인 (올바른 SharedPreferences 사용)
+        val sharedPref = getSharedPreferences("SleepShiftPrefs", MODE_PRIVATE)
         val surveyCompleted = sharedPref.getBoolean("survey_completed", false)
 
+        android.util.Log.d("OnboardingActivity", "설문조사 완료 여부: $surveyCompleted")
+
         val intent = if (surveyCompleted) {
+            // 설문조사까지 완료된 경우 (거의 없음)
             Intent(this, HomeActivity::class.java)
         } else {
-            Intent(this, SurveyActivity::class.java)  // InitSurveyActivity → SurveyActivity로 변경
+            // 일반적으로 설문조사로 이동
+            Intent(this, SurveyActivity::class.java)
         }
 
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         finish()
     }

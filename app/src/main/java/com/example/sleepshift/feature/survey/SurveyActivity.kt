@@ -13,7 +13,7 @@ import com.example.sleepshift.data.SleepProgress
 import com.example.sleepshift.feature.LoadingActivity
 import com.example.sleepshift.feature.home.HomeActivity
 import com.example.sleepshift.util.KstTime
-import com.example.sleepshift.util.DailyAlarmManager // 새로 추가
+import com.example.sleepshift.util.DailyAlarmManager
 import kotlinx.coroutines.launch
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -81,10 +81,10 @@ class SurveyActivity : AppCompatActivity() {
             val repo = SleepRepository(this@SurveyActivity)
             val targetBedtime = goalWakeTime.minusMinutes(goalSleepDuration.toLong())
 
-            // SharedPreferences 변수 선언 추가
+            // SharedPreferences 변수 선언
             val sharedPref = getSharedPreferences("SleepShiftPrefs", MODE_PRIVATE)
 
-            // SharedPreferences 저장 (올바른 플래그 사용)
+            // SharedPreferences 저장
             with(sharedPref.edit()) {
                 // 알고리즘 관련 데이터
                 putString("survey_average_bedtime", avgBedTime.format(hhmm))
@@ -95,21 +95,33 @@ class SurveyActivity : AppCompatActivity() {
                 // 앱 시작 날짜
                 putLong("app_install_date", System.currentTimeMillis())
 
-                // 설문 완료 플래그
+                // ⭐ 설문 완료 플래그 (가장 중요!)
                 putBoolean("survey_completed", true)
 
                 // 알람 활성화
                 putBoolean("alarm_enabled", true)
 
+                // ⭐⭐⭐ 코인 초기화 (10개로 시작)
+                putInt("paw_coin_count", 10)
+                putBoolean("is_first_run", false)
+
                 apply()
             }
+
+            android.util.Log.d("SurveyActivity", "설문 완료 플래그 저장됨: survey_completed = true")
+            android.util.Log.d("SurveyActivity", "초기 코인 10개 설정됨")
 
             // SplashActivity의 헬퍼 메소드 사용
             SplashActivity.markSurveyCompleted(this@SurveyActivity)
 
-            // 첫 번째 알람 시간 계산 및 설정
-            val alarmManager = DailyAlarmManager(this@SurveyActivity)
-            alarmManager.updateDailyAlarm(1)
+            // ⭐ 첫 번째 알람 설정
+            try {
+                val alarmManager = DailyAlarmManager(this@SurveyActivity)
+                alarmManager.updateDailyAlarm(1)
+                android.util.Log.d("SurveyActivity", "Day 1 알람 설정 완료")
+            } catch (e: Exception) {
+                android.util.Log.e("SurveyActivity", "알람 설정 실패: ${e.message}")
+            }
 
             // 기존 Room DB 저장
             var scheduled = avgBedTime.minusMinutes(20)
@@ -137,7 +149,7 @@ class SurveyActivity : AppCompatActivity() {
             repo.saveSettings(settings)
             repo.saveProgress(progress)
 
-            // 홈 화면으로 바로 이동 (수정된 부분)
+            // HomeActivity로 이동
             val intent = Intent(this@SurveyActivity, HomeActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             startActivity(intent)

@@ -7,12 +7,17 @@ import android.animation.ObjectAnimator
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
+import android.provider.Settings
 import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
 import androidx.appcompat.app.AppCompatActivity
+import com.example.sleepshift.util.DailyAlarmManager  // ⭐ 경로 수정
 import com.example.sleepshift.databinding.ActivityHomeBinding
 import com.example.sleepshift.feature.NightRoutineActivity
 import com.example.sleepshift.feature.ReportActivity
@@ -29,14 +34,26 @@ class HomeActivity : AppCompatActivity() {
     private val floatingHandler = Handler(Looper.getMainLooper())
     private var floatingRunnable: Runnable? = null
     private val progressDots = mutableListOf<android.view.View>()
+    private lateinit var alarmManager: DailyAlarmManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // SharedPreferences 초기화
+        // SharedPreferences 초기화 (먼저 해야 함)
         sharedPreferences = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
+
+        // 알람 매니저 초기화
+        alarmManager = DailyAlarmManager(this)
+
+        // 알람 권한 체크
+        if (!alarmManager.checkExactAlarmPermission()) {
+            alarmManager.checkAndRequestExactAlarmPermission()
+        }
+
+        // 배터리 최적화 해제 요청
+        requestIgnoreBatteryOptimization()
 
         // 연속 성공 매니저 초기화
         consecutiveSuccessManager = ConsecutiveSuccessManager(this)
@@ -46,6 +63,9 @@ class HomeActivity : AppCompatActivity() {
             setAppInstallDate()
         }
 
+        // ⭐ 코인 초기화 (앱 최초 실행 시 10개)
+        initializePawCoins()
+
         setupProgressDots()
         setupClickListeners()
         updateUI()
@@ -53,6 +73,64 @@ class HomeActivity : AppCompatActivity() {
 
         // 일일 체크
         checkDailyProgress()
+
+        // ⭐⭐⭐ 매일 알람 설정 (가장 중요!)
+        setupDailyAlarm()
+    }
+
+    /**
+     * ⭐ 매일 알람 설정 - 핵심 코드!
+     */
+    private fun setupDailyAlarm() {
+        val surveyCompleted = sharedPreferences.getBoolean("survey_completed", false)
+
+        if (surveyCompleted) {
+            val currentDay = getCurrentDay()
+            android.util.Log.d("HomeActivity", "Day $currentDay 알람 설정 시작")
+
+            try {
+                alarmManager.updateDailyAlarm(currentDay)
+                android.util.Log.d("HomeActivity", "알람 설정 완료")
+            } catch (e: Exception) {
+                android.util.Log.e("HomeActivity", "알람 설정 실패: ${e.message}")
+            }
+        } else {
+            android.util.Log.d("HomeActivity", "설문조사 미완료 - 알람 설정 생략")
+        }
+    }
+
+    /**
+     * ⭐ 코인 초기화 (최초 실행 시 10개)
+     */
+    private fun initializePawCoins() {
+        val isFirstRun = sharedPreferences.getBoolean("is_first_run", true)
+
+        if (isFirstRun) {
+            with(sharedPreferences.edit()) {
+                putInt("paw_coin_count", 10)  // ⭐ 초기값 10개
+                putBoolean("is_first_run", false)
+                apply()
+            }
+            android.util.Log.d("HomeActivity", "초기 코인 10개 설정됨")
+        }
+    }
+
+    private fun requestIgnoreBatteryOptimization() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+            val packageName = packageName
+
+            if (!powerManager.isIgnoringBatteryOptimizations(packageName)) {
+                try {
+                    val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                        data = Uri.parse("package:$packageName")
+                    }
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    android.util.Log.e("HomeActivity", "배터리 최적화 해제 요청 실패: ${e.message}")
+                }
+            }
+        }
     }
 
     private fun setupProgressDots() {
@@ -107,9 +185,16 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun updateBedtime() {
-        // 현재 설정된 취침 시간을 가져와서 표시
-        val bedtime = getCurrentBedtime()
-        binding.tvBedtime.text = bedtime
+        // 오늘의 알람 시간 표시 (설문조사 완료 후)
+        val todayAlarmTime = sharedPreferences.getString("today_alarm_time", null)
+
+        if (todayAlarmTime != null) {
+            binding.tvBedtime.text = todayAlarmTime
+        } else {
+            // 설문조사 미완료 시 기본 취침시간 표시
+            val bedtime = getCurrentBedtime()
+            binding.tvBedtime.text = bedtime
+        }
     }
 
     private fun updatePawCoinCount() {
@@ -153,6 +238,9 @@ class HomeActivity : AppCompatActivity() {
                 putString("last_daily_check", today)
                 apply()
             }
+
+            // ⭐ 날짜가 바뀌면 새로운 알람 설정
+            setupDailyAlarm()
         }
 
         // 오늘의 진행 상황 체크
@@ -307,7 +395,7 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun getPawCoinCount(): Int {
-        return sharedPreferences.getInt("paw_coin_count", 130)
+        return sharedPreferences.getInt("paw_coin_count", 10)  // ⭐ 기본값 10으로 수정
     }
 
     fun addPawCoins(amount: Int) {

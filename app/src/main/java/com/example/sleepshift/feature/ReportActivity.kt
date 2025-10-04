@@ -17,15 +17,13 @@ class ReportActivity : AppCompatActivity() {
     private lateinit var btnHome: ImageView
     private lateinit var btnGoToBed: LinearLayout
     private lateinit var btnSettings: ImageView
-
-    // ⭐ 변수명 변경
     private lateinit var tvPawCoinCount: TextView
+    private lateinit var tvDayCount: TextView  // ⭐ 추가
     private lateinit var sharedPreferences: android.content.SharedPreferences
 
     private val calendar = Calendar.getInstance()
     private val today = Calendar.getInstance()
 
-    // 수면 데이터
     private val sleepData = mutableMapOf<String, SleepInfo>()
 
     data class SleepInfo(
@@ -42,7 +40,6 @@ class ReportActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_report)
 
-        // SharedPreferences 초기화
         sharedPreferences = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
 
         initViews()
@@ -50,7 +47,8 @@ class ReportActivity : AppCompatActivity() {
         initSampleData()
         updateCalendar()
 
-        // 코인 개수 표시
+        // ⭐ UI 업데이트
+        updateDayCount()
         updateCoinCount()
     }
 
@@ -60,14 +58,34 @@ class ReportActivity : AppCompatActivity() {
         btnHome = findViewById(R.id.btnHome)
         btnGoToBed = findViewById(R.id.btnGoToBed)
         btnSettings = findViewById(R.id.btnSettings)
-
-        // ⭐ 올바른 ID로 변경
         tvPawCoinCount = findViewById(R.id.tvPawCoinCount)
+        tvDayCount = findViewById(R.id.tvDayCount)  // ⭐ 추가
     }
 
     /**
-     * 코인 개수 업데이트
+     * ⭐ Day 카운트 업데이트 (HomeActivity와 동일)
      */
+    private fun updateDayCount() {
+        val currentDay = getCurrentDay()
+        tvDayCount.text = "Day $currentDay"
+
+        android.util.Log.d("ReportActivity", "현재 Day: $currentDay")
+    }
+
+    /**
+     * ⭐ 현재 Day 계산 (HomeActivity와 동일한 로직)
+     */
+    private fun getCurrentDay(): Int {
+        val installDate = sharedPreferences.getLong("app_install_date", System.currentTimeMillis())
+        val currentDate = System.currentTimeMillis()
+        val daysDiff = ((currentDate - installDate) / (24 * 60 * 60 * 1000)).toInt() + 1
+
+        return when {
+            daysDiff <= 0 -> 1
+            else -> daysDiff
+        }
+    }
+
     private fun updateCoinCount() {
         val coinCount = sharedPreferences.getInt("paw_coin_count", 10)
         tvPawCoinCount.text = coinCount.toString()
@@ -77,23 +95,19 @@ class ReportActivity : AppCompatActivity() {
 
     private fun setupClickListeners() {
         btnHome.setOnClickListener {
-            finish() // 메인 화면으로 돌아가기
+            finish()
         }
 
         btnGoToBed.setOnClickListener {
-            // 자러가기 기능
             val intent = android.content.Intent(this, NightRoutineActivity::class.java)
             startActivity(intent)
         }
 
         btnSettings.setOnClickListener {
-            // 설정 화면으로 이동
             val intent = android.content.Intent(this, SettingsActivity::class.java)
             startActivity(intent)
         }
     }
-
-    // ... 나머지 코드는 동일 ...
 
     private fun initSampleData() {
         val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
@@ -261,6 +275,7 @@ class ReportActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        updateDayCount()  // ⭐ 추가
         updateCoinCount()
     }
 }

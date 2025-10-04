@@ -69,13 +69,18 @@
         <activity
             android:name=".feature.ReportActivity"
             android:exported="false" />
+        <activity
+            android:name=".feature.MorningRoutineActivity"
+            android:exported="false" />
 
+        <!-- ⭐ AlarmReceiver - 취침 알림 액션 추가 -->
         <receiver android:name=".feature.alarm.AlarmReceiver"
             android:enabled="true"
             android:exported="true">
             <intent-filter android:priority="1000">
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="com.example.sleepshift.ALARM_TRIGGER" />
+                <action android:name="com.example.sleepshift.BEDTIME_NOTIFICATION" />
             </intent-filter>
         </receiver>
     </application>

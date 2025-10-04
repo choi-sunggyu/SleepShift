@@ -36,7 +36,7 @@
                         android:id="@+id/tvDayCount"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:fontFamily="sans-serif-medium"
+                        android:fontFamily="@font/maplestory_bold"
                         android:text="Day 1"
                         android:textColor="#2D3748"
                         android:textSize="28sp" />
@@ -45,6 +45,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Dozeo"
+                        android:fontFamily="@font/maplestory_bold"
                         android:textColor="#718096"
                         android:textSize="14sp" />
                 </LinearLayout>
@@ -86,7 +87,7 @@
                                 android:id="@+id/tvPawCoinCount"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:fontFamily="sans-serif-bold"
+                                android:fontFamily="@font/maplestory_bold"
                                 android:text="10"
                                 android:textColor="#2D3748"
                                 android:textSize="18sp" />
@@ -140,7 +141,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:fontFamily="sans-serif-medium"
+                            android:fontFamily="@font/maplestory_bold"
                             android:text="2024년 1월"
                             android:textColor="#2D3748"
                             android:textSize="18sp" />
@@ -152,6 +153,7 @@
                             android:padding="6dp"
                             android:text="SUN TU"
                             android:textColor="#6366F1"
+                            android:fontFamily="@font/maplestory_bold"
                             android:textSize="12sp" />
                     </LinearLayout>
 
@@ -169,6 +171,7 @@
                             android:gravity="center"
                             android:text="Sun"
                             android:textColor="#718096"
+                            android:fontFamily="@font/maplestory_bold"
                             android:textSize="12sp" />
 
                         <TextView
@@ -178,6 +181,7 @@
                             android:gravity="center"
                             android:text="Mon"
                             android:textColor="#718096"
+                            android:fontFamily="@font/maplestory_bold"
                             android:textSize="12sp" />
 
                         <TextView
@@ -187,6 +191,7 @@
                             android:gravity="center"
                             android:text="Tue"
                             android:textColor="#718096"
+                            android:fontFamily="@font/maplestory_bold"
                             android:textSize="12sp" />
 
                         <TextView
@@ -196,6 +201,7 @@
                             android:gravity="center"
                             android:text="Wed"
                             android:textColor="#718096"
+                            android:fontFamily="@font/maplestory_bold"
                             android:textSize="12sp" />
 
                         <TextView
@@ -205,6 +211,7 @@
                             android:gravity="center"
                             android:text="Thu"
                             android:textColor="#718096"
+                            android:fontFamily="@font/maplestory_bold"
                             android:textSize="12sp" />
 
                         <TextView
@@ -214,6 +221,7 @@
                             android:gravity="center"
                             android:text="Fri"
                             android:textColor="#718096"
+                            android:fontFamily="@font/maplestory_bold"
                             android:textSize="12sp" />
 
                         <TextView
@@ -223,6 +231,7 @@
                             android:gravity="center"
                             android:text="Sat"
                             android:textColor="#718096"
+                            android:fontFamily="@font/maplestory_bold"
                             android:textSize="12sp" />
                     </LinearLayout>
 
@@ -284,7 +293,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:fontFamily="sans-serif-medium"
+                        android:fontFamily="@font/maplestory_bold"
                         android:text="자러가기"
                         android:textColor="#2D3748"
                         android:textSize="20sp" />
@@ -292,9 +301,9 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:fontFamily="sans-serif"
                         android:text="Go to bed"
                         android:textColor="#718096"
+                        android:fontFamily="@font/maplestory_bold"
                         android:textSize="12sp" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>

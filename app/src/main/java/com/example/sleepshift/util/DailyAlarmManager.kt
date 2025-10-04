@@ -1,303 +1,298 @@
-// util/DailyAlarmManager.kt
 package com.example.sleepshift.util
 
 import android.app.AlarmManager
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.provider.Settings
 import android.os.Build
 import android.util.Log
 import com.example.sleepshift.feature.alarm.AlarmReceiver
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.*
-import kotlin.math.*
+import kotlin.math.min
 
 class DailyAlarmManager(private val context: Context) {
 
-    companion object {
-        const val MIN_SLEEP_MINUTES = 360 // 6시간
-        const val ADJUSTMENT_INTERVAL_MINUTES = 20 // 20분 단위 조정
-        const val MAX_DIFFERENCE_HOURS = 1 // 1시간 차이 임계값
-        private const val TAG = "DailyAlarmManager"
-    }
-
     private val sharedPreferences = context.getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
-    private val hhmm: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+    private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-    /**
-     * 정확한 알람 권한 체크 (Android 12+)
-     */
-    fun checkExactAlarmPermission(): Boolean {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            return alarmManager.canScheduleExactAlarms()
-        }
-        return true
+    companion object {
+        const val ADJUSTMENT_INTERVAL_MINUTES = 20
+        const val MAX_DIFFERENCE_HOURS = 1.0
+        const val DEFAULT_SLEEP_HOURS = 8
+        const val BEDTIME_NOTIFICATION_MINUTES = 10  // 취침 10분 전
+    }
+
+    init {
+        createNotificationChannel()
     }
 
     /**
-     * 매일 알람 시간 업데이트
+     * 알림 채널 생성 (Android 8.0 이상)
+     */
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channelId = "bedtime_notification_channel"
+            val channelName = "취침 알림"
+            val channelDescription = "취침 시간을 알려주는 알림입니다"
+            val importance = NotificationManager.IMPORTANCE_HIGH
+
+            val channel = NotificationChannel(channelId, channelName, importance).apply {
+                description = channelDescription
+                enableVibration(true)
+                setShowBadge(true)
+            }
+
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+    /**
+     * 현재 Day의 알람 업데이트
      */
     fun updateDailyAlarm(currentDay: Int) {
-        // 권한 체크
-        if (!checkExactAlarmPermission()) {
-            Log.e(TAG, "정확한 알람 권한이 없습니다!")
+        val avgBedtime = sharedPreferences.getString("avg_bedtime", "23:00") ?: "23:00"
+        val targetWakeTime = sharedPreferences.getString("target_wake_time", "07:00") ?: "07:00"
+        val minSleepMinutes = sharedPreferences.getInt("min_sleep_minutes", 360)
+        val isCustomMode = sharedPreferences.getBoolean("alarm_mode_custom", true)
+
+        // ⭐ 모드에 따라 알람 시간 계산
+        val todayAlarmTime = if (isCustomMode) {
+            // 커스텀 모드: 점진적 조정
+            calculateDailyAlarmTime(
+                currentDay = currentDay,
+                avgBedtime = parseTime(avgBedtime),
+                targetWakeTime = parseTime(targetWakeTime),
+                minSleepMinutes = minSleepMinutes
+            )
+        } else {
+            // 일반 모드: 바로 목표 시간 적용
+            parseTime(targetWakeTime)
+        }
+
+        val alarmTimeString = todayAlarmTime.format(DateTimeFormatter.ofPattern("HH:mm"))
+        sharedPreferences.edit()
+            .putString("today_alarm_time", alarmTimeString)
+            .putInt("current_day", currentDay)
+            .apply()
+
+        // 기상 알람 설정
+        setSystemAlarm(todayAlarmTime)
+
+        // ⭐ 취침 알림 설정
+        setBedtimeNotification(parseTime(avgBedtime))
+
+        val mode = if (isCustomMode) "커스텀 모드" else "일반 모드"
+        Log.d("DailyAlarmManager", """
+            ========== Day $currentDay 알람 계산 ($mode) ==========
+            평균 취침: $avgBedtime
+            목표 기상: $targetWakeTime
+            최소 수면: $minSleepMinutes
+            계산된 알람: $alarmTimeString
+            ==========================================
+        """.trimIndent())
+    }
+
+    /**
+     * ⭐ 취침 10분 전 알림 설정
+     */
+    private fun setBedtimeNotification(bedtime: LocalTime) {
+        val bedtimeNotificationEnabled = sharedPreferences.getBoolean("bedtime_notification_enabled", true)
+
+        if (!bedtimeNotificationEnabled) {
+            Log.d("DailyAlarmManager", "취침 알림 비활성화됨")
+            cancelBedtimeNotification()
             return
         }
 
-        // 설문 데이터 로드
-        val avgBedtimeStr = sharedPreferences.getString("survey_average_bedtime", "23:30") ?: "23:30"
-        val desiredWakeStr = sharedPreferences.getString("survey_desired_wake_time", "07:00") ?: "07:00"
-        val minSleepMinutes = sharedPreferences.getInt("survey_min_sleep_minutes", MIN_SLEEP_MINUTES)
-        val targetWakeStr = sharedPreferences.getString("survey_target_wake_time", "07:00") ?: "07:00"
+        // 취침 10분 전 시간 계산
+        val notificationTime = bedtime.minusMinutes(BEDTIME_NOTIFICATION_MINUTES.toLong())
 
-        // LocalTime으로 변환
-        val avgBedtime = LocalTime.parse(avgBedtimeStr, hhmm)
-        val desiredWakeTime = LocalTime.parse(desiredWakeStr, hhmm)
-        val targetWakeTime = LocalTime.parse(targetWakeStr, hhmm)
-
-        // 알람 시간 계산
-        val todayAlarmTime = calculateDailyAlarmTime(
-            avgBedtime, desiredWakeTime, minSleepMinutes, targetWakeTime, currentDay
-        )
-
-        // 계산된 시간 저장
-        val alarmTimeString = todayAlarmTime.format(hhmm)
-        with(sharedPreferences.edit()) {
-            putString("today_alarm_time", alarmTimeString)
-            putInt("current_day", currentDay)
-            apply()
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            action = "com.example.sleepshift.BEDTIME_NOTIFICATION"
         }
 
-        // 시스템 알람 설정
-        setSystemAlarm(todayAlarmTime)
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            2000,  // 다른 ID 사용
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
 
-        Log.d(TAG, "Day $currentDay: 알람 설정 완료 - $alarmTimeString")
+        // 오늘 또는 내일의 취침 알림 시간 설정
+        val calendar = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, notificationTime.hour)
+            set(Calendar.MINUTE, notificationTime.minute)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+
+            // 이미 지난 시간이면 내일로 설정
+            if (timeInMillis <= System.currentTimeMillis()) {
+                add(Calendar.DAY_OF_MONTH, 1)
+            }
+        }
+
+        alarmManager.setExactAndAllowWhileIdle(
+            AlarmManager.RTC_WAKEUP,
+            calendar.timeInMillis,
+            pendingIntent
+        )
+
+        Log.d("DailyAlarmManager", "취침 알림 설정 완료: ${calendar.time} (취침 10분 전)")
     }
 
+    /**
+     * 취침 알림 취소
+     */
+    private fun cancelBedtimeNotification() {
+        val intent = Intent(context, AlarmReceiver::class.java).apply {
+            action = "com.example.sleepshift.BEDTIME_NOTIFICATION"
+        }
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            2000,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        alarmManager.cancel(pendingIntent)
+        Log.d("DailyAlarmManager", "취침 알림 취소됨")
+    }
+
+    /**
+     * 알람 시간 계산 메인 로직 (커스텀 모드용)
+     */
     private fun calculateDailyAlarmTime(
+        currentDay: Int,
         avgBedtime: LocalTime,
-        desiredWakeTime: LocalTime,
-        minSleepMinutes: Int,
         targetWakeTime: LocalTime,
-        currentDay: Int
+        minSleepMinutes: Int
     ): LocalTime {
-
-        // 평균 취침시간 기준으로 현재 기상시간 계산 (평균 수면시간 8시간 가정)
-        val avgSleepDuration = 8 * 60 // 8시간
-        val currentWakeTime = avgBedtime.plusMinutes(avgSleepDuration.toLong())
-
-        // 목표와 현재의 차이 계산
+        val currentWakeTime = avgBedtime.plusMinutes((DEFAULT_SLEEP_HOURS * 60).toLong())
         val timeDifferenceMinutes = getTimeDifferenceMinutes(currentWakeTime, targetWakeTime)
         val timeDifferenceHours = timeDifferenceMinutes / 60.0
 
-        // 이미 목표에 도달했는지 확인
-        if (hasReachedTarget(currentDay)) {
-            return targetWakeTime
-        }
+        Log.d("DailyAlarmManager", """
+            현재 기상시간(추정): ${currentWakeTime.format(DateTimeFormatter.ofPattern("HH:mm"))}
+            목표 기상시간: ${targetWakeTime.format(DateTimeFormatter.ofPattern("HH:mm"))}
+            차이: ${timeDifferenceMinutes}분 (${String.format("%.1f", timeDifferenceHours)}시간)
+        """.trimIndent())
 
         return when {
-            // Case 1: 차이가 1시간보다 큰 경우 - 점진적 조정
             timeDifferenceHours > MAX_DIFFERENCE_HOURS -> {
-                calculateGradualAdjustment(currentWakeTime, targetWakeTime, avgBedtime, minSleepMinutes, currentDay)
+                val adjustedTime = calculateGradualAdjustment(
+                    currentDay = currentDay,
+                    currentWakeTime = currentWakeTime,
+                    targetWakeTime = targetWakeTime,
+                    avgBedtime = avgBedtime,
+                    minSleepMinutes = minSleepMinutes
+                )
+                Log.d("DailyAlarmManager", "케이스 1: 점진적 조정 (20분씩)")
+                adjustedTime
             }
-
-            // Case 2: 차이가 0~1시간 사이 - 목표 시간 사용
             timeDifferenceHours > 0 && timeDifferenceHours <= MAX_DIFFERENCE_HOURS -> {
+                Log.d("DailyAlarmManager", "케이스 2: 1시간 이내 - 바로 목표 적용")
                 targetWakeTime
             }
-
-            // Case 3: 목표가 현재보다 늦은 경우 - 즉시 적용
-            timeDifferenceHours <= 0 -> {
+            else -> {
+                Log.d("DailyAlarmManager", "케이스 3: 목표가 늦음 - 즉시 적용")
                 targetWakeTime
             }
-
-            else -> targetWakeTime
         }
     }
 
     private fun calculateGradualAdjustment(
+        currentDay: Int,
         currentWakeTime: LocalTime,
         targetWakeTime: LocalTime,
         avgBedtime: LocalTime,
-        minSleepMinutes: Int,
-        currentDay: Int
+        minSleepMinutes: Int
     ): LocalTime {
-
-        // 최소 수면시간 보장하는 최이른 기상시간
-        val earliestWakeTime = avgBedtime.plusMinutes(minSleepMinutes.toLong())
-
-        // 최소 수면시간 체크
-        if (targetWakeTime.isBefore(earliestWakeTime)) {
-            return earliestWakeTime
-        }
-
-        // 점진적 조정 계산
         val totalAdjustmentMinutes = getTimeDifferenceMinutes(currentWakeTime, targetWakeTime)
         val adjustmentSteps = (totalAdjustmentMinutes / ADJUSTMENT_INTERVAL_MINUTES.toDouble()).toInt()
 
-        // 현재 일차에 따른 조정량
-        val currentAdjustment = min(currentDay - 1, adjustmentSteps) * ADJUSTMENT_INTERVAL_MINUTES
-        val todayWakeTime = currentWakeTime.minusMinutes(currentAdjustment.toLong())
+        Log.d("DailyAlarmManager", """
+            총 조정 필요: ${totalAdjustmentMinutes}분
+            조정 단계: ${adjustmentSteps}단계 (20분 x ${adjustmentSteps})
+        """.trimIndent())
 
-        // 목표에 거의 도달했으면 목표 시간으로
-        return if (getTimeDifferenceMinutes(todayWakeTime, targetWakeTime) <= ADJUSTMENT_INTERVAL_MINUTES) {
-            markTargetReached()
-            targetWakeTime
-        } else {
-            todayWakeTime
+        val currentStep = min(currentDay - 1, adjustmentSteps)
+        val currentAdjustment = currentStep * ADJUSTMENT_INTERVAL_MINUTES
+        var todayWakeTime = currentWakeTime.minusMinutes(currentAdjustment.toLong())
+
+        Log.d("DailyAlarmManager", """
+            현재 단계: Day ${currentDay} = ${currentStep}단계
+            조정량: ${currentAdjustment}분
+            조정 전: ${currentWakeTime.format(DateTimeFormatter.ofPattern("HH:mm"))}
+            조정 후: ${todayWakeTime.format(DateTimeFormatter.ofPattern("HH:mm"))}
+        """.trimIndent())
+
+        val earliestWakeTime = avgBedtime.plusMinutes(minSleepMinutes.toLong())
+
+        if (todayWakeTime.isBefore(earliestWakeTime)) {
+            Log.d("DailyAlarmManager", "⚠️ 최소 수면시간 미달 - ${earliestWakeTime.format(DateTimeFormatter.ofPattern("HH:mm"))}로 조정")
+            todayWakeTime = earliestWakeTime
         }
-    }
 
-    private fun getTimeDifferenceMinutes(time1: LocalTime, time2: LocalTime): Int {
-        val minutes1 = time1.hour * 60 + time1.minute
-        val minutes2 = time2.hour * 60 + time2.minute
-
-        return if (minutes1 >= minutes2) {
-            minutes1 - minutes2
-        } else {
-            (24 * 60) - minutes2 + minutes1
+        if (getTimeDifferenceMinutes(todayWakeTime, targetWakeTime) <= ADJUSTMENT_INTERVAL_MINUTES) {
+            Log.d("DailyAlarmManager", "✅ 목표 도달 - 목표 시간으로 설정")
+            return targetWakeTime
         }
+
+        return todayWakeTime
     }
 
-    private fun hasReachedTarget(currentDay: Int): Boolean {
-        return sharedPreferences.getBoolean("target_reached", false)
-    }
+    private fun getTimeDifferenceMinutes(from: LocalTime, to: LocalTime): Int {
+        val fromMinutes = from.hour * 60 + from.minute
+        val toMinutes = to.hour * 60 + to.minute
 
-    private fun markTargetReached() {
-        with(sharedPreferences.edit()) {
-            putBoolean("target_reached", true)
-            apply()
+        return if (toMinutes < fromMinutes) {
+            (24 * 60 - fromMinutes) + toMinutes
+        } else {
+            toMinutes - fromMinutes
         }
     }
 
     private fun setSystemAlarm(alarmTime: LocalTime) {
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-
-        // AlarmReceiver로 보낼 Intent (⭐ ACTION 추가)
         val intent = Intent(context, AlarmReceiver::class.java).apply {
             action = "com.example.sleepshift.ALARM_TRIGGER"
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            1001,  // 고정된 REQUEST_CODE 사용
+            1000,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // 알람 시간 계산 (오늘 또는 내일)
         val calendar = Calendar.getInstance().apply {
+            add(Calendar.DAY_OF_MONTH, 1)
             set(Calendar.HOUR_OF_DAY, alarmTime.hour)
             set(Calendar.MINUTE, alarmTime.minute)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
-
-            // 현재 시간보다 이전이면 내일로 설정
-            if (timeInMillis <= System.currentTimeMillis()) {
-                add(Calendar.DAY_OF_MONTH, 1)
-                Log.d(TAG, "알람 시간이 지나서 내일로 설정")
-            } else {
-                Log.d(TAG, "오늘 알람 설정")
-            }
         }
 
-        // 기존 알람 취소 후 재설정
-        alarmManager.cancel(pendingIntent)
-
-        // Android 버전별 알람 설정
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    calendar.timeInMillis,
-                    pendingIntent
-                )
-                Log.d(TAG, "알람 설정 완료 (setExactAndAllowWhileIdle): ${calendar.time}")
-            } else {
-                alarmManager.setExact(
-                    AlarmManager.RTC_WAKEUP,
-                    calendar.timeInMillis,
-                    pendingIntent
-                )
-                Log.d(TAG, "알람 설정 완료 (setExact): ${calendar.time}")
-            }
-
-            // 알람 설정 확인용 로그
-            val nextAlarmInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                alarmManager.nextAlarmClock?.let {
-                    "다음 알람: ${Date(it.triggerTime)}"
-                } ?: "시스템 알람 정보 없음"
-            } else {
-                "시스템 알람 확인 불가 (API < 21)"
-            }
-            Log.d(TAG, nextAlarmInfo)
-
-        } catch (e: SecurityException) {
-            Log.e(TAG, "알람 설정 권한 오류: ${e.message}")
-        } catch (e: Exception) {
-            Log.e(TAG, "알람 설정 실패: ${e.message}")
-        }
-    }
-
-    /**
-     * 알람 취소
-     */
-    fun cancelAlarm() {
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent = Intent(context, AlarmReceiver::class.java).apply {
-            action = "com.example.sleepshift.ALARM_TRIGGER"
-        }
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            1001,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        alarmManager.setExactAndAllowWhileIdle(
+            AlarmManager.RTC_WAKEUP,
+            calendar.timeInMillis,
+            pendingIntent
         )
 
-        alarmManager.cancel(pendingIntent)
-        Log.d(TAG, "알람 취소됨")
+        Log.d("DailyAlarmManager", "기상 알람 설정 완료: ${calendar.time}")
     }
 
-    /**
-     * 정확한 알람 권한 체크 및 요청 (Android 12+)
-     * @return 권한이 있으면 true, 없으면 설정 화면 띄우고 false 반환
-     */
-    fun checkAndRequestExactAlarmPermission(): Boolean {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-
-            if (!alarmManager.canScheduleExactAlarms()) {
-                // 권한이 없으면 설정 화면으로 이동
-                try {
-                    val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    }
-                    context.startActivity(intent)
-
-                    Log.d(TAG, "정확한 알람 권한 요청 화면 표시")
-
-                    // Toast로 사용자에게 안내
-                    android.widget.Toast.makeText(
-                        context,
-                        "정확한 시간에 알람을 울리려면 권한이 필요합니다",
-                        android.widget.Toast.LENGTH_LONG
-                    ).show()
-
-                    return false
-                } catch (e: Exception) {
-                    Log.e(TAG, "권한 요청 화면 열기 실패: ${e.message}")
-                    return false
-                }
-            }
-
-            Log.d(TAG, "정확한 알람 권한 있음")
-            return true
+    private fun parseTime(timeString: String): LocalTime {
+        return try {
+            LocalTime.parse(timeString, DateTimeFormatter.ofPattern("HH:mm"))
+        } catch (e: Exception) {
+            Log.e("DailyAlarmManager", "시간 파싱 실패: $timeString, 기본값 사용")
+            LocalTime.of(7, 0)
         }
-
-        // Android 12 미만은 권한 불필요
-        return true
     }
 }

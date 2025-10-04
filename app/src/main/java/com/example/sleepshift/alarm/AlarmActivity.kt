@@ -187,18 +187,11 @@ class AlarmActivity : AppCompatActivity() {
         stopAlarmSounds()
         vibrator?.cancel()
 
-        // 알람 해제 기록 (연속 성공 체크용)
-        consecutiveSuccessManager.recordAlarmDismissed()
-
-        // 발바닥 코인 보상 지급
-        val coinReward = calculateCoinReward()
-        addPawCoins(coinReward)
-
         // 다음 날 알람 설정
         scheduleNextAlarm()
 
         // 성공 애니메이션 표시 후 홈으로 이동
-        showSuccessAnimation()
+        goToMorningRoutine()
     }
 
     private fun stopAlarmSounds() {
@@ -232,16 +225,9 @@ class AlarmActivity : AppCompatActivity() {
         alarmManager.updateDailyAlarm(currentDay + 1)
     }
 
-    private fun showSuccessAnimation() {
-        val currentStreak = consecutiveSuccessManager.getCurrentStreak()
+    //모닝 루틴으로 이동
+    private fun goToMorningRoutine() {
 
-        // 알람 해제 성공 메시지
-        val message = "알람 해제 완료!\n모닝 루틴을 시작합니다"
-
-        binding.tvGoodMorningMessage.text = message
-        binding.bottomSection.visibility = android.view.View.GONE
-
-        // 1초 후 모닝 루틴 화면으로 이동
         Handler(Looper.getMainLooper()).postDelayed({
             val intent = Intent(this, MorningRoutineActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK

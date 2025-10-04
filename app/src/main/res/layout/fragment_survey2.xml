@@ -62,7 +62,7 @@
         android:text="잠드는 습관을 바꾸고 싶은 가장 큰 이유는 무엇인가요?"
         android:textSize="24sp"
         android:textColor="@color/text_primary"
-        android:fontFamily="sans-serif-medium"
+        android:fontFamily="@font/maplestory_bold"
         android:lineSpacingExtra="4dp"
         android:layout_marginBottom="16dp" />
 
@@ -72,6 +72,7 @@
         android:text="(여러 개 선택 가능)"
         android:textSize="14sp"
         android:textColor="@color/text_secondary"
+        android:fontFamily="@font/maplestory_bold"
         android:layout_marginBottom="32dp" />
 
     <ScrollView
@@ -95,6 +96,7 @@
                 android:background="@drawable/survey_option_unselected"
                 android:gravity="center_vertical"
                 android:padding="16dp"
+                android:fontFamily="@font/maplestory_bold"
                 android:layout_marginBottom="12dp"
                 android:clickable="true"
                 android:focusable="true" />
@@ -104,6 +106,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="60dp"
                 android:text="일정한 리듬을 만들고 싶어서"
+                android:fontFamily="@font/maplestory_bold"
                 android:textSize="16sp"
                 android:textColor="@color/text_primary"
                 android:background="@drawable/survey_option_unselected"
@@ -118,6 +121,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="60dp"
                 android:text="시차 적응을 하고 싶어서"
+                android:fontFamily="@font/maplestory_bold"
                 android:textSize="16sp"
                 android:textColor="@color/text_primary"
                 android:background="@drawable/survey_option_unselected"
@@ -132,6 +136,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="60dp"
                 android:text="나만의 저녁 루틴을 만들고 싶어서"
+                android:fontFamily="@font/maplestory_bold"
                 android:textSize="16sp"
                 android:textColor="@color/text_primary"
                 android:background="@drawable/survey_option_unselected"
@@ -146,6 +151,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="60dp"
                 android:text="다른 이유 (직접 입력)"
+                android:fontFamily="@font/maplestory_bold"
                 android:textSize="16sp"
                 android:textColor="@color/text_primary"
                 android:background="@drawable/survey_option_unselected"
@@ -167,7 +173,7 @@
         android:textSize="18sp"
         android:textColor="@color/text_white"
         android:background="@drawable/button_prim"
-        android:fontFamily="sans-serif-medium"
+        android:fontFamily="@font/maplestory_bold"
         android:layout_marginTop="16dp" />
 
 </LinearLayout>

@@ -14,17 +14,18 @@ import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import android.provider.Settings
+import android.util.Log
 import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.example.sleepshift.util.DailyAlarmManager  // ⭐ 경로 수정
+import com.example.sleepshift.util.DailyAlarmManager
 import com.example.sleepshift.databinding.ActivityHomeBinding
 import com.example.sleepshift.feature.NightRoutineActivity
 import com.example.sleepshift.feature.ReportActivity
 import com.example.sleepshift.feature.SettingsActivity
 import com.example.sleepshift.util.ConsecutiveSuccessManager
 import java.util.*
-import kotlin.random.Random
 
 class HomeActivity : AppCompatActivity() {
 
@@ -41,21 +42,12 @@ class HomeActivity : AppCompatActivity() {
         binding = ActivityHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // SharedPreferences 초기화 (먼저 해야 함)
         sharedPreferences = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
-
-        // 알람 매니저 초기화
         alarmManager = DailyAlarmManager(this)
-
-        // 알람 권한 체크
-        if (!alarmManager.checkExactAlarmPermission()) {
-            alarmManager.checkAndRequestExactAlarmPermission()
-        }
 
         // 배터리 최적화 해제 요청
         requestIgnoreBatteryOptimization()
 
-        // 연속 성공 매니저 초기화
         consecutiveSuccessManager = ConsecutiveSuccessManager(this)
 
         // 프로그램 시작일이 설정되지 않았다면 오늘로 설정
@@ -63,7 +55,7 @@ class HomeActivity : AppCompatActivity() {
             setAppInstallDate()
         }
 
-        // ⭐ 코인 초기화 (앱 최초 실행 시 10개)
+        // 코인 초기화 (앱 최초 실행 시 10개)
         initializePawCoins()
 
         setupProgressDots()
@@ -71,15 +63,14 @@ class HomeActivity : AppCompatActivity() {
         updateUI()
         startFloatingAnimation()
 
-        // 일일 체크
         checkDailyProgress()
 
-        // ⭐⭐⭐ 매일 알람 설정 (가장 중요!)
+        // 매일 알람 설정 (핵심 기능)
         setupDailyAlarm()
     }
 
     /**
-     * ⭐ 매일 알람 설정 - 핵심 코드!
+     * 매일 알람 설정
      */
     private fun setupDailyAlarm() {
         val surveyCompleted = sharedPreferences.getBoolean("survey_completed", false)
@@ -100,14 +91,14 @@ class HomeActivity : AppCompatActivity() {
     }
 
     /**
-     * ⭐ 코인 초기화 (최초 실행 시 10개)
+     * 코인 초기화 (최초 실행 시 10개)
      */
     private fun initializePawCoins() {
         val isFirstRun = sharedPreferences.getBoolean("is_first_run", true)
 
         if (isFirstRun) {
             with(sharedPreferences.edit()) {
-                putInt("paw_coin_count", 10)  // ⭐ 초기값 10개
+                putInt("paw_coin_count", 10)
                 putBoolean("is_first_run", false)
                 apply()
             }
@@ -134,7 +125,6 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun setupProgressDots() {
-        // 3개의 진행도 점만 사용
         progressDots.clear()
         progressDots.addAll(listOf(
             binding.progressDot1,
@@ -144,38 +134,27 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun setupClickListeners() {
-        // 설정 버튼
         binding.btnSettings.setOnClickListener {
             openSettings()
         }
 
-        // 자러가기 버튼
         binding.btnGoToBed.setOnClickListener {
             goToBed()
         }
 
-        // 달력 버튼 (리포트)
         binding.btnCalendar.setOnClickListener {
             openReport()
         }
 
-        // 발바닥 코인 클릭 (코인 정보 표시)
         binding.imgPawCoin.setOnClickListener {
             showPawCoinInfo()
         }
     }
 
     private fun updateUI() {
-        // Day 카운트 업데이트
         updateDayCount()
-
-        // 취침 시간 업데이트
         updateBedtime()
-
-        // 발바닥 코인 개수 업데이트
         updatePawCoinCount()
-
-        // 경험치 바 업데이트 (3개 점)
         updateProgressDots()
     }
 
@@ -185,13 +164,11 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun updateBedtime() {
-        // 오늘의 알람 시간 표시 (설문조사 완료 후)
         val todayAlarmTime = sharedPreferences.getString("today_alarm_time", null)
 
         if (todayAlarmTime != null) {
             binding.tvBedtime.text = todayAlarmTime
         } else {
-            // 설문조사 미완료 시 기본 취침시간 표시
             val bedtime = getCurrentBedtime()
             binding.tvBedtime.text = bedtime
         }
@@ -205,12 +182,10 @@ class HomeActivity : AppCompatActivity() {
     private fun updateProgressDots() {
         val currentStreak = consecutiveSuccessManager.getCurrentStreak()
 
-        // 모든 점을 비활성화로 초기화
         progressDots.forEach { dot ->
             dot.setBackgroundResource(com.example.sleepshift.R.drawable.progress_dot_inactive)
         }
 
-        // 현재 연속 성공만큼 활성화 (최대 3개)
         val activeDots = minOf(currentStreak, 3)
         for (i in 0 until activeDots) {
             progressDots[i].setBackgroundResource(com.example.sleepshift.R.drawable.progress_dot_active)
@@ -223,15 +198,11 @@ class HomeActivity : AppCompatActivity() {
         val today = getTodayDateString()
         val lastCheckDate = sharedPreferences.getString("last_daily_check", "")
 
-        // 날짜가 바뀌었으면 일일 데이터 리셋
         if (lastCheckDate != today) {
             consecutiveSuccessManager.resetDailyData()
 
-            // 어제의 성공 여부 체크
-            if (lastCheckDate != null) {
-                if (lastCheckDate.isNotEmpty()) {
-                    checkYesterdaySuccess()
-                }
+            if (lastCheckDate != null && lastCheckDate.isNotEmpty()) {
+                checkYesterdaySuccess()
             }
 
             with(sharedPreferences.edit()) {
@@ -239,11 +210,9 @@ class HomeActivity : AppCompatActivity() {
                 apply()
             }
 
-            // ⭐ 날짜가 바뀌면 새로운 알람 설정
             setupDailyAlarm()
         }
 
-        // 오늘의 진행 상황 체크
         updateTodayProgress()
     }
 
@@ -255,7 +224,6 @@ class HomeActivity : AppCompatActivity() {
             consecutiveSuccessManager.recordSuccess()
             val streakAfter = consecutiveSuccessManager.getCurrentStreak()
 
-            // 3일 달성시 축하 메시지 (리셋되어 0이 됨)
             if (streakBefore == 3 && streakAfter == 0) {
                 showStreakCompletionDialog()
             }
@@ -272,7 +240,6 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun updateTodayProgress() {
-        // 오늘의 진행 상황 표시
         val todaySuccess = consecutiveSuccessManager.checkTodaySuccess()
 
         if (todaySuccess) {
@@ -302,16 +269,14 @@ class HomeActivity : AppCompatActivity() {
     private fun startFloatingAnimation() {
         val bubble: View = findViewById(com.example.sleepshift.R.id.bedtimeFloatingBubble)
 
-        // 위아래로 부드럽게 이동하는 애니메이션
         val moveUp = ObjectAnimator.ofFloat(bubble, "translationY", 0f, -50f)
-        moveUp.setDuration(2000)
+        moveUp.duration = 2000
         moveUp.interpolator = AccelerateDecelerateInterpolator()
 
         val moveDown = ObjectAnimator.ofFloat(bubble, "translationY", -50f, 0f)
-        moveDown.setDuration(2000)
+        moveDown.duration = 2000
         moveDown.interpolator = AccelerateDecelerateInterpolator()
 
-        // 애니메이션 시퀀스 생성
         val animatorSet = AnimatorSet()
         animatorSet.playSequentially(moveUp, moveDown)
         animatorSet.addListener(object : AnimatorListenerAdapter() {
@@ -324,14 +289,11 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun goToBed() {
-        // 취침 시간 기록
         consecutiveSuccessManager.recordBedtime(System.currentTimeMillis())
 
-        // 나이트 루틴 화면으로 이동
         val intent = Intent(this, NightRoutineActivity::class.java)
         startActivity(intent)
 
-        // 버튼 클릭 애니메이션
         binding.btnGoToBed.animate()
             .scaleX(0.95f)
             .scaleY(0.95f)
@@ -395,7 +357,7 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun getPawCoinCount(): Int {
-        return sharedPreferences.getInt("paw_coin_count", 10)  // ⭐ 기본값 10으로 수정
+        return sharedPreferences.getInt("paw_coin_count", 10)
     }
 
     fun addPawCoins(amount: Int) {
@@ -454,7 +416,12 @@ class HomeActivity : AppCompatActivity() {
 
     private fun getTodayDateString(): String {
         val calendar = Calendar.getInstance()
-        return "${calendar.get(Calendar.YEAR)}-${calendar.get(Calendar.MONTH)+1}-${calendar.get(Calendar.DAY_OF_MONTH)}"
+        return String.format(
+            "%d-%02d-%02d",
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH) + 1,
+            calendar.get(Calendar.DAY_OF_MONTH)
+        )
     }
 
     override fun onResume() {

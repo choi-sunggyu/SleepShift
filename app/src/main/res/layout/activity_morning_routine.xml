@@ -30,10 +30,10 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:fontFamily="@font/maplestory_bold"
                     android:text="모닝 루틴"
-                    android:textSize="24sp"
                     android:textColor="#2D3748"
-                    android:fontFamily="sans-serif-medium" />
+                    android:textSize="24sp" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -41,6 +41,7 @@
                     android:text="with Dozeo"
                     android:textSize="14sp"
                     android:textColor="#718096"
+                    android:fontFamily="@font/maplestory_bold"
                     android:layout_marginTop="4dp" />
             </LinearLayout>
 
@@ -66,7 +67,7 @@
                     android:text="130"
                     android:textSize="16sp"
                     android:textColor="#2D3748"
-                    android:fontFamily="sans-serif-medium" />
+                    android:fontFamily="@font/maplestory_bold" />
             </LinearLayout>
 
             <!-- 설정 버튼 -->
@@ -101,6 +102,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
                 app:cardCornerRadius="16dp"
+                app:cardBackgroundColor="#FFFFFF"
                 app:cardElevation="2dp">
 
                 <LinearLayout
@@ -141,11 +143,12 @@
                             android:text="물 한 잔 마시기"
                             android:textSize="18sp"
                             android:textColor="#2D3748"
-                            android:fontFamily="sans-serif-medium" />
+                            android:fontFamily="@font/maplestory_bold" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:fontFamily="@font/maplestory_light"
                             android:text="아침에 물한잔은는 밤새 잃은 수분을\n보충하고 몸과 뇌를 깨워줘요"
                             android:textSize="13sp"
                             android:textColor="#718096"
@@ -159,6 +162,7 @@
                             android:text="터치!"
                             android:textSize="12sp"
                             android:textColor="#A0AEC0"
+                            android:fontFamily="@font/maplestory_light"
                             android:layout_marginTop="8dp" />
                     </LinearLayout>
                 </LinearLayout>
@@ -170,6 +174,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
+                app:cardBackgroundColor="#FFFFFF"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="2dp">
 
@@ -206,10 +211,10 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:fontFamily="@font/maplestory_bold"
                             android:text="햇빛 보기"
-                            android:textSize="18sp"
                             android:textColor="#2D3748"
-                            android:fontFamily="sans-serif-medium" />
+                            android:textSize="18sp" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -218,6 +223,7 @@
                             android:textSize="13sp"
                             android:textColor="#718096"
                             android:gravity="center"
+                            android:fontFamily="@font/maplestory_light"
                             android:layout_marginTop="4dp" />
 
                         <Button
@@ -227,6 +233,7 @@
                             android:text="터치!"
                             android:textSize="12sp"
                             android:textColor="#A0AEC0"
+                            android:fontFamily="@font/maplestory_light"
                             android:layout_marginTop="8dp" />
                     </LinearLayout>
                 </LinearLayout>
@@ -277,7 +284,7 @@
                             android:text="오늘 꼭 할 것"
                             android:textSize="18sp"
                             android:textColor="#2D3748"
-                            android:fontFamily="sans-serif-medium" />
+                            android:fontFamily="@font/maplestory_bold" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -286,6 +293,7 @@
                             android:textSize="13sp"
                             android:textColor="#718096"
                             android:gravity="center"
+                            android:fontFamily="@font/maplestory_light"
                             android:layout_marginTop="4dp" />
 
                         <Button
@@ -295,6 +303,7 @@
                             android:text="터치!"
                             android:textSize="12sp"
                             android:textColor="#A0AEC0"
+                            android:fontFamily="@font/maplestory_light"
                             android:layout_marginTop="8dp" />
                     </LinearLayout>
                 </LinearLayout>
@@ -322,7 +331,7 @@
             android:text="180s"
             android:textSize="48sp"
             android:textColor="#6366F1"
-            android:fontFamily="sans-serif-bold"
+            android:fontFamily="@font/maplestory_light"
             android:layout_gravity="center"
             android:layout_marginBottom="16dp" />
 
@@ -341,7 +350,7 @@
                 android:text="잠금 해제하기"
                 android:textSize="18sp"
                 android:textColor="#4C51BF"
-                android:fontFamily="sans-serif-medium"
+                android:fontFamily="@font/maplestory_bold"
                 android:gravity="center"
                 android:background="?android:attr/selectableItemBackground" />
         </androidx.cardview.widget.CardView>

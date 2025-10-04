@@ -1,37 +1,91 @@
 package com.example.sleepshift.feature.alarm
 
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import androidx.core.app.NotificationCompat
+import com.example.sleepshift.R
 
 class AlarmReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        Log.d("AlarmReceiver", "알람 수신됨")
+        Log.d("AlarmReceiver", "수신됨: ${intent.action}")
 
         when (intent.action) {
             Intent.ACTION_BOOT_COMPLETED -> {
-                // 부팅 완료 후 알람 재설정
                 Log.d("AlarmReceiver", "부팅 완료 - 알람 재설정")
                 restoreAlarms(context)
                 return
             }
             "com.example.sleepshift.ALARM_TRIGGER" -> {
-                // 실제 알람 트리거
-                Log.d("AlarmReceiver", "알람 트리거 수신")
+                Log.d("AlarmReceiver", "기상 알람 트리거")
                 triggerAlarm(context)
             }
+            "com.example.sleepshift.BEDTIME_NOTIFICATION" -> {
+                Log.d("AlarmReceiver", "취침 알림 트리거")
+                showBedtimeNotification(context)
+            }
             else -> {
-                // 기본 알람 처리
                 Log.d("AlarmReceiver", "기본 알람 처리")
                 triggerAlarm(context)
             }
         }
     }
 
+    /**
+     * ⭐ 취침 알림 표시
+     */
+    private fun showBedtimeNotification(context: Context) {
+        val sharedPref = context.getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
+        val bedtimeNotificationEnabled = sharedPref.getBoolean("bedtime_notification_enabled", true)
+
+        if (!bedtimeNotificationEnabled) {
+            Log.d("AlarmReceiver", "취침 알림 비활성화됨")
+            return
+        }
+
+        val avgBedtime = sharedPref.getString("avg_bedtime", "23:00") ?: "23:00"
+
+        // 홈 화면으로 이동하는 Intent
+        val intent = Intent(context, com.example.sleepshift.feature.home.HomeActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            3000,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        // 알림 생성
+        val notification = NotificationCompat.Builder(context, "bedtime_notification_channel")
+            .setSmallIcon(R.drawable.ic_notification)  // 알림 아이콘 필요
+            .setContentTitle("🌙 취침 시간이 다가옵니다")
+            .setContentText("${avgBedtime}에 잠자리에 들 시간입니다. 준비해주세요!")
+            .setStyle(NotificationCompat.BigTextStyle()
+                .bigText("곧 ${avgBedtime}에 잠자리에 들 시간입니다.\n\n지금부터 조명을 줄이고 화면 사용을 줄여보세요."))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .setVibrate(longArrayOf(0, 500, 200, 500))
+            .build()
+
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(2001, notification)
+
+        Log.d("AlarmReceiver", "취침 알림 표시됨")
+
+        // ⭐ 다음 날 취침 알림 재설정
+        val alarmManager = com.example.sleepshift.util.DailyAlarmManager(context)
+        val currentDay = getCurrentDay(sharedPref)
+        alarmManager.updateDailyAlarm(currentDay)
+    }
+
     private fun triggerAlarm(context: Context) {
-        // 알람이 활성화되어 있는지 확인
         val sharedPref = context.getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
         val isAlarmEnabled = sharedPref.getBoolean("alarm_enabled", true)
 
@@ -40,11 +94,9 @@ class AlarmReceiver : BroadcastReceiver() {
             return
         }
 
-        // 현재 시간이 알람 시간인지 확인 (추가 검증)
         val todayAlarmTime = sharedPref.getString("today_alarm_time", "07:00")
         Log.d("AlarmReceiver", "설정된 알람 시간: $todayAlarmTime")
 
-        // 알람 화면 시작
         val alarmIntent = Intent(context, AlarmActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or
@@ -56,7 +108,6 @@ class AlarmReceiver : BroadcastReceiver() {
             context.startActivity(alarmIntent)
             Log.d("AlarmReceiver", "알람 화면 시작 성공")
 
-            // 알람 실행 기록 저장
             with(sharedPref.edit()) {
                 putLong("last_alarm_triggered", System.currentTimeMillis())
                 apply()
@@ -77,7 +128,6 @@ class AlarmReceiver : BroadcastReceiver() {
                 return
             }
 
-            // DailyAlarmManager를 사용하여 알람 재설정
             val alarmManager = com.example.sleepshift.util.DailyAlarmManager(context)
             val currentDay = getCurrentDay(sharedPref)
 

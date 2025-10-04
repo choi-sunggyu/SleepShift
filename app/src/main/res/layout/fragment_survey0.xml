@@ -98,13 +98,13 @@
             android:id="@+id/etUserName"
             android:layout_width="match_parent"
             android:layout_height="56dp"
+            android:fontFamily="sans-serif"
             android:hint="예: 홍길동"
-            android:textSize="18sp"
-            android:textColor="@color/text_primary"
             android:inputType="textPersonName"
             android:maxLength="10"
             android:paddingHorizontal="16dp"
-            android:fontFamily="sans-serif" />
+            android:textColor="@color/text_primary"
+            android:textSize="18sp" />
     </com.google.android.material.textfield.TextInputLayout>
 
     <!-- Info Text -->

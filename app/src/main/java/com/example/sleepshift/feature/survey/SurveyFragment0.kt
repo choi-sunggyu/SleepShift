@@ -1,5 +1,6 @@
 package com.example.sleepshift.feature.survey
 
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -29,9 +30,10 @@ class SurveyFragment0 : Fragment() {
         etUserName = view.findViewById(R.id.etUserName)
         btnNext = view.findViewById(R.id.btnNext)
 
-        // 저장된 이름 불러오기 (있다면)
-        val surveyActivity = activity as? SurveyActivity
-        val savedName = surveyActivity?.userName ?: ""
+        // ⭐ SharedPreferences에서 저장된 이름 불러오기 (있다면)
+        val sharedPref = requireActivity().getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
+        val savedName = sharedPref.getString("user_name", "") ?: ""
+
         if (savedName.isNotEmpty()) {
             etUserName.setText(savedName)
         }
@@ -51,7 +53,8 @@ class SurveyFragment0 : Fragment() {
                 return@setOnClickListener
             }
 
-            // SurveyActivity에 이름 저장
+            // ⭐ SurveyActivity에 이름 저장
+            val surveyActivity = activity as? SurveyActivity
             surveyActivity?.userName = name
             android.util.Log.d("SurveyFragment0", "사용자 이름: $name")
 

@@ -22,8 +22,11 @@ class SurveyActivity : AppCompatActivity() {
 
     private lateinit var viewPager: ViewPager2
     private lateinit var surveyAdapter: SurveyAdapter
-    private val totalPages = 5
+    private val totalPages = 6  // ⭐ 5 → 6으로 변경 (이름 페이지 추가)
     private val hhmm: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+
+    // ⭐ 사용자 이름 변수 추가
+    var userName: String = ""
 
     // 설문 데이터
     var avgBedTime: LocalTime = LocalTime.of(4, 0)
@@ -77,6 +80,13 @@ class SurveyActivity : AppCompatActivity() {
     private fun finishSurvey() {
         android.util.Log.d("SurveyActivity", "finishSurvey called")
 
+        // ⭐ 이름 유효성 체크
+        if (userName.isEmpty()) {
+            Toast.makeText(this, "이름을 입력해주세요", Toast.LENGTH_SHORT).show()
+            viewPager.currentItem = 0  // 첫 페이지로 돌아가기
+            return
+        }
+
         lifecycleScope.launch {
             val repo = SleepRepository(this@SurveyActivity)
             val targetBedtime = goalWakeTime.minusMinutes(goalSleepDuration.toLong())
@@ -86,6 +96,9 @@ class SurveyActivity : AppCompatActivity() {
 
             // SharedPreferences 저장
             with(sharedPref.edit()) {
+                // ⭐ 사용자 이름 저장
+                putString("user_name", userName)
+
                 // 알고리즘 관련 데이터
                 putString("survey_average_bedtime", avgBedTime.format(hhmm))
                 putString("survey_desired_wake_time", goalWakeTime.format(hhmm))
@@ -95,13 +108,13 @@ class SurveyActivity : AppCompatActivity() {
                 // 앱 시작 날짜
                 putLong("app_install_date", System.currentTimeMillis())
 
-                // ⭐ 설문 완료 플래그 (가장 중요!)
+                // 설문 완료 플래그
                 putBoolean("survey_completed", true)
 
                 // 알람 활성화
                 putBoolean("alarm_enabled", true)
 
-                // ⭐⭐⭐ 코인 초기화 (10개로 시작)
+                // 코인 초기화 (10개로 시작)
                 putInt("paw_coin_count", 10)
                 putBoolean("is_first_run", false)
 
@@ -110,11 +123,12 @@ class SurveyActivity : AppCompatActivity() {
 
             android.util.Log.d("SurveyActivity", "설문 완료 플래그 저장됨: survey_completed = true")
             android.util.Log.d("SurveyActivity", "초기 코인 10개 설정됨")
+            android.util.Log.d("SurveyActivity", "사용자 이름 저장됨: $userName")
 
             // SplashActivity의 헬퍼 메소드 사용
             SplashActivity.markSurveyCompleted(this@SurveyActivity)
 
-            // ⭐ 첫 번째 알람 설정
+            // 첫 번째 알람 설정
             try {
                 val alarmManager = DailyAlarmManager(this@SurveyActivity)
                 alarmManager.updateDailyAlarm(1)

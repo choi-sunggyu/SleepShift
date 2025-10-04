@@ -7,7 +7,7 @@
     android:background="@color/background_primary"
     android:padding="24dp">
 
-    <!-- Progress Bar -->
+    <!-- Progress Bar (6개로 증가) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="4dp"
@@ -25,7 +25,7 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:background="@color/button_primary"
+            android:background="@color/indicator_inactive"
             android:layout_marginEnd="4dp" />
 
         <View
@@ -56,68 +56,65 @@
             android:background="@color/indicator_inactive" />
     </LinearLayout>
 
+    <!-- Welcome Message -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="환영합니다! 🌙"
+        android:textSize="32sp"
+        android:textColor="@color/text_primary"
+        android:fontFamily="sans-serif-medium"
+        android:layout_marginBottom="12dp" />
+
     <!-- Title -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="평소에는 보통 몇 시쯤 잠드시고 일어나시나요?"
-        android:textSize="24sp"
-        android:textColor="@color/text_primary"
-        android:fontFamily="sans-serif-medium"
+        android:text="수면 습관 개선을 시작하기 전에\n이름을 알려주세요"
+        android:textSize="20sp"
+        android:textColor="@color/text_secondary"
         android:lineSpacingExtra="4dp"
         android:layout_marginBottom="48dp" />
 
-    <!-- Sleep Time Section -->
-    <LinearLayout
+    <!-- Name Input Section -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="이름 또는 닉네임"
+        android:textSize="16sp"
+        android:textColor="@color/text_secondary"
+        android:layout_marginBottom="12dp" />
+
+    <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:layout_marginBottom="24dp">
+        android:layout_marginBottom="24dp"
+        app:boxBackgroundMode="outline"
+        app:boxBackgroundColor="@android:color/transparent"
+        app:boxStrokeColor="@color/button_primary"
+        app:hintEnabled="false">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="잠드는 시간"
-            android:textSize="16sp"
-            android:textColor="@color/text_secondary"
-            android:layout_marginBottom="12dp" />
-
-        <Button
-            android:id="@+id/btnBedTime"
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etUserName"
             android:layout_width="match_parent"
             android:layout_height="56dp"
-            android:text="04:00"
+            android:hint="예: 홍길동"
             android:textSize="18sp"
             android:textColor="@color/text_primary"
-            android:background="@drawable/survey_time_button"
-            android:fontFamily="sans-serif-medium" />
-    </LinearLayout>
+            android:inputType="textPersonName"
+            android:maxLength="10"
+            android:paddingHorizontal="16dp"
+            android:fontFamily="sans-serif" />
+    </com.google.android.material.textfield.TextInputLayout>
 
-    <!-- Wake Time Section -->
-    <LinearLayout
-        android:layout_width="match_parent"
+    <!-- Info Text -->
+    <TextView
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:layout_marginBottom="48dp">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="일어나는 시간"
-            android:textSize="16sp"
-            android:textColor="@color/text_secondary"
-            android:layout_marginBottom="12dp" />
-
-        <Button
-            android:id="@+id/btnWakeTime"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:text="13:00"
-            android:textSize="18sp"
-            android:textColor="@color/text_primary"
-            android:background="@drawable/survey_time_button"
-            android:fontFamily="sans-serif-medium" />
-    </LinearLayout>
+        android:text="앱에서 'OO님'으로 표시됩니다\n언제든 설정에서 변경할 수 있어요"
+        android:textSize="14sp"
+        android:textColor="@color/text_secondary"
+        android:lineSpacingExtra="4dp" />
 
     <!-- Spacer -->
     <View

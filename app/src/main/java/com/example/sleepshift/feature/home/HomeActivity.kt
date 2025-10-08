@@ -168,14 +168,22 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun updateBedtime() {
-        val todayAlarmTime = sharedPreferences.getString("today_alarm_time", null)
+        // ⭐ 오늘의 취침 시간 표시
+        val todayBedtime = sharedPreferences.getString("today_bedtime", null)
 
-        if (todayAlarmTime != null) {
-            binding.tvBedtime.text = todayAlarmTime
+        if (todayBedtime != null) {
+            binding.tvBedtime.text = todayBedtime
         } else {
+            // 설문 미완료 시 기본 취침 시간
             val bedtime = getCurrentBedtime()
             binding.tvBedtime.text = bedtime
         }
+    }
+
+    private fun getCurrentBedtime(): String {
+        // avg_bedtime 사용
+        val avgBedtime = sharedPreferences.getString("avg_bedtime", "23:00") ?: "23:00"
+        return avgBedtime
     }
 
     private fun updatePawCoinCount() {
@@ -341,12 +349,6 @@ class HomeActivity : AppCompatActivity() {
                     .start()
             }
             .start()
-    }
-
-    private fun getCurrentBedtime(): String {
-        val bedtimeHour = sharedPreferences.getInt("bedtime_hour", 23)
-        val bedtimeMinute = sharedPreferences.getInt("bedtime_minute", 0)
-        return String.format("%02d:%02d", bedtimeHour, bedtimeMinute)
     }
 
     private fun getCurrentDay(): Int {

@@ -141,29 +141,34 @@ class NightRoutineActivity : AppCompatActivity() {
     }
 
     private fun updateUI() {
-        // 발바닥 코인 개수 업데이트
         val coinCount = sharedPreferences.getInt("paw_coin_count", 130)
         tvPawCoinCount.text = coinCount.toString()
 
-        // 알람 시간 업데이트
-        val alarmHour = sharedPreferences.getInt("alarm_hour", 7)
-        val alarmMinute = sharedPreferences.getInt("alarm_minute", 0)
-        tvAlarmTime.text = String.format("%02d:%02d", alarmHour, alarmMinute)
+        // ⭐ 우선순위: today_alarm_time → target_wake_time → 기본값
+        val alarmTime = sharedPreferences.getString("today_alarm_time", null)
+            ?: sharedPreferences.getString("target_wake_time", "07:00")
+            ?: "07:00"
+
+        tvAlarmTime.text = alarmTime
     }
 
     private fun showAlarmTimeDialog() {
-        val currentHour = sharedPreferences.getInt("alarm_hour", 7)
-        val currentMinute = sharedPreferences.getInt("alarm_minute", 0)
+        val currentAlarmTime = sharedPreferences.getString("today_alarm_time", null)
+            ?: sharedPreferences.getString("target_wake_time", "07:00")
+            ?: "07:00"
+
+        val timeParts = currentAlarmTime.split(":")
+        val currentHour = timeParts.getOrNull(0)?.toIntOrNull() ?: 7
+        val currentMinute = timeParts.getOrNull(1)?.toIntOrNull() ?: 0
 
         TimePickerDialog(this, { _, hour, minute ->
-            // 알람 시간 저장 - 수정된 부분
+            val newAlarmTime = String.format("%02d:%02d", hour, minute)
             sharedPreferences.edit()
-                .putInt("alarm_hour", hour)
-                .putInt("alarm_minute", minute)
+                .putString("today_alarm_time", newAlarmTime)
                 .apply()
 
-            tvAlarmTime.text = String.format("%02d:%02d", hour, minute)
-            Toast.makeText(this, "알람 시간: ${String.format("%02d:%02d", hour, minute)}", Toast.LENGTH_SHORT).show()
+            tvAlarmTime.text = newAlarmTime
+            Toast.makeText(this, "알람 시간: $newAlarmTime", Toast.LENGTH_SHORT).show()
         }, currentHour, currentMinute, true).show()
     }
 

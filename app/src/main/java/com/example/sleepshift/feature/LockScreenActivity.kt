@@ -70,22 +70,19 @@ class LockScreenActivity : AppCompatActivity() {
     }
 
     private fun setupUI() {
-        // 사용자 이름 표시
         val userName = sharedPreferences.getString("user_name", "사용자")
         tvGoodNightMessage.text = "${userName}님 잘자요!"
 
-        // 발바닥 코인 개수 표시
         updateCoinDisplay()
 
-        // 알람 시간 표시 - 수정된 부분
-        val alarmHour = sharedPreferences.getInt("alarm_hour", 7)
-        val alarmMinute = sharedPreferences.getInt("alarm_minute", 0)
-        val alarmTime = String.format("%02d:%02d", alarmHour, alarmMinute)
+        // ⭐ 우선순위: today_alarm_time → target_wake_time → 기본값
+        val alarmTime = sharedPreferences.getString("today_alarm_time", null)
+            ?: sharedPreferences.getString("target_wake_time", "07:00")
+            ?: "07:00"
 
         val wakeTimeText = findViewById<TextView>(R.id.tvWakeTimeMessage)
         wakeTimeText?.text = "${alarmTime}에 깨워드릴게요"
 
-        // 코인 부족시 버튼 비활성화 처리
         checkUnlockAvailability()
     }
 

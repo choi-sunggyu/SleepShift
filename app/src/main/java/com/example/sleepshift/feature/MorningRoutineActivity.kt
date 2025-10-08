@@ -14,6 +14,7 @@ import com.example.sleepshift.databinding.ActivityMorningRoutineBinding
 import com.example.sleepshift.feature.home.HomeActivity
 import com.example.sleepshift.util.ConsecutiveSuccessManager
 import java.util.*
+import androidx.core.content.edit
 
 class MorningRoutineActivity : AppCompatActivity() {
 
@@ -28,8 +29,8 @@ class MorningRoutineActivity : AppCompatActivity() {
         3 to false
     )
 
-    private val TOTAL_TIME_SECONDS = 180
-    private val MAX_TIME_SECONDS = 420
+    private val TOTAL_TIME_SECONDS = 180  // 3분
+    private val MAX_TIME_SECONDS = 420    // 7분
     private var elapsedSeconds = 0
     private var isUnlockEnabled = false
 
@@ -87,8 +88,8 @@ class MorningRoutineActivity : AppCompatActivity() {
             if (parts.size != 3) return dateString
 
             val year = parts[0]
-            val month = parts[1].padStart(2, '0')  // 한 자리면 앞에 0 추가
-            val day = parts[2].padStart(2, '0')    // 한 자리면 앞에 0 추가
+            val month = parts[1].padStart(2, '0')
+            val day = parts[2].padStart(2, '0')
 
             return "$year-$month-$day"
         } catch (e: Exception) {
@@ -102,7 +103,7 @@ class MorningRoutineActivity : AppCompatActivity() {
 
         if (savedDate != today) {
             resetRoutines()
-            sharedPreferences.edit().putString("routine_date", today).apply()
+            sharedPreferences.edit { putString("routine_date", today) }
             android.util.Log.d("MorningRoutine", "새로운 날 - 미션 초기화")
         } else {
             routineCompleted[1] = sharedPreferences.getBoolean("routine_1_completed", false)
@@ -191,9 +192,9 @@ class MorningRoutineActivity : AppCompatActivity() {
 
         routineCompleted[routineId] = true
 
-        sharedPreferences.edit()
-            .putBoolean("routine_${routineId}_completed", true)
-            .apply()
+        sharedPreferences.edit {
+            putBoolean("routine_${routineId}_completed", true)
+        }
 
         updateRoutineUI(routineId, card, statusButton, true)
 
@@ -273,24 +274,42 @@ class MorningRoutineActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * ⭐ 타이머 시작 (분:초 형식으로 표시)
+     */
     private fun startTimer() {
         countDownTimer = object : CountDownTimer(MAX_TIME_SECONDS * 1000L, 1000) {
             override fun onTick(millisUntilFinished: Long) {
                 elapsedSeconds++
 
                 if (elapsedSeconds <= TOTAL_TIME_SECONDS) {
+                    // ⭐ 첫 3분: 카운트다운 (3:00 → 2:59 → ... → 0:00)
                     val remainingSeconds = TOTAL_TIME_SECONDS - elapsedSeconds
-                    binding.tvTimer.text = "${remainingSeconds}s"
+                    binding.tvTimer.text = formatTime(remainingSeconds)
                     binding.tvTimer.setTextColor(getColor(R.color.timer_normal))
 
                 } else {
+                    // ⭐ 3분 후: 버튼 활성화
                     if (!isUnlockEnabled) {
                         enableUnlockButton()
                     }
 
-                    val overTime = elapsedSeconds - TOTAL_TIME_SECONDS
-                    binding.tvTimer.text = "+${overTime}s"
-                    binding.tvTimer.setTextColor(getColor(R.color.timer_warning))
+                    // ⭐ 3분~7분: 남은 시간 카운트다운 (4:00 → 3:59 → ... → 0:00)
+                    val remainingSeconds = MAX_TIME_SECONDS - elapsedSeconds
+
+                    if (remainingSeconds > 60) {
+                        // 1분 이상 남음: 일반 표시
+                        binding.tvTimer.text = formatTime(remainingSeconds)
+                        binding.tvTimer.setTextColor(getColor(R.color.timer_warning))
+                    } else if (remainingSeconds > 0) {
+                        // 1분 미만: 경고 색상
+                        binding.tvTimer.text = formatTime(remainingSeconds)
+                        binding.tvTimer.setTextColor(getColor(android.R.color.holo_red_light))
+                    } else {
+                        // 시간 초과
+                        binding.tvTimer.text = "0:00"
+                        binding.tvTimer.setTextColor(getColor(android.R.color.holo_red_dark))
+                    }
                 }
             }
 
@@ -298,6 +317,15 @@ class MorningRoutineActivity : AppCompatActivity() {
                 triggerReAlarm()
             }
         }.start()
+    }
+
+    /**
+     * ⭐ 초를 분:초 형식으로 변환
+     */
+    private fun formatTime(totalSeconds: Int): String {
+        val minutes = totalSeconds / 60
+        val seconds = totalSeconds % 60
+        return String.format("%d:%02d", minutes, seconds)
     }
 
     private fun attemptUnlock() {
@@ -359,9 +387,9 @@ class MorningRoutineActivity : AppCompatActivity() {
         // ⭐ 오늘 완료 기록
         val today = getTodayDateString()
         android.util.Log.d("MorningRoutine", "완료 날짜 저장: $today")
-        sharedPreferences.edit()
-            .putString("last_routine_completed", today)
-            .apply()
+        sharedPreferences.edit {
+            putString("last_routine_completed", today)
+        }
 
         // 미션 초기화 (다음 날을 위해)
         resetRoutines()
@@ -380,14 +408,6 @@ class MorningRoutineActivity : AppCompatActivity() {
         }, 1500)
     }
 
-    private fun calculateCoinReward(timeTaken: Int): Int {
-        val currentDay = getCurrentDay()
-        val dayBonus = currentDay / 5
-        val baseReward = 3
-        val speedBonus = if (timeTaken <= TOTAL_TIME_SECONDS) 1 else 0
-        return baseReward + dayBonus + speedBonus
-    }
-
     private fun getCurrentDay(): Int {
         return sharedPreferences.getInt("current_day", 1)
     }
@@ -396,19 +416,22 @@ class MorningRoutineActivity : AppCompatActivity() {
         val currentCoins = sharedPreferences.getInt("paw_coin_count", 10)
         val newCount = currentCoins + amount
 
-        sharedPreferences.edit()
-            .putInt("paw_coin_count", newCount)
-            .apply()
+        sharedPreferences.edit {
+            putInt("paw_coin_count", newCount)
+        }
 
         android.util.Log.d("MorningRoutine", "곰젤리 $amount 개 획득! 총: $newCount")
     }
 
+    /**
+     * ⭐ 7분 초과 시 다시 알람
+     */
     private fun triggerReAlarm() {
         countDownTimer?.cancel()
 
         Toast.makeText(
             this,
-            "7분이 초과되었습니다.\n다시 알람이 울립니다.",
+            "⏰ 7분이 경과했습니다.\n잠시 후 다시 알람이 울립니다.",
             Toast.LENGTH_LONG
         ).show()
 

@@ -146,15 +146,6 @@
                             android:textColor="#2D3748"
                             android:textSize="18sp" />
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:background="@drawable/day_type_background"
-                            android:padding="6dp"
-                            android:text="SUN TU"
-                            android:textColor="#6366F1"
-                            android:fontFamily="@font/maplestory_bold"
-                            android:textSize="12sp" />
                     </LinearLayout>
 
                     <!-- 요일 헤더 -->
@@ -313,7 +304,7 @@
                 android:layout_width="80dp"
                 android:layout_height="80dp"
                 app:cardBackgroundColor="#FFFFFF"
-                app:cardCornerRadius="16dp"
+                app:cardCornerRadius="30dp"
                 app:cardElevation="2dp">
 
                 <ImageView

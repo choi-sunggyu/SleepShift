@@ -5,21 +5,25 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.viewpager2.widget.ViewPager2
 import com.example.sleepshift.R
 import com.example.sleepshift.feature.adapter.MoodPagerAdapter
+import com.example.sleepshift.util.DailyAlarmManager
 
 class NightRoutineActivity : AppCompatActivity() {
 
     private lateinit var sharedPreferences: SharedPreferences
+    private lateinit var alarmManager: DailyAlarmManager
 
     // Views
     private lateinit var tvPawCoinCount: TextView
@@ -35,12 +39,17 @@ class NightRoutineActivity : AppCompatActivity() {
     private lateinit var moodAdapter: MoodPagerAdapter
     private var selectedMoodPosition = 0
 
+    // ⭐ 알람 시간 변경 여부 추적
+    private var isAlarmTimeChanged = false
+    private val ALARM_CHANGE_COST = 2  // 곰젤리 비용
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_night_routine)
 
         // SharedPreferences 초기화
         sharedPreferences = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
+        alarmManager = DailyAlarmManager(this)
 
         initViews()
         setupMoodViewPager()
@@ -141,7 +150,7 @@ class NightRoutineActivity : AppCompatActivity() {
     }
 
     private fun updateUI() {
-        val coinCount = sharedPreferences.getInt("paw_coin_count", 130)
+        val coinCount = sharedPreferences.getInt("paw_coin_count", 10)
         tvPawCoinCount.text = coinCount.toString()
 
         // ⭐ 우선순위: today_alarm_time → target_wake_time → 기본값
@@ -161,18 +170,144 @@ class NightRoutineActivity : AppCompatActivity() {
         val currentHour = timeParts.getOrNull(0)?.toIntOrNull() ?: 7
         val currentMinute = timeParts.getOrNull(1)?.toIntOrNull() ?: 0
 
-        TimePickerDialog(this, { _, hour, minute ->
-            val newAlarmTime = String.format("%02d:%02d", hour, minute)
-            sharedPreferences.edit()
-                .putString("today_alarm_time", newAlarmTime)
-                .apply()
+        // ⭐ 알람 변경 경고 다이얼로그
+        AlertDialog.Builder(this)
+            .setTitle("알람 시간 변경")
+            .setMessage("알람 시간을 변경하면 수면 체크인 시\n곰젤리 ${ALARM_CHANGE_COST}개가 소모됩니다.\n\n변경하시겠습니까?")
+            .setPositiveButton("변경") { _, _ ->
+                // 시간 선택 다이얼로그 표시
+                TimePickerDialog(this, { _, hour, minute ->
+                    val newAlarmTime = String.format("%02d:%02d", hour, minute)
 
-            tvAlarmTime.text = newAlarmTime
-            Toast.makeText(this, "알람 시간: $newAlarmTime", Toast.LENGTH_SHORT).show()
-        }, currentHour, currentMinute, true).show()
+                    // ⭐ 알람 시간이 실제로 변경되었는지 확인
+                    if (newAlarmTime != currentAlarmTime) {
+                        // SharedPreferences에 저장
+                        sharedPreferences.edit()
+                            .putString("today_alarm_time", newAlarmTime)
+                            .apply()
+
+                        tvAlarmTime.text = newAlarmTime
+
+                        // ⭐ 변경 플래그 설정
+                        isAlarmTimeChanged = true
+
+                        setImmediateAlarm(hour, minute)
+
+                        Toast.makeText(
+                            this,
+                            "알람 시간이 $newAlarmTime 으로 변경되었습니다.\n수면 체크인 시 곰젤리 ${ALARM_CHANGE_COST}개가 차감됩니다.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    } else {
+                        Toast.makeText(this, "알람 시간이 동일합니다", Toast.LENGTH_SHORT).show()
+                    }
+                }, currentHour, currentMinute, true).show()
+            }
+            .setNegativeButton("취소", null)
+            .show()
+    }
+
+    private fun setImmediateAlarm(hour: Int, minute: Int) {
+        try {
+            val alarmManager = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+
+            // Android 12+ 권한 체크
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                if (!alarmManager.canScheduleExactAlarms()) {
+                    Toast.makeText(
+                        this,
+                        "알람 권한이 필요합니다. 설정에서 권한을 허용해주세요.",
+                        Toast.LENGTH_LONG
+                    ).show()
+
+                    // 권한 설정 화면으로 이동
+                    val intent = android.content.Intent(
+                        android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
+                    ).apply {
+                        data = android.net.Uri.parse("package:$packageName")
+                    }
+                    startActivity(intent)
+                    return
+                }
+            }
+
+            val intent = android.content.Intent(this, com.example.sleepshift.feature.alarm.AlarmReceiver::class.java).apply {
+                action = "com.example.sleepshift.ALARM_TRIGGER"
+            }
+
+            val pendingIntent = android.app.PendingIntent.getBroadcast(
+                this, 1000, intent,
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+            )
+
+            val calendar = java.util.Calendar.getInstance().apply {
+                set(java.util.Calendar.HOUR_OF_DAY, hour)
+                set(java.util.Calendar.MINUTE, minute)
+                set(java.util.Calendar.SECOND, 0)
+                set(java.util.Calendar.MILLISECOND, 0)
+
+                // ⭐ 현재 시간보다 과거면 다음날로
+                if (timeInMillis <= System.currentTimeMillis()) {
+                    add(java.util.Calendar.DAY_OF_MONTH, 1)
+                    Log.d("NightRoutine", "⏰ 설정 시간이 지나서 내일로 설정")
+                }
+            }
+
+            alarmManager.setExactAndAllowWhileIdle(
+                android.app.AlarmManager.RTC_WAKEUP,
+                calendar.timeInMillis,
+                pendingIntent
+            )
+
+            val now = java.util.Date()
+            val alarmDate = java.util.Date(calendar.timeInMillis)
+
+            Log.d("NightRoutine", """
+                ========== 알람 즉시 설정 ==========
+                현재 시간: $now
+                알람 시간: $alarmDate
+                ${if (calendar.get(java.util.Calendar.DAY_OF_MONTH) > java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_MONTH)) "내일" else "오늘"}
+                ====================================
+            """.trimIndent())
+
+        } catch (e: Exception) {
+            Log.e("NightRoutine", "알람 설정 실패: ${e.message}")
+            Toast.makeText(this, "알람 설정 실패", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun startSleepCheckIn() {
+        // ⭐ 알람 시간 변경 시 코인 차감
+        if (isAlarmTimeChanged) {
+            val currentCoins = sharedPreferences.getInt("paw_coin_count", 10)
+
+            if (currentCoins < ALARM_CHANGE_COST) {
+                // 코인 부족
+                AlertDialog.Builder(this)
+                    .setTitle("곰젤리 부족")
+                    .setMessage("알람 시간을 변경했기 때문에\n곰젤리 ${ALARM_CHANGE_COST}개가 필요합니다.\n\n현재 보유: ${currentCoins}개")
+                    .setPositiveButton("확인", null)
+                    .show()
+                return
+            }
+
+            // 코인 차감
+            val newCoinCount = currentCoins - ALARM_CHANGE_COST
+            sharedPreferences.edit()
+                .putInt("paw_coin_count", newCoinCount)
+                .apply()
+
+            updateUI()  // UI 업데이트
+
+            Toast.makeText(
+                this,
+                "곰젤리 ${ALARM_CHANGE_COST}개가 차감되었습니다. (잔여: ${newCoinCount}개)",
+                Toast.LENGTH_SHORT
+            ).show()
+
+            Log.d("NightRoutine", "알람 변경 비용 차감: $currentCoins → $newCoinCount")
+        }
+
         // 감정 데이터 저장
         val currentMood = moodAdapter.getMoodAt(selectedMoodPosition)
         sharedPreferences.edit()
@@ -180,7 +315,6 @@ class NightRoutineActivity : AppCompatActivity() {
             .putInt("today_mood_position", selectedMoodPosition)
             .putLong("sleep_checkin_time", System.currentTimeMillis())
             .apply()
-
 
         // 잠금 화면으로 이동
         val intent = Intent(this, LockScreenActivity::class.java)
@@ -199,5 +333,7 @@ class NightRoutineActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         updateUI()
+        // ⭐ 화면으로 돌아올 때 플래그 초기화 (설정에서 돌아온 경우 등)
+        // isAlarmTimeChanged = false  // 필요시 활성화
     }
 }

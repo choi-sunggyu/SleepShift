@@ -250,11 +250,16 @@ class DailyAlarmManager(private val context: Context) {
         )
 
         val calendar = Calendar.getInstance().apply {
-            add(Calendar.DAY_OF_MONTH, 1)
             set(Calendar.HOUR_OF_DAY, alarmTime.hour)
             set(Calendar.MINUTE, alarmTime.minute)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
+
+            // ⭐ 현재 시간보다 과거면 다음날로
+            if (timeInMillis <= System.currentTimeMillis()) {
+                add(Calendar.DAY_OF_MONTH, 1)
+                Log.d("DailyAlarmManager", "설정 시간이 지나서 내일로 설정")
+            }
         }
 
         alarmManager.setExactAndAllowWhileIdle(
@@ -263,7 +268,13 @@ class DailyAlarmManager(private val context: Context) {
             pendingIntent
         )
 
-        Log.d("DailyAlarmManager", "기상 알람: ${calendar.time}")
+        Log.d("DailyAlarmManager", """
+        ========== 알람 설정 완료 ==========
+        설정 시간: ${calendar.time}
+        현재 시간: ${Date()}
+        ${if (calendar.get(Calendar.DAY_OF_MONTH) > Calendar.getInstance().get(Calendar.DAY_OF_MONTH)) "내일" else "오늘"}
+        =====================================
+    """.trimIndent())
     }
 
     private fun parseTime(timeString: String): LocalTime {

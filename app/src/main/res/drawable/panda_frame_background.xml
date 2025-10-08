@@ -1,7 +1,82 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="rectangle">
-    <stroke
-        android:width="7dp"
-        android:color="#FFFFFF" />
-</shape>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 그림자 레이어 -->
+    <item>
+        <vector
+            android:width="130dp"
+            android:height="130dp"
+            android:viewportWidth="130"
+            android:viewportHeight="130">
+
+            <!-- 좌상단 그림자 -->
+            <path
+                android:pathData="M12,37 L12,17 Q12,12 17,12 L37,12"
+                android:strokeWidth="10"
+                android:strokeColor="#30000000"
+                android:strokeLineCap="round" />
+
+            <!-- 우상단 그림자 -->
+            <path
+                android:pathData="M93,12 L113,12 Q118,12 118,17 L118,37"
+                android:strokeWidth="10"
+                android:strokeColor="#30000000"
+                android:strokeLineCap="round" />
+
+            <!-- 좌하단 그림자 -->
+            <path
+                android:pathData="M37,118 L17,118 Q12,118 12,113 L12,93"
+                android:strokeWidth="10"
+                android:strokeColor="#30000000"
+                android:strokeLineCap="round" />
+
+            <!-- 우하단 그림자 -->
+            <path
+                android:pathData="M118,93 L118,113 Q118,118 113,118 L93,118"
+                android:strokeWidth="10"
+                android:strokeColor="#30000000"
+                android:strokeLineCap="round" />
+        </vector>
+    </item>
+
+    <!-- 메인 프레임 레이어 -->
+    <item
+        android:top="1dp"
+        android:left="1dp">
+        <vector
+            android:width="130dp"
+            android:height="130dp"
+            android:viewportWidth="130"
+            android:viewportHeight="130">
+
+            <!-- 좌상단 -->
+            <path
+                android:pathData="M10,35 L10,15 Q10,10 15,10 L35,10"
+                android:strokeWidth="8"
+                android:strokeColor="#FFFFFF"
+                android:strokeLineCap="round" />
+
+            <!-- 우상단 -->
+            <path
+                android:pathData="M95,10 L115,10 Q120,10 120,15 L120,35"
+                android:strokeWidth="8"
+                android:strokeColor="#FFFFFF"
+                android:strokeLineCap="round" />
+
+            <!-- 좌하단 -->
+            <path
+                android:pathData="M35,120 L15,120 Q10,120 10,115 L10,95"
+                android:strokeWidth="8"
+                android:strokeColor="#FFFFFF"
+                android:strokeLineCap="round" />
+
+            <!-- 우하단 -->
+            <path
+                android:pathData="M120,95 L120,115 Q120,120 115,120 L95,120"
+                android:strokeWidth="8"
+                android:strokeColor="#FFFFFF"
+                android:strokeLineCap="round" />
+        </vector>
+    </item>
+
+</layer-list>

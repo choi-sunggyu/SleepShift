@@ -352,8 +352,8 @@ class MorningRoutineActivity : AppCompatActivity() {
 
         consecutiveSuccessManager.recordAlarmDismissed()
 
-        val timeTaken = elapsedSeconds
-        val coinReward = calculateCoinReward(timeTaken)
+        // ⭐ 간단하게! 무조건 1개 지급
+        val coinReward = 1
         addPawCoins(coinReward)
 
         // ⭐ 오늘 완료 기록
@@ -366,13 +366,11 @@ class MorningRoutineActivity : AppCompatActivity() {
         // 미션 초기화 (다음 날을 위해)
         resetRoutines()
 
-        val message = if (timeTaken <= TOTAL_TIME_SECONDS) {
-            "완벽합니다! ${timeTaken}초 만에 완료\n발바닥 코인 ${coinReward}개 획득!"
-        } else {
-            "루틴 완료! ${timeTaken}초 소요\n발바닥 코인 ${coinReward}개 획득!"
-        }
-
-        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+        Toast.makeText(
+            this,
+            "✨ 모닝 루틴 완료!\n곰젤리 +${coinReward}개 획득!",
+            Toast.LENGTH_LONG
+        ).show()
 
         Handler(Looper.getMainLooper()).postDelayed({
             val intent = Intent(this, HomeActivity::class.java)
@@ -402,7 +400,7 @@ class MorningRoutineActivity : AppCompatActivity() {
             .putInt("paw_coin_count", newCount)
             .apply()
 
-        android.util.Log.d("MorningRoutine", "발바닥 코인 $amount 개 획득! 총: $newCount")
+        android.util.Log.d("MorningRoutine", "곰젤리 $amount 개 획득! 총: $newCount")
     }
 
     private fun triggerReAlarm() {

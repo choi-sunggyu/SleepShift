@@ -308,6 +308,9 @@ class NightRoutineActivity : AppCompatActivity() {
             Log.d("NightRoutine", "알람 변경 비용 차감: $currentCoins → $newCoinCount")
         }
 
+        // ⭐⭐⭐ 취침 시간 체크 및 보상 지급
+        checkBedtimeReward()
+
         // 감정 데이터 저장
         val currentMood = moodAdapter.getMoodAt(selectedMoodPosition)
         sharedPreferences.edit()
@@ -319,6 +322,76 @@ class NightRoutineActivity : AppCompatActivity() {
         // 잠금 화면으로 이동
         val intent = Intent(this, LockScreenActivity::class.java)
         startActivity(intent)
+    }
+
+    /**
+     * ⭐ 취침 시간 체크 및 보상
+     */
+    private fun checkBedtimeReward() {
+        // 설정된 취침 시간 가져오기
+        val todayBedtime = sharedPreferences.getString("today_bedtime", null)
+            ?: sharedPreferences.getString("avg_bedtime", "23:00")
+            ?: "23:00"
+
+        val bedtimeParts = todayBedtime.split(":")
+        val bedtimeHour = bedtimeParts.getOrNull(0)?.toIntOrNull() ?: 23
+        val bedtimeMinute = bedtimeParts.getOrNull(1)?.toIntOrNull() ?: 0
+
+        // 현재 시간
+        val now = java.util.Calendar.getInstance()
+        val currentHour = now.get(java.util.Calendar.HOUR_OF_DAY)
+        val currentMinute = now.get(java.util.Calendar.MINUTE)
+
+        // 설정된 취침 시간을 분으로 변환
+        val bedtimeInMinutes = bedtimeHour * 60 + bedtimeMinute
+        val currentTimeInMinutes = currentHour * 60 + currentMinute
+
+        // 자정 넘김 처리 (예: 취침시간이 23:00 = 1380분, 현재 01:00 = 60분)
+        val isBeforeBedtime = if (bedtimeHour >= 20) {
+            // 취침시간이 저녁~밤 (20:00 이후)
+            if (currentHour >= 20 || currentHour < 12) {
+                // 현재가 저녁이거나 새벽
+                if (currentHour < 12) {
+                    // 새벽 (0~11시) - 전날 취침 시간과 비교
+                    currentTimeInMinutes + 1440 <= bedtimeInMinutes + 1440
+                } else {
+                    // 저녁 (20시 이후)
+                    currentTimeInMinutes <= bedtimeInMinutes
+                }
+            } else {
+                false
+            }
+        } else {
+            currentTimeInMinutes <= bedtimeInMinutes
+        }
+
+        if (isBeforeBedtime) {
+            // 보상 지급
+            val currentCoins = sharedPreferences.getInt("paw_coin_count", 10)
+            val newCoins = currentCoins + 1
+
+            sharedPreferences.edit()
+                .putInt("paw_coin_count", newCoins)
+                .putBoolean("earned_bedtime_reward_today", true)  // 오늘 취침 보상 받음
+                .apply()
+
+            updateUI()
+
+            Toast.makeText(
+                this,
+                "✨ 일찍 자는 습관! 곰젤리 +1 (잔여: ${newCoins}개)",
+                Toast.LENGTH_LONG
+            ).show()
+
+            Log.d("NightRoutine", "취침 시간 준수 보상: $currentCoins → $newCoins")
+        } else {
+            Log.d("NightRoutine", "취침 시간 이후 체크인 - 보상 없음")
+            Toast.makeText(
+                this,
+                "취침 시간($todayBedtime) 이후입니다",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     private fun openSettings() {

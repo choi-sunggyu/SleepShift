@@ -63,7 +63,7 @@ class AlarmReceiver : BroadcastReceiver() {
 
         // 알림 생성
         val notification = NotificationCompat.Builder(context, "bedtime_notification_channel")
-            .setSmallIcon(R.drawable.ic_notification)  // 알림 아이콘 필요
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("🌙 취침 시간이 다가옵니다")
             .setContentText("${avgBedtime}에 잠자리에 들 시간입니다. 준비해주세요!")
             .setStyle(NotificationCompat.BigTextStyle()
@@ -97,6 +97,11 @@ class AlarmReceiver : BroadcastReceiver() {
         val todayAlarmTime = sharedPref.getString("today_alarm_time", "07:00")
         Log.d("AlarmReceiver", "설정된 알람 시간: $todayAlarmTime")
 
+        // ⭐ 알람 시간 기록 제거 (더 이상 필요 없음)
+        sharedPref.edit()
+            .putLong("last_alarm_triggered", System.currentTimeMillis())
+            .apply()
+
         val alarmIntent = Intent(context, AlarmActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or
@@ -107,11 +112,6 @@ class AlarmReceiver : BroadcastReceiver() {
         try {
             context.startActivity(alarmIntent)
             Log.d("AlarmReceiver", "알람 화면 시작 성공")
-
-            with(sharedPref.edit()) {
-                putLong("last_alarm_triggered", System.currentTimeMillis())
-                apply()
-            }
 
         } catch (e: Exception) {
             Log.e("AlarmReceiver", "알람 화면 시작 실패: ${e.message}")

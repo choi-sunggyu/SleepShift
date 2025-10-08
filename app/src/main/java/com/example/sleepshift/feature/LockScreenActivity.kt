@@ -38,7 +38,7 @@ class LockScreenActivity : AppCompatActivity() {
     private val handler = Handler(Looper.getMainLooper())
 
     // 코인 사용 관련
-    private val UNLOCK_COST = 1 // 잠금 해제에 필요한 코인
+    private val UNLOCK_COST = 15 // 잠금 해제에 필요한 코인
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

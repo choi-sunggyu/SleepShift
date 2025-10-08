@@ -72,6 +72,9 @@
         <activity
             android:name=".feature.MorningRoutineActivity"
             android:exported="false" />
+        <activity
+            android:name=".feature.LoadingActivity"
+            android:exported="false" />
 
         <!-- ⭐ AlarmReceiver - 취침 알림 액션 추가 -->
         <receiver android:name=".feature.alarm.AlarmReceiver"

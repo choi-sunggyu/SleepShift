@@ -162,7 +162,8 @@ class SurveyActivity : AppCompatActivity() {
             repo.saveSettings(settings)
             repo.saveProgress(progress)
 
-            val intent = Intent(this@SurveyActivity, HomeActivity::class.java)
+            // ⭐⭐⭐ HomeActivity 대신 LoadingActivity로 이동
+            val intent = Intent(this@SurveyActivity, LoadingActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             startActivity(intent)
             finish()

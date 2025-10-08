@@ -60,7 +60,7 @@ class LoadingActivity : AppCompatActivity() {
 
     private fun startLoading() {
         // 프로그레스바를 0에서 100까지 부드럽게 증가
-        val totalDuration = 3000L // 3초
+        val totalDuration = 5000L // 5초
         val updateInterval = 30L // 30ms마다 업데이트
         val totalSteps = (totalDuration / updateInterval).toInt()
         val progressPerStep = 100f / totalSteps

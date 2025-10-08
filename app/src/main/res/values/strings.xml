@@ -4,6 +4,17 @@
     <string name="channel_desc">Reminds you to go to bed earlier by 30 minutes each day.</string>
     <string name="done">완료</string>
     <string name="skip">건너뛰기</string>
+
+    <string name="desc_settings">설정</string>
+    <string name="desc_paw_coin">발바닥 코인</string>
+    <string name="desc_alarm">알람</string>
+    <string name="desc_calendar">달력</string>
+    <string name="desc_lock">잠금</string>
+    <string name="desc_panda_image">팬더 명상</string>
+    <string name="desc_unlock">잠금 해제</string>
+    <string name="desc_home">메인 화면</string>
+
+
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

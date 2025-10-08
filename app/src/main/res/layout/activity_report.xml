@@ -76,12 +76,14 @@
                             android:paddingEnd="20dp">
 
                             <!-- 발바닥 코인 아이콘 -->
+
                             <ImageView
                                 android:id="@+id/imgPawCoin"
                                 android:layout_width="50dp"
                                 android:layout_height="50dp"
                                 android:layout_gravity="center"
-                                android:src="@drawable/ic_paw_coin" />
+                                android:src="@drawable/ic_paw_coin"
+                                android:contentDescription="@string/desc_paw_coin"/>
 
                             <TextView
                                 android:id="@+id/tvPawCoinCount"
@@ -108,7 +110,8 @@
                             android:layout_height="24dp"
                             android:layout_gravity="center"
                             android:background="?android:attr/selectableItemBackgroundBorderless"
-                            android:src="@drawable/ic_settings" />
+                            android:src="@drawable/ic_settings"
+                            android:contentDescription="@string/desc_settings"/>
                     </androidx.cardview.widget.CardView>
                 </LinearLayout>
             </RelativeLayout>
@@ -314,7 +317,8 @@
                     android:layout_gravity="center"
                     android:background="?android:attr/selectableItemBackgroundBorderless"
                     android:padding="16dp"
-                    android:src="@drawable/ic_home" />
+                    android:src="@drawable/ic_home"
+                    android:contentDescription="@string/desc_home"/>
             </androidx.cardview.widget.CardView>
         </LinearLayout>
 

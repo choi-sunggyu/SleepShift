@@ -1,12 +1,16 @@
 package com.example.sleepshift.feature.home
 
+import android.Manifest
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
+import android.app.AlarmManager
+import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -18,7 +22,9 @@ import android.util.Log
 import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.example.sleepshift.util.DailyAlarmManager
 import com.example.sleepshift.databinding.ActivityHomeBinding
 import com.example.sleepshift.feature.NightRoutineActivity
@@ -37,6 +43,19 @@ class HomeActivity : AppCompatActivity() {
     private val progressDots = mutableListOf<android.view.View>()
     private lateinit var alarmManager: DailyAlarmManager
 
+    // ⭐ 알림 권한 요청 런처 추가
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            Log.d("HomeActivity", "알림 권한 승인됨")
+            checkAlarmPermission() // 알림 승인 후 알람 권한 체크
+        } else {
+            Log.w("HomeActivity", "알림 권한 거부됨")
+            showPermissionDeniedDialog()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityHomeBinding.inflate(layoutInflater)
@@ -47,6 +66,9 @@ class HomeActivity : AppCompatActivity() {
 
         // 배터리 최적화 해제 요청
         requestIgnoreBatteryOptimization()
+
+        // 권한 요청 추가
+        requestAllPermissions()
 
         consecutiveSuccessManager = ConsecutiveSuccessManager(this)
 
@@ -65,8 +87,129 @@ class HomeActivity : AppCompatActivity() {
 
         checkDailyProgress()
 
-        // 매일 알람 설정 (핵심 기능)
-        setupDailyAlarm()
+    }
+
+    private fun requestAllPermissions() {
+        // 1단계: 알림 권한 (Android 13+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            when {
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    Log.d("HomeActivity", "알림 권한 이미 승인됨")
+                    checkAlarmPermission() // 바로 알람 권한 체크
+                }
+                shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS) -> {
+                    // 권한 설명 표시 후 요청
+                    showNotificationPermissionRationale()
+                }
+                else -> {
+                    // 직접 요청
+                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+        } else {
+            // Android 12 이하는 알림 권한 불필요, 바로 알람 권한 체크
+            checkAlarmPermission()
+        }
+    }
+
+    /**
+     * ⭐ 알람 권한 체크 및 요청 (Android 12+)
+     */
+    private fun checkAlarmPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // ⭐ 변수명 변경 및 안전한 캐스팅
+            val systemAlarmManager = getSystemService(AlarmManager::class.java)
+
+            if (systemAlarmManager?.canScheduleExactAlarms() != true) {
+                Log.w("HomeActivity", "정확한 알람 권한 없음")
+                showAlarmPermissionDialog()
+            } else {
+                Log.d("HomeActivity", "정확한 알람 권한 있음")
+                // 권한 확보 완료 - 알람 설정
+                setupDailyAlarm()
+            }
+        } else {
+            // Android 11 이하는 알람 권한 불필요
+            setupDailyAlarm()
+        }
+    }
+
+    /**
+     * 알림 권한 설명 다이얼로그
+     */
+    private fun showNotificationPermissionRationale() {
+        AlertDialog.Builder(this)
+            .setTitle("알림 권한 필요")
+            .setMessage("알람이 울릴 때 알림을 표시하기 위해 알림 권한이 필요합니다.")
+            .setPositiveButton("권한 허용") { _, _ ->
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+            .setNegativeButton("나중에") { dialog, _ ->
+                dialog.dismiss()
+                checkAlarmPermission() // 알림은 선택이지만 알람은 체크
+            }
+            .show()
+    }
+
+    /**
+     * 알람 권한 요청 다이얼로그
+     */
+    private fun showAlarmPermissionDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("알람 권한 필요")
+            .setMessage(
+                "정확한 시간에 알람을 울리기 위해서는 '알람 및 리마인더' 권한이 필요합니다.\n\n" +
+                        "설정 화면으로 이동하여 권한을 허용해주세요."
+            )
+            .setPositiveButton("설정으로 이동") { _, _ ->
+                openAlarmPermissionSettings()
+            }
+            .setNegativeButton("나중에") { dialog, _ ->
+                dialog.dismiss()
+                Toast.makeText(
+                    this,
+                    "알람 권한이 없으면 알람이 울리지 않습니다",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+            .setCancelable(false)
+            .show()
+    }
+
+    /**
+     * 알람 권한 설정 화면으로 이동
+     */
+    private fun openAlarmPermissionSettings() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            try {
+                val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                    data = Uri.parse("package:$packageName")
+                }
+                startActivity(intent)
+            } catch (e: Exception) {
+                Log.e("HomeActivity", "알람 설정 화면 열기 실패: ${e.message}")
+                Toast.makeText(this, "설정 화면을 열 수 없습니다", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    /**
+     * 권한 거부 시 안내
+     */
+    private fun showPermissionDeniedDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("권한 필요")
+            .setMessage("알람 앱이 정상적으로 작동하려면 알림 권한이 필요합니다.")
+            .setPositiveButton("확인") { dialog, _ ->
+                dialog.dismiss()
+                checkAlarmPermission() // 알람 권한은 계속 체크
+            }
+            .show()
     }
 
     /**

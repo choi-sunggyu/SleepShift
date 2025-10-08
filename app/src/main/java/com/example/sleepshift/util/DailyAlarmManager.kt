@@ -45,6 +45,14 @@ class DailyAlarmManager(private val context: Context) {
     }
 
     fun updateDailyAlarm(currentDay: Int) {
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (!alarmManager.canScheduleExactAlarms()) {
+                Log.e("DailyAlarmManager", "알람 권한 없음 - 알람 설정 중단")
+                return
+            }
+        }
+
         val currentBedtime = sharedPreferences.getString("avg_bedtime", "04:00") ?: "04:00"
         val targetWakeTime = sharedPreferences.getString("target_wake_time", "06:30") ?: "06:30"
         val targetSleepMinutes = sharedPreferences.getInt("min_sleep_minutes", 420)

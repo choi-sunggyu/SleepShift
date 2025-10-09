@@ -17,6 +17,8 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.sleepshift.R
 import com.example.sleepshift.feature.home.HomeActivity
+import java.text.SimpleDateFormat
+import java.util.*
 
 class LockScreenActivity : AppCompatActivity() {
 
@@ -56,6 +58,23 @@ class LockScreenActivity : AppCompatActivity() {
         initViews()
         setupUI()
         setupUnlockButton()
+
+        // ⭐ 수면 체크인 기록
+        recordSleepCheckIn()
+    }
+
+    /**
+     * ⭐ 수면 체크인 기록 - 취침 알람 방지용
+     */
+    private fun recordSleepCheckIn() {
+        val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+
+        sharedPreferences.edit()
+            .putString("last_sleep_checkin_date", today)
+            .putLong("last_sleep_checkin_time", System.currentTimeMillis())
+            .apply()
+
+        android.util.Log.d("LockScreen", "수면 체크인 기록됨: $today")
     }
 
     private fun initViews() {

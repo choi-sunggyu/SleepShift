@@ -106,7 +106,7 @@
 
         <!-- 잠금 해제 버튼 -->
         <androidx.cardview.widget.CardView
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:cardCornerRadius="25dp"
             app:cardElevation="6dp"
@@ -114,12 +114,14 @@
 
             <LinearLayout
                 android:id="@+id/btnUnlock"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="70dp"
                 android:orientation="horizontal"
                 android:gravity="center"
                 android:background="?android:attr/selectableItemBackground"
-                android:paddingHorizontal="40dp">
+                android:paddingHorizontal="40dp"
+                android:clickable="true"
+                android:focusable="true">
 
                 <!-- 자물쇠 아이콘 -->
                 <ImageView

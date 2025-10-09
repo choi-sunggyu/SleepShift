@@ -238,18 +238,18 @@ class HomeActivity : AppCompatActivity() {
     }
 
     /**
-     * 코인 초기화 (최초 실행 시 10개)
+     * 코인 초기화 (최초 실행 시 30개)
      */
     private fun initializePawCoins() {
         val isFirstRun = sharedPreferences.getBoolean("is_first_run", true)
 
         if (isFirstRun) {
             with(sharedPreferences.edit()) {
-                putInt("paw_coin_count", 10)
+                putInt("paw_coin_count", 30)
                 putBoolean("is_first_run", false)
                 apply()
             }
-            android.util.Log.d("HomeActivity", "초기 코인 10개 설정됨")
+            android.util.Log.d("HomeActivity", "초기 코인 30개 설정됨")
         }
     }
 

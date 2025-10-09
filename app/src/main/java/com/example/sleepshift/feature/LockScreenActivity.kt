@@ -1,8 +1,10 @@
 package com.example.sleepshift.feature
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.os.Build
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.os.Handler
@@ -15,8 +17,10 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.edit
 import com.example.sleepshift.R
 import com.example.sleepshift.feature.home.HomeActivity
+import com.example.sleepshift.service.LockMonitoringService
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -44,6 +48,16 @@ class LockScreenActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // ⭐ 코드에서 화면 방향 설정 (Android 16 미만에서만 적용)
+        if (Build.VERSION.SDK_INT < 35) { // UPSIDE_DOWN_CAKE = 35
+            @Suppress("DEPRECATION")
+            requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
+
+        // ⭐ 잠금 화면 설정 (OS 레벨)
+        setupLockScreenMode()
+
         setContentView(R.layout.activity_lock_screen)
 
         // 화면을 항상 켜진 상태로 유지
@@ -61,6 +75,91 @@ class LockScreenActivity : AppCompatActivity() {
 
         // ⭐ 수면 체크인 기록
         recordSleepCheckIn()
+
+        // ⭐ Immersive Mode 설정
+        enableImmersiveMode()
+
+        // ⭐ 잠금 모드 시작
+        startLockMode()
+    }
+
+    /**
+     * ⭐ 잠금 화면 모드 설정
+     */
+    private fun setupLockScreenMode() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            // Android 8.1 이상: 잠금 화면 위에 표시
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+        } else {
+            @Suppress("DEPRECATION")
+            window.addFlags(
+                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                        WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD or
+                        WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+            )
+        }
+    }
+
+    /**
+     * ⭐ Immersive Sticky Mode - 네비게이션 바 숨김
+     */
+    private fun enableImmersiveMode() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // Android 11 이상
+            window.setDecorFitsSystemWindows(false)
+            window.insetsController?.apply {
+                hide(android.view.WindowInsets.Type.systemBars())
+                systemBarsBehavior = android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            }
+        } else {
+            // Android 10 이하
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = (
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                            or View.SYSTEM_UI_FLAG_FULLSCREEN
+                            or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                            or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    )
+        }
+    }
+
+    /**
+     * ⭐ 잠금 모드 시작 (Screen Pinning + Foreground Service)
+     */
+    private fun startLockMode() {
+        // lock_screen_active 플래그 설정
+        sharedPreferences.edit {
+            putBoolean("lock_screen_active", true)
+        }
+
+        // 1단계: Screen Pinning 시도
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                startLockTask()
+                android.util.Log.d("LockScreen", "Screen Pinning 활성화됨")
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("LockScreen", "Screen Pinning 실패: ${e.message}")
+        }
+
+        // 2단계: Foreground Service 시작 (백업)
+        startLockMonitoringService()
+    }
+
+    /**
+     * ⭐ 잠금 감시 서비스 시작
+     */
+    private fun startLockMonitoringService() {
+        val intent = Intent(this, LockMonitoringService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
+        }
+        android.util.Log.d("LockScreen", "Lock Monitoring Service 시작됨")
     }
 
     /**
@@ -69,10 +168,10 @@ class LockScreenActivity : AppCompatActivity() {
     private fun recordSleepCheckIn() {
         val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
 
-        sharedPreferences.edit()
-            .putString("last_sleep_checkin_date", today)
-            .putLong("last_sleep_checkin_time", System.currentTimeMillis())
-            .apply()
+        sharedPreferences.edit {
+            putString("last_sleep_checkin_date", today)
+            putLong("last_sleep_checkin_time", System.currentTimeMillis())
+        }
 
         android.util.Log.d("LockScreen", "수면 체크인 기록됨: $today")
     }
@@ -94,7 +193,6 @@ class LockScreenActivity : AppCompatActivity() {
 
         updateCoinDisplay()
 
-        // ⭐ 우선순위: today_alarm_time → target_wake_time → 기본값
         val alarmTime = sharedPreferences.getString("today_alarm_time", null)
             ?: sharedPreferences.getString("target_wake_time", "07:00")
             ?: "07:00"
@@ -118,26 +216,22 @@ class LockScreenActivity : AppCompatActivity() {
         val currentCoins = getCurrentCoins()
 
         if (currentCoins < UNLOCK_COST) {
-            // 코인 부족시 버튼 비활성화
             btnUnlock.alpha = 0.5f
             tvUnlockHint.text = "곰젤리 (${UNLOCK_COST}개 필요)"
-            btnUnlock.isEnabled = false
         } else {
-            // 코인 충분시 버튼 활성화
             btnUnlock.alpha = 1.0f
             tvUnlockHint.text = "해제를 원하시면 3초간 누르세요"
-            btnUnlock.isEnabled = true
         }
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     private fun setupUnlockButton() {
         btnUnlock.setOnTouchListener { _, event ->
-            // 코인이 부족하면 터치 무시
             if (getCurrentCoins() < UNLOCK_COST) {
                 if (event.action == MotionEvent.ACTION_DOWN) {
                     showInsufficientCoinsMessage()
                 }
-                return@setOnTouchListener false
+                return@setOnTouchListener true
             }
 
             when (event.action) {
@@ -168,21 +262,15 @@ class LockScreenActivity : AppCompatActivity() {
         if (isLongPressing) return
 
         isLongPressing = true
-
-        // UI 변경
         countdownSection.visibility = View.VISIBLE
         tvUnlockHint.visibility = View.GONE
 
-        // 3초 카운트다운 시작
         countDownTimer = object : CountDownTimer(3000, 1000) {
             override fun onTick(millisUntilFinished: Long) {
                 val secondsRemaining = (millisUntilFinished / 1000 + 1).toInt()
                 tvCountdown.text = secondsRemaining.toString()
-
-                // 자물쇠 아이콘을 숫자로 변경
                 updateLockIcon(secondsRemaining)
 
-                // 버튼 스케일 애니메이션
                 btnUnlock.animate()
                     .scaleX(0.95f)
                     .scaleY(0.95f)
@@ -191,7 +279,6 @@ class LockScreenActivity : AppCompatActivity() {
             }
 
             override fun onFinish() {
-                // 카운트다운 완료 - 잠금 해제
                 unlockScreen()
             }
         }.start()
@@ -201,17 +288,13 @@ class LockScreenActivity : AppCompatActivity() {
         if (!isLongPressing) return
 
         isLongPressing = false
-
-        // 카운트다운 취소
         countDownTimer?.cancel()
         countDownTimer = null
 
-        // UI 복원
         countdownSection.visibility = View.GONE
         tvUnlockHint.visibility = View.VISIBLE
-        updateLockIcon(0) // 원래 자물쇠 아이콘으로 복원
+        updateLockIcon(0)
 
-        // 버튼 스케일 복원
         btnUnlock.animate()
             .scaleX(1.0f)
             .scaleY(1.0f)
@@ -234,7 +317,6 @@ class LockScreenActivity : AppCompatActivity() {
                 tvUnlockText.textSize = 24f
             }
             else -> {
-                // 원래 상태로 복원
                 tvUnlockText.text = "잠금해제"
                 tvUnlockText.textSize = 18f
             }
@@ -242,31 +324,50 @@ class LockScreenActivity : AppCompatActivity() {
     }
 
     private fun unlockScreen() {
-        // 코인 사용 처리
         val success = usePawCoins(UNLOCK_COST)
 
         if (!success) {
-            // 코인 사용 실패 (코인 부족)
             Toast.makeText(this, "코인이 부족하여 잠금 해제를 할 수 없습니다", Toast.LENGTH_LONG).show()
             cancelLongPressCountdown()
-            checkUnlockAvailability() // UI 업데이트
+            checkUnlockAvailability()
             return
         }
 
-        // 성공 메시지
+        // ⭐ 잠금 모드 해제
+        stopLockMode()
+
         Toast.makeText(this, "잠금이 해제되었습니다! (코인 ${UNLOCK_COST}개 사용)", Toast.LENGTH_LONG).show()
-
-        // 화면 밝기 복원
-        setScreenBrightness(-1f) // 시스템 기본값으로 복원
-
-        // 잠금 해제 기록 저장
+        setScreenBrightness(-1f)
         recordUnlockTime()
 
-        // 홈 화면으로 이동
         val intent = Intent(this, HomeActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
         startActivity(intent)
         finish()
+    }
+
+    /**
+     * ⭐ 잠금 모드 해제
+     */
+    private fun stopLockMode() {
+        // lock_screen_active 플래그 해제
+        sharedPreferences.edit {
+            putBoolean("lock_screen_active", false)
+        }
+
+        // Screen Pinning 해제
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                stopLockTask()
+                android.util.Log.d("LockScreen", "Screen Pinning 해제됨")
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("LockScreen", "Screen Pinning 해제 실패: ${e.message}")
+        }
+
+        // Foreground Service 중지
+        stopService(Intent(this, LockMonitoringService::class.java))
+        android.util.Log.d("LockScreen", "Lock Monitoring Service 중지됨")
     }
 
     private fun usePawCoins(amount: Int): Boolean {
@@ -288,7 +389,6 @@ class LockScreenActivity : AppCompatActivity() {
     }
 
     private fun recordUnlockTime() {
-        // 잠금 해제 시간 기록
         sharedPreferences.edit()
             .putLong("last_unlock_time", System.currentTimeMillis())
             .putInt("daily_unlock_count",
@@ -302,31 +402,30 @@ class LockScreenActivity : AppCompatActivity() {
         window.attributes = layoutParams
     }
 
+    @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
-        super.onBackPressed()
-        // 뒤로가기 버튼 비활성화 (잠금 화면이므로)
-        val currentCoins = getCurrentCoins()
-        if (currentCoins < UNLOCK_COST) {
-            Toast.makeText(this, "코인이 부족합니다. 알람을 해제하여 코인을 획득하세요!", Toast.LENGTH_LONG).show()
-        } else {
-            Toast.makeText(this, "잠금 해제 버튼을 길게 눌러주세요", Toast.LENGTH_SHORT).show()
-        }
+        // 뒤로가기 완전 차단
+        Toast.makeText(this, "잠금 해제 버튼을 사용해주세요", Toast.LENGTH_SHORT).show()
     }
 
     override fun onResume() {
         super.onResume()
-        // 화면 복귀시 코인 상태 업데이트
         updateCoinDisplay()
         checkUnlockAvailability()
+        enableImmersiveMode()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            enableImmersiveMode()
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        // 카운트다운 타이머 정리
         countDownTimer?.cancel()
         countDownTimer = null
-
-        // 화면 설정 플래그 제거
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 }

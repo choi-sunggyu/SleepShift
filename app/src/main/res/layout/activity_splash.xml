@@ -24,7 +24,7 @@
         android:textColor="#E5E7EB"
         android:textSize="50sp"
         android:textStyle="bold"
-        android:fontFamily="@font/maplestory_bold"
+        android:fontFamily="@font/maplestory_light"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

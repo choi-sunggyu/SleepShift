@@ -63,7 +63,7 @@
         android:text="평소에는 보통 몇 시쯤 잠드시고 일어나시나요?"
         android:textSize="24sp"
         android:textColor="@color/text_primary"
-        android:fontFamily="@font/maplestory_bold"
+        android:fontFamily="@font/maplestory_light"
         android:lineSpacingExtra="4dp"
         android:layout_marginBottom="48dp" />
 
@@ -80,7 +80,7 @@
             android:text="잠드는 시간"
             android:textSize="16sp"
             android:textColor="@color/text_secondary"
-            android:fontFamily="@font/maplestory_bold"
+            android:fontFamily="@font/maplestory_light"
             android:layout_marginBottom="12dp" />
 
         <Button
@@ -91,7 +91,7 @@
             android:textSize="18sp"
             android:textColor="@color/text_primary"
             android:background="@drawable/survey_time_button"
-            android:fontFamily="@font/maplestory_bold" />
+            android:fontFamily="@font/maplestory_light" />
     </LinearLayout>
 
     <!-- Wake Time Section -->
@@ -107,7 +107,7 @@
             android:text="일어나는 시간"
             android:textSize="16sp"
             android:textColor="@color/text_secondary"
-            android:fontFamily="@font/maplestory_bold"
+            android:fontFamily="@font/maplestory_light"
             android:layout_marginBottom="12dp" />
 
         <Button
@@ -118,7 +118,7 @@
             android:textSize="18sp"
             android:textColor="@color/text_primary"
             android:background="@drawable/survey_time_button"
-            android:fontFamily="@font/maplestory_bold" />
+            android:fontFamily="@font/maplestory_light" />
     </LinearLayout>
 
     <!-- Spacer -->
@@ -136,6 +136,6 @@
         android:textSize="18sp"
         android:textColor="@color/text_white"
         android:background="@drawable/button_prim"
-        android:fontFamily="@font/maplestory_bold" />
+        android:fontFamily="@font/maplestory_light" />
 
 </LinearLayout>

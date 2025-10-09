@@ -328,7 +328,6 @@ class NightRoutineActivity : AppCompatActivity() {
      * ⭐ 취침 시간 체크 및 보상
      */
     private fun checkBedtimeReward() {
-        // 설정된 취침 시간 가져오기
         val todayBedtime = sharedPreferences.getString("today_bedtime", null)
             ?: sharedPreferences.getString("avg_bedtime", "23:00")
             ?: "23:00"
@@ -337,60 +336,73 @@ class NightRoutineActivity : AppCompatActivity() {
         val bedtimeHour = bedtimeParts.getOrNull(0)?.toIntOrNull() ?: 23
         val bedtimeMinute = bedtimeParts.getOrNull(1)?.toIntOrNull() ?: 0
 
-        // 현재 시간
         val now = java.util.Calendar.getInstance()
         val currentHour = now.get(java.util.Calendar.HOUR_OF_DAY)
         val currentMinute = now.get(java.util.Calendar.MINUTE)
 
-        // 설정된 취침 시간을 분으로 변환
-        val bedtimeInMinutes = bedtimeHour * 60 + bedtimeMinute
-        val currentTimeInMinutes = currentHour * 60 + currentMinute
+        var bedtimeInMinutes = bedtimeHour * 60 + bedtimeMinute
+        var currentTimeInMinutes = currentHour * 60 + currentMinute
 
-        // 자정 넘김 처리 (예: 취침시간이 23:00 = 1380분, 현재 01:00 = 60분)
-        val isBeforeBedtime = if (bedtimeHour >= 20) {
-            // 취침시간이 저녁~밤 (20:00 이후)
-            if (currentHour >= 20 || currentHour < 12) {
-                // 현재가 저녁이거나 새벽
-                if (currentHour < 12) {
-                    // 새벽 (0~11시) - 전날 취침 시간과 비교
-                    currentTimeInMinutes + 1440 <= bedtimeInMinutes + 1440
-                } else {
-                    // 저녁 (20시 이후)
-                    currentTimeInMinutes <= bedtimeInMinutes
-                }
-            } else {
-                false
-            }
-        } else {
-            currentTimeInMinutes <= bedtimeInMinutes
+        // 자정 넘김 처리
+        if (bedtimeHour >= 0 && bedtimeHour < 5) {
+            bedtimeInMinutes += 1440
+        }
+        if (currentHour >= 0 && currentHour < 5) {
+            currentTimeInMinutes += 1440
         }
 
-        if (isBeforeBedtime) {
+        // ⭐ 취침 시간과의 차이 계산
+        val timeDifference = currentTimeInMinutes - bedtimeInMinutes
+
+        val EARLY_TOLERANCE = 60  // 취침 시간 60분 전까지 허용
+        val LATE_TOLERANCE = 60   // 취침 시간 60분 후까지 허용
+
+        val rewardAmount = when {
+            // 취침 시간 이전 (60분 전 ~ 정각)
+            timeDifference in -EARLY_TOLERANCE..0 -> 2
+
+            // 취침 시간 이후 (정각 ~ 15분 후)
+            timeDifference in 1..LATE_TOLERANCE -> 1
+
+            // 범위 벗어남
+            else -> 0
+        }
+
+        if (rewardAmount > 0) {
             // 보상 지급
             val currentCoins = sharedPreferences.getInt("paw_coin_count", 10)
-            val newCoins = currentCoins + 1
+            val newCoins = currentCoins + rewardAmount
 
             sharedPreferences.edit()
                 .putInt("paw_coin_count", newCoins)
-                .putBoolean("earned_bedtime_reward_today", true)  // 오늘 취침 보상 받음
+                .putBoolean("earned_bedtime_reward_today", true)
                 .apply()
 
             updateUI()
 
-            Toast.makeText(
-                this,
-                "✨ 일찍 자는 습관! 곰젤리 +1 (잔여: ${newCoins}개)",
-                Toast.LENGTH_LONG
-            ).show()
+            val rewardMessage = if (rewardAmount == 2) {
+                "✨ 완벽한 취침 시간! 곰젤리 +2 (잔여: ${newCoins}개)"
+            } else {
+                "😊 취침 완료! 곰젤리 +1 (잔여: ${newCoins}개)"
+            }
 
-            Log.d("NightRoutine", "취침 시간 준수 보상: $currentCoins → $newCoins")
+            Toast.makeText(this, rewardMessage, Toast.LENGTH_LONG).show()
+
+            Log.d("NightRoutine", """
+                취침 보상 지급
+                - 차이: ${timeDifference}분
+                - 보상: ${rewardAmount}개
+                - 변경: $currentCoins → $newCoins
+            """.trimIndent())
         } else {
-            Log.d("NightRoutine", "취침 시간 이후 체크인 - 보상 없음")
-            Toast.makeText(
-                this,
-                "취침 시간($todayBedtime) 이후입니다",
-                Toast.LENGTH_SHORT
-            ).show()
+            val reason = if (timeDifference < -EARLY_TOLERANCE) {
+                "너무 일찍 체크인했습니다"
+            } else {
+                "취침 시간($todayBedtime)을 ${timeDifference - LATE_TOLERANCE}분 넘겼습니다"
+            }
+
+            Log.d("NightRoutine", "보상 없음: $reason (차이: ${timeDifference}분)")
+            Toast.makeText(this, reason, Toast.LENGTH_SHORT).show()
         }
     }
 

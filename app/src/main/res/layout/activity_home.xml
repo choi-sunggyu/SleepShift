@@ -24,7 +24,7 @@
                 android:id="@+id/tvDayCount"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="@font/maplestory_bold"
+                android:fontFamily="@font/maplestory_light"
                 android:text="Day 1"
                 android:textColor="#2D3748"
                 android:textSize="28sp" />
@@ -33,7 +33,7 @@
                 android:layout_width="50dp"
                 android:layout_height="wrap_content"
                 android:text="Dozeo"
-                android:fontFamily="@font/maplestory_bold"
+                android:fontFamily="@font/maplestory_light"
                 android:textColor="#718096"
                 android:textSize="14sp" />
         </LinearLayout>
@@ -75,7 +75,7 @@
                         android:id="@+id/tvPawCoinCount"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:fontFamily="@font/maplestory_bold"
+                        android:fontFamily="@font/maplestory_light"
                         android:text="130"
                         android:textColor="#2D3748"
                         android:textSize="18sp" />
@@ -208,7 +208,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:fontFamily="@font/maplestory_bold"
+                        android:fontFamily="@font/maplestory_light"
                         android:text="자러가기"
                         android:gravity="center"
                         android:textColor="#2D3748"
@@ -218,7 +218,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
-                        android:fontFamily="@font/maplestory_bold"
+                        android:fontFamily="@font/maplestory_light"
                         android:text="Go to bed"
                         android:textColor="#718096"
                         android:textSize="12sp" />

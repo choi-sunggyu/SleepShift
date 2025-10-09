@@ -62,7 +62,7 @@
         android:text="목표 기상 시간에 일어나면 어떤 하루를 시작하고 싶으세요?"
         android:textSize="24sp"
         android:textColor="@color/text_primary"
-        android:fontFamily="@font/maplestory_bold"
+        android:fontFamily="@font/maplestory_light"
         android:lineSpacingExtra="4dp"
         android:layout_marginBottom="48dp" />
 
@@ -80,7 +80,7 @@
             android:background="@drawable/survey_edittext_background"
             android:padding="16dp"
             android:hint="자유롭게 입력해주세요"
-            android:fontFamily="@font/maplestory_bold"
+            android:fontFamily="@font/maplestory_light"
             android:textColorHint="@color/text_hint"
             android:textColor="@color/text_primary"
             android:textSize="16sp"
@@ -104,6 +104,6 @@
         android:textSize="18sp"
         android:textColor="@color/text_white"
         android:background="@drawable/button_prim"
-        android:fontFamily="@font/maplestory_bold" />
+        android:fontFamily="@font/maplestory_light" />
 
 </LinearLayout>

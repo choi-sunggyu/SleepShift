@@ -14,7 +14,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="시간"
-            android:fontFamily="@font/maplestory_bold"
+            android:fontFamily="@font/maplestory_light"
             android:textColor="#9CA3AF"/>
         <NumberPicker
             android:id="@+id/npHours"
@@ -35,7 +35,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="분"
-            android:fontFamily="@font/maplestory_bold"
+            android:fontFamily="@font/maplestory_light"
             android:textColor="#9CA3AF"/>
         <NumberPicker
             android:id="@+id/npMinutes"

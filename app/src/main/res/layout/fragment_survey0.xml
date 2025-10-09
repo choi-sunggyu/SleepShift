@@ -63,14 +63,14 @@
         android:text="환영합니다! 🌙"
         android:textSize="32sp"
         android:textColor="@color/text_primary"
-        android:fontFamily="@font/maplestory_bold"
+        android:fontFamily="@font/maplestory_light"
         android:layout_marginBottom="12dp" />
 
     <!-- Title -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:fontFamily="@font/maplestory_bold"
+        android:fontFamily="@font/maplestory_light"
         android:text="수면 습관 개선을 시작하기 전에\n이름을 알려주세요"
         android:textSize="20sp"
         android:textColor="@color/text_secondary"
@@ -81,7 +81,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:fontFamily="@font/maplestory_bold"
+        android:fontFamily="@font/maplestory_light"
         android:text="이름 또는 닉네임"
         android:textSize="16sp"
         android:textColor="@color/text_secondary"
@@ -100,7 +100,7 @@
             android:id="@+id/etUserName"
             android:layout_width="match_parent"
             android:layout_height="56dp"
-            android:fontFamily="@font/maplestory_bold"
+            android:fontFamily="@font/maplestory_light"
             android:hint="예: 홍길동"
             android:inputType="textPersonName"
             android:maxLength="10"
@@ -134,6 +134,6 @@
         android:textSize="18sp"
         android:textColor="@color/text_white"
         android:background="@drawable/button_prim"
-        android:fontFamily="@font/maplestory_bold"/>
+        android:fontFamily="@font/maplestory_light"/>
 
 </LinearLayout>

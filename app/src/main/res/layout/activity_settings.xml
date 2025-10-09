@@ -27,7 +27,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
-            android:fontFamily="@font/maplestory_bold"
+            android:fontFamily="@font/maplestory_light"
             android:text="설정"
             android:textColor="#2D3748"
             android:textSize="18sp" />
@@ -63,7 +63,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
-                        android:fontFamily="@font/maplestory_bold"
+                        android:fontFamily="@font/maplestory_light"
                         android:text="알람 모드"
                         android:textColor="#2D3748"
                         android:textSize="16sp" />
@@ -73,7 +73,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="16dp"
                         android:text="점진적 조정 또는 즉시 적용 중 선택하세요"
-                        android:fontFamily="@font/maplestory_bold"
+                        android:fontFamily="@font/maplestory_light"
                         android:textColor="#92400E"
                         android:textSize="14sp" />
 
@@ -94,7 +94,7 @@
                             android:text="커스텀 모드 (추천)"
                             android:textColor="#2D3748"
                             android:textSize="15sp"
-                            android:fontFamily="@font/maplestory_bold"/>
+                            android:fontFamily="@font/maplestory_light"/>
 
                         <TextView
                             android:layout_width="match_parent"
@@ -104,7 +104,7 @@
                             android:text="• 20분씩 점진적으로 조정\n• 알람 시간 변경 불가\n• 신체 리듬 적응에 최적화"
                             android:textColor="#718096"
                             android:textSize="13sp"
-                            android:fontFamily="@font/maplestory_bold"/>
+                            android:fontFamily="@font/maplestory_light"/>
 
                         <RadioButton
                             android:id="@+id/radioNormalMode"
@@ -115,7 +115,7 @@
                             android:text="일반 모드"
                             android:textColor="#2D3748"
                             android:textSize="15sp"
-                            android:fontFamily="@font/maplestory_bold" />
+                            android:fontFamily="@font/maplestory_light" />
 
                         <TextView
                             android:layout_width="match_parent"
@@ -124,7 +124,7 @@
                             android:text="• 목표 시간으로 즉시 적용\n• 취침/기상 시간 자유롭게 변경 가능"
                             android:textColor="#718096"
                             android:textSize="13sp"
-                            android:fontFamily="@font/maplestory_bold"/>
+                            android:fontFamily="@font/maplestory_light"/>
                     </RadioGroup>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
@@ -149,7 +149,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
-                        android:fontFamily="@font/maplestory_bold"
+                        android:fontFamily="@font/maplestory_light"
                         android:text="평균 취침 시간"
                         android:textColor="#2D3748"
                         android:textSize="16sp" />
@@ -161,7 +161,7 @@
                         android:text="평소 잠자리에 드는 시간을 설정하세요"
                         android:textColor="#718096"
                         android:textSize="14sp"
-                        android:fontFamily="@font/maplestory_bold"/>
+                        android:fontFamily="@font/maplestory_light"/>
 
                     <RelativeLayout
                         android:layout_width="match_parent"
@@ -173,7 +173,7 @@
                             android:layout_height="wrap_content"
                             android:layout_alignParentStart="true"
                             android:layout_centerVertical="true"
-                            android:fontFamily="@font/maplestory_bold"
+                            android:fontFamily="@font/maplestory_light"
                             android:text="23:00"
                             android:textColor="#2D3748"
                             android:textSize="18sp" />
@@ -184,7 +184,7 @@
                             android:layout_height="36dp"
                             android:layout_alignParentEnd="true"
                             android:background="@drawable/button_primary"
-                            android:fontFamily="@font/maplestory_bold"
+                            android:fontFamily="@font/maplestory_light"
                             android:text="변경"
                             android:textColor="#FFFFFF"
                             android:textSize="14sp" />
@@ -212,7 +212,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
-                        android:fontFamily="@font/maplestory_bold"
+                        android:fontFamily="@font/maplestory_light"
                         android:text="목표 기상 시간"
                         android:textColor="#2D3748"
                         android:textSize="16sp" />
@@ -224,7 +224,7 @@
                         android:text="최종적으로 일어나고 싶은 시간을 설정하세요"
                         android:textColor="#718096"
                         android:textSize="14sp"
-                        android:fontFamily="@font/maplestory_bold"/>
+                        android:fontFamily="@font/maplestory_light"/>
 
                     <RelativeLayout
                         android:layout_width="match_parent"
@@ -236,7 +236,7 @@
                             android:layout_height="wrap_content"
                             android:layout_alignParentStart="true"
                             android:layout_centerVertical="true"
-                            android:fontFamily="@font/maplestory_bold"
+                            android:fontFamily="@font/maplestory_light"
                             android:text="07:00"
                             android:textColor="#2D3748"
                             android:textSize="18sp" />
@@ -247,7 +247,7 @@
                             android:layout_height="36dp"
                             android:layout_alignParentEnd="true"
                             android:background="@drawable/button_primary"
-                            android:fontFamily="@font/maplestory_bold"
+                            android:fontFamily="@font/maplestory_light"
                             android:text="변경"
                             android:textColor="#FFFFFF"
                             android:textSize="14sp" />
@@ -274,7 +274,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
-                        android:fontFamily="@font/maplestory_bold"
+                        android:fontFamily="@font/maplestory_light"
                         android:text="오늘의 알람 시간"
                         android:textColor="#2D3748"
                         android:textSize="16sp" />
@@ -287,13 +287,13 @@
                         android:text="점진적 조정이 반영된 오늘의 실제 알람 시간입니다"
                         android:textColor="#0369A1"
                         android:textSize="14sp"
-                        android:fontFamily="@font/maplestory_bold"/>
+                        android:fontFamily="@font/maplestory_light"/>
 
                     <TextView
                         android:id="@+id/tvCurrentAlarm"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:fontFamily="@font/maplestory_bold"
+                        android:fontFamily="@font/maplestory_light"
                         android:text="07:00 (Day 1)"
                         android:textColor="#0369A1"
                         android:textSize="24sp" />
@@ -319,7 +319,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
-                        android:fontFamily="@font/maplestory_bold"
+                        android:fontFamily="@font/maplestory_light"
                         android:text="기타 설정"
                         android:textColor="#2D3748"
                         android:textSize="16sp" />
@@ -338,7 +338,7 @@
                             android:text="취침 알림 (10분 전)"
                             android:textColor="#2D3748"
                             android:textSize="14sp"
-                            android:fontFamily="@font/maplestory_bold"/>
+                            android:fontFamily="@font/maplestory_light"/>
 
                         <Switch
                             android:id="@+id/switchBedtimeNotification"
@@ -363,7 +363,7 @@
                             android:text="알람 알림 허용"
                             android:textColor="#2D3748"
                             android:textSize="14sp"
-                            android:fontFamily="@font/maplestory_bold"/>
+                            android:fontFamily="@font/maplestory_light"/>
 
                         <Switch
                             android:id="@+id/switchNotification"
@@ -387,7 +387,7 @@
                             android:text="진동"
                             android:textColor="#2D3748"
                             android:textSize="14sp"
-                            android:fontFamily="@font/maplestory_bold"/>
+                            android:fontFamily="@font/maplestory_light"/>
 
                         <Switch
                             android:id="@+id/switchVibration"

@@ -30,7 +30,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:fontFamily="@font/maplestory_bold"
+                    android:fontFamily="@font/maplestory_light"
                     android:text="모닝 루틴"
                     android:textColor="#2D3748"
                     android:textSize="24sp" />
@@ -41,7 +41,7 @@
                     android:text="with Dozeo"
                     android:textSize="14sp"
                     android:textColor="#718096"
-                    android:fontFamily="@font/maplestory_bold"
+                    android:fontFamily="@font/maplestory_light"
                     android:layout_marginTop="4dp" />
             </LinearLayout>
 
@@ -67,7 +67,7 @@
                     android:text="130"
                     android:textSize="16sp"
                     android:textColor="#2D3748"
-                    android:fontFamily="@font/maplestory_bold" />
+                    android:fontFamily="@font/maplestory_light" />
             </LinearLayout>
 
             <!-- 설정 버튼 -->
@@ -143,7 +143,7 @@
                             android:text="물 한 잔 마시기"
                             android:textSize="18sp"
                             android:textColor="#2D3748"
-                            android:fontFamily="@font/maplestory_bold" />
+                            android:fontFamily="@font/maplestory_light" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -211,7 +211,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:fontFamily="@font/maplestory_bold"
+                            android:fontFamily="@font/maplestory_light"
                             android:text="햇빛 보기"
                             android:textColor="#2D3748"
                             android:textSize="18sp" />
@@ -284,7 +284,7 @@
                             android:text="오늘 꼭 할 것"
                             android:textSize="18sp"
                             android:textColor="#2D3748"
-                            android:fontFamily="@font/maplestory_bold" />
+                            android:fontFamily="@font/maplestory_light" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -350,7 +350,7 @@
                 android:text="잠금 해제하기"
                 android:textSize="18sp"
                 android:textColor="#4C51BF"
-                android:fontFamily="@font/maplestory_bold"
+                android:fontFamily="@font/maplestory_light"
                 android:gravity="center"
                 android:background="?android:attr/selectableItemBackground" />
         </androidx.cardview.widget.CardView>

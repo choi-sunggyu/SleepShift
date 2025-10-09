@@ -3,7 +3,7 @@
     <font
         android:fontStyle="normal"
         android:fontWeight="400"
-        android:font="@font/maplestory_bold" />
+        android:font="@font/maplestory_light" />
     <font
         android:fontStyle="normal"
         android:fontWeight="500"

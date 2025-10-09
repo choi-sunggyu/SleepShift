@@ -63,9 +63,6 @@ class LockScreenActivity : AppCompatActivity() {
         // 화면을 항상 켜진 상태로 유지
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        // 화면 밝기를 최소로 설정
-        setScreenBrightness(0.1f)
-
         // SharedPreferences 초기화
         sharedPreferences = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
 
@@ -404,6 +401,7 @@ class LockScreenActivity : AppCompatActivity() {
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
+        super.onBackPressed()
         // 뒤로가기 완전 차단
         Toast.makeText(this, "잠금 해제 버튼을 사용해주세요", Toast.LENGTH_SHORT).show()
     }

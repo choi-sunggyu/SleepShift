@@ -95,15 +95,38 @@
         android:layout_height="0dp"
         android:layout_weight="1" />
 
-    <!-- Finish Button -->
-    <Button
-        android:id="@+id/btnFinish"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:text="완료"
-        android:textSize="18sp"
-        android:textColor="@color/text_white"
-        android:background="@drawable/button_prim"
-        android:fontFamily="@font/maplestory_light" />
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <!-- Back Button -->
+        <Button
+            android:id="@+id/btnBack"
+            android:layout_width="100dp"
+            android:layout_height="56dp"
+            android:background="@drawable/button_prim"
+            android:fontFamily="@font/maplestory_light"
+            android:text="이전"
+            android:textColor="@color/text_white"
+            android:textSize="18sp" />
+
+        <!-- Spacer -->
+        <View
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1" />
+
+        <!-- Next Button -->
+        <Button
+            android:id="@+id/btnFinish"
+            android:layout_width="100dp"
+            android:layout_height="56dp"
+            android:background="@drawable/button_prim"
+            android:fontFamily="@font/maplestory_light"
+            android:text="완료"
+            android:textColor="@color/text_white"
+            android:textSize="18sp" />
+    </LinearLayout>
 
 </LinearLayout>

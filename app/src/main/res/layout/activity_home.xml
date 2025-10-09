@@ -11,6 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
+        android:layout_marginTop="30dp"
         android:padding="24dp">
 
         <!-- Day 카운트와 Dozee -->
@@ -123,14 +124,14 @@
             <!-- 팬더 이미지 -->
             <ImageView
                 android:id="@+id/imgPanda"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_width="347dp"
+                android:layout_height="430dp"
                 android:layout_centerInParent="true"
                 android:adjustViewBounds="true"
-                android:scaleType="centerInside"
+                android:contentDescription="@string/desc_panda_image"
                 android:maxHeight="400dp"
-                android:src="@drawable/panda_meditation"
-                android:contentDescription="@string/desc_panda_image"/>
+                android:scaleType="centerInside"
+                android:src="@drawable/panda_meditation" />
 
             <!-- 이동하는 오늘의 취침시간 표시 -->
             <LinearLayout

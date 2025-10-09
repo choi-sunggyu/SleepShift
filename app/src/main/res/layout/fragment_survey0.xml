@@ -134,6 +134,6 @@
         android:textSize="18sp"
         android:textColor="@color/text_white"
         android:background="@drawable/button_prim"
-        android:fontFamily="@font/maplestory_light"/>
-
+        android:fontFamily="@font/maplestory_light"
+        android:layout_marginTop="16dp" />
 </LinearLayout>

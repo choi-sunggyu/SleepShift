@@ -30,6 +30,7 @@ class SurveyFragment3 : Fragment() {
 
     private fun setupViews(view: View) {
         btnSelectTime = view.findViewById(R.id.btnSelectTime)
+        val btnBack = view.findViewById<Button>(R.id.btnBack)
         val btnNext = view.findViewById<Button>(R.id.btnNext)
 
         // 초기 버튼 텍스트 설정
@@ -38,6 +39,11 @@ class SurveyFragment3 : Fragment() {
         // 시간 선택 버튼
         btnSelectTime?.setOnClickListener {
             showDurationPicker()
+        }
+
+        // 이전 버튼
+        btnBack.setOnClickListener {
+            (activity as? SurveyActivity)?.moveToPreviousPage()
         }
 
         // 다음 버튼
@@ -52,39 +58,17 @@ class SurveyFragment3 : Fragment() {
     }
 
     private fun showDurationPicker() {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_duration_picker, null)
-        val npH = dialogView.findViewById<NumberPicker>(R.id.npHours)
-        val npM = dialogView.findViewById<NumberPicker>(R.id.npMinutes)
-
-        val initialHours = selectedSleepDuration / 60
-        val initialMinutes = selectedSleepDuration % 60
-
-        npH.minValue = 4   // 최소 4시간
-        npH.maxValue = 12  // 최대 12시간
-        npH.value = initialHours.coerceIn(npH.minValue, npH.maxValue)
-        npH.wrapSelectorWheel = true
-
-        // 분은 0/30만 제공
-        val minuteValues = arrayOf("00", "30")
-        npM.minValue = 0
-        npM.maxValue = minuteValues.lastIndex
-        npM.displayedValues = minuteValues
-        npM.value = if (initialMinutes >= 30) 1 else 0
-        npM.wrapSelectorWheel = true
-
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle("목표 수면 시간")
-            .setView(dialogView)
-            .setPositiveButton("확인") { dlg, _ ->
-                val h = npH.value
-                val m = if (npM.value == 1) 30 else 0
-                selectedSleepDuration = h * 60 + m
-                updateButtonText() // 수정: Fragment의 버튼 참조
-                updateActivityData()
-                dlg.dismiss()
-            }
-            .setNegativeButton("취소") { dlg, _ -> dlg.dismiss() }
-            .show()
+        TimePickerUtil.showDurationPicker(
+            context = requireContext(),
+            title = "목표 수면 시간",
+            initialMinutes = selectedSleepDuration,
+            minHours = 4,
+            maxHours = 12
+        ) { totalMinutes ->
+            selectedSleepDuration = totalMinutes
+            updateButtonText()
+            updateActivityData()
+        }
     }
 
     private fun updateActivityData() {

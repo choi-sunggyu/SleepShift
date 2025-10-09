@@ -5,11 +5,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import android.widget.TextView
 import androidx.fragment.app.Fragment
 import com.example.sleepshift.R
-import com.google.android.material.timepicker.MaterialTimePicker
-import com.google.android.material.timepicker.TimeFormat
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
@@ -35,6 +32,7 @@ class SurveyFragment1 : Fragment() {
     private fun setupViews(view: View) {
         val btnBedTime = view.findViewById<Button>(R.id.btnBedTime)
         val btnWakeTime = view.findViewById<Button>(R.id.btnWakeTime)
+        val btnBack = view.findViewById<Button>(R.id.btnBack)
         val btnNext = view.findViewById<Button>(R.id.btnNext)
 
         // 초기 버튼 텍스트 설정
@@ -42,7 +40,11 @@ class SurveyFragment1 : Fragment() {
 
         // 취침 시간 선택
         btnBedTime.setOnClickListener {
-            showTimePicker(selectedBedTime) { hour, minute ->
+            TimePickerUtil.showTimePicker(
+                context = requireContext(),
+                title = "취침 시간",
+                initialTime = selectedBedTime
+            ) { hour, minute ->
                 selectedBedTime = LocalTime.of(hour, minute)
                 updateButtonTexts(btnBedTime, btnWakeTime)
                 updateActivityData()
@@ -51,11 +53,20 @@ class SurveyFragment1 : Fragment() {
 
         // 기상 시간 선택
         btnWakeTime.setOnClickListener {
-            showTimePicker(selectedWakeTime) { hour, minute ->
+            TimePickerUtil.showTimePicker(
+                context = requireContext(),
+                title = "기상 시간",
+                initialTime = selectedWakeTime
+            ) { hour, minute ->
                 selectedWakeTime = LocalTime.of(hour, minute)
                 updateButtonTexts(btnBedTime, btnWakeTime)
                 updateActivityData()
             }
+        }
+
+        // 이전 버튼
+        btnBack.setOnClickListener {
+            (activity as? SurveyActivity)?.moveToPreviousPage()
         }
 
         // 다음 버튼
@@ -79,20 +90,5 @@ class SurveyFragment1 : Fragment() {
             avgBedTime: ${selectedBedTime.format(hhmm)}
             avgWakeTime: ${selectedWakeTime.format(hhmm)}
         """.trimIndent())
-    }
-
-    private fun showTimePicker(initialTime: LocalTime, onTimeSelected: (Int, Int) -> Unit) {
-        val picker = MaterialTimePicker.Builder()
-            .setTimeFormat(TimeFormat.CLOCK_24H)
-            .setHour(initialTime.hour)
-            .setMinute(initialTime.minute)
-            .setTitleText("시간 선택")
-            .build()
-
-        picker.addOnPositiveButtonClickListener {
-            onTimeSelected(picker.hour, picker.minute)
-        }
-
-        picker.show(parentFragmentManager, "time_picker")
     }
 }

@@ -36,6 +36,7 @@ class SurveyFragment2 : Fragment() {
         val btnReason3 = view.findViewById<TextView>(R.id.btnReason3)
         val btnReason4 = view.findViewById<TextView>(R.id.btnReason4)
         val btnReason5 = view.findViewById<TextView>(R.id.btnReason5)
+        val btnBack = view.findViewById<Button>(R.id.btnBack)
         val btnNext = view.findViewById<Button>(R.id.btnNext)
 
         // 각 선택지에 클릭 리스너 설정
@@ -51,6 +52,11 @@ class SurveyFragment2 : Fragment() {
             val reason2Text = "일찍한 리듬을 만들고 싶어서"
             selectedReasons.add(reason2Text)
             btnReason2.isSelected = true
+        }
+
+        // 이전 버튼
+        btnBack.setOnClickListener {
+            (activity as? SurveyActivity)?.moveToPreviousPage()
         }
 
         // 다음 버튼

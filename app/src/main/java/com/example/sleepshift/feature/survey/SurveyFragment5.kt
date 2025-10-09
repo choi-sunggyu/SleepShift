@@ -28,6 +28,7 @@ class SurveyFragment5 : Fragment() {
 
     private fun setupViews(view: View) {
         val etMorningGoal = view.findViewById<EditText>(R.id.etMorningGoal)
+        val btnBack = view.findViewById<Button>(R.id.btnBack)
         val btnFinish = view.findViewById<Button>(R.id.btnFinish)
 
         // 텍스트 변경 리스너
@@ -36,6 +37,11 @@ class SurveyFragment5 : Fragment() {
                 morningGoalText = etMorningGoal.text.toString()
                 updateActivityData()
             }
+        }
+
+        // 이전 버튼
+        btnBack.setOnClickListener {
+            (activity as? SurveyActivity)?.moveToPreviousPage()
         }
 
         // 완료 버튼

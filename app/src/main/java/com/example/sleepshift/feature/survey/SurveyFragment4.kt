@@ -7,8 +7,6 @@ import android.view.ViewGroup
 import android.widget.Button
 import androidx.fragment.app.Fragment
 import com.example.sleepshift.R
-import com.google.android.material.timepicker.MaterialTimePicker
-import com.google.android.material.timepicker.TimeFormat
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
@@ -33,6 +31,7 @@ class SurveyFragment4 : Fragment() {
 
     private fun setupViews(view: View) {
         btnSelectTime = view.findViewById(R.id.btnSelectTime)
+        val btnBack = view.findViewById<Button>(R.id.btnBack)
         val btnNext = view.findViewById<Button>(R.id.btnNext)
 
         // 초기 버튼 텍스트 설정
@@ -41,6 +40,11 @@ class SurveyFragment4 : Fragment() {
         // 시간 선택 버튼
         btnSelectTime?.setOnClickListener {
             showTimePicker()
+        }
+
+        // 이전 버튼
+        btnBack.setOnClickListener {
+            (activity as? SurveyActivity)?.moveToPreviousPage()
         }
 
         // 다음 버튼
@@ -55,20 +59,15 @@ class SurveyFragment4 : Fragment() {
     }
 
     private fun showTimePicker() {
-        val picker = MaterialTimePicker.Builder()
-            .setTimeFormat(TimeFormat.CLOCK_24H)
-            .setHour(selectedWakeTime.hour)
-            .setMinute(selectedWakeTime.minute)
-            .setTitleText("기상 시간 선택")
-            .build()
-
-        picker.addOnPositiveButtonClickListener {
-            selectedWakeTime = LocalTime.of(picker.hour, picker.minute)
-            updateButtonText() // 수정: Fragment의 버튼 참조
+        TimePickerUtil.showTimePicker(
+            context = requireContext(),
+            title = "기상 시간 선택",
+            initialTime = selectedWakeTime
+        ) { hour, minute ->
+            selectedWakeTime = LocalTime.of(hour, minute)
+            updateButtonText()
             updateActivityData()
         }
-
-        picker.show(parentFragmentManager, "wake_time_picker")
     }
 
     private fun updateActivityData() {

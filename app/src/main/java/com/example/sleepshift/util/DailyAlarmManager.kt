@@ -134,7 +134,8 @@ class DailyAlarmManager(private val context: Context) {
         }
 
         val totalSteps = (diffMinutes.toDouble() / ADJUSTMENT_INTERVAL_MINUTES).toInt()
-        val currentStep = currentDay - 1  // Day 1 = 0
+        // ⭐ 첫날부터 20분 당기기: currentDay - 1 → currentDay로 변경
+        val currentStep = currentDay  // Day 1 = 1 (20분 당김)
         val actualStep = min(currentStep, totalSteps)
         val adjustment = actualStep * ADJUSTMENT_INTERVAL_MINUTES
 
@@ -149,7 +150,7 @@ class DailyAlarmManager(private val context: Context) {
         Log.d("DailyAlarmManager", """
         총 ${totalSteps}단계 필요
         Day ${currentDay} = ${actualStep}단계
-        조정량: ${adjustment}분
+        조정량: ${adjustment}분 (첫날부터 ${ADJUSTMENT_INTERVAL_MINUTES}분씩 당김)
         결과 취침: ${todayBedtime.format(DateTimeFormatter.ofPattern("HH:mm"))}
     """.trimIndent())
 

@@ -365,10 +365,32 @@ class HomeActivity : AppCompatActivity() {
                 apply()
             }
 
-            setupDailyAlarm()
+            // ⭐ 취침을 안 했을 경우에만 오늘 알람 설정
+            // 취침했으면 LockScreen에서 이미 다음날 알람이 설정되어 있음
+            val lastSleepCheckin = sharedPreferences.getString("last_sleep_checkin_date", "")
+            val yesterday = getYesterdayDateString()
+
+            if (lastSleepCheckin != yesterday && lastSleepCheckin != today) {
+                // 어제도 오늘도 취침 안 함 -> 오늘 알람 설정
+                setupDailyAlarm()
+                android.util.Log.d("HomeActivity", "취침 기록 없음 - 오늘 알람 설정")
+            } else {
+                android.util.Log.d("HomeActivity", "취침 완료 - 알람 이미 설정됨")
+            }
         }
 
         updateTodayProgress()
+    }
+
+    private fun getYesterdayDateString(): String {
+        val calendar = Calendar.getInstance()
+        calendar.add(Calendar.DAY_OF_MONTH, -1)
+        return String.format(
+            "%d-%02d-%02d",
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH) + 1,
+            calendar.get(Calendar.DAY_OF_MONTH)
+        )
     }
 
     private fun checkYesterdaySuccess() {

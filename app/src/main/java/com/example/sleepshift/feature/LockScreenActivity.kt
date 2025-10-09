@@ -21,6 +21,7 @@ import androidx.core.content.edit
 import com.example.sleepshift.R
 import com.example.sleepshift.feature.home.HomeActivity
 import com.example.sleepshift.service.LockMonitoringService
+import com.example.sleepshift.util.DailyAlarmManager
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -63,6 +64,9 @@ class LockScreenActivity : AppCompatActivity() {
         // 화면을 항상 켜진 상태로 유지
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
+        // 화면 밝기를 최소로 설정
+        setScreenBrightness(0.1f)
+
         // SharedPreferences 초기화
         sharedPreferences = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
 
@@ -70,14 +74,14 @@ class LockScreenActivity : AppCompatActivity() {
         setupUI()
         setupUnlockButton()
 
-        // ⭐ 수면 체크인 기록
-        recordSleepCheckIn()
-
         // ⭐ Immersive Mode 설정
         enableImmersiveMode()
 
         // ⭐ 잠금 모드 시작
         startLockMode()
+
+        // ⭐ 수면 체크인 기록 및 다음날 알람 설정
+        recordSleepCheckInAndScheduleNextAlarm()
     }
 
     /**
@@ -160,9 +164,9 @@ class LockScreenActivity : AppCompatActivity() {
     }
 
     /**
-     * ⭐ 수면 체크인 기록 - 취침 알람 방지용
+     * ⭐ 수면 체크인 기록 및 다음날 알람 설정
      */
-    private fun recordSleepCheckIn() {
+    private fun recordSleepCheckInAndScheduleNextAlarm() {
         val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
 
         sharedPreferences.edit {
@@ -171,6 +175,22 @@ class LockScreenActivity : AppCompatActivity() {
         }
 
         android.util.Log.d("LockScreen", "수면 체크인 기록됨: $today")
+
+        // ⭐ 다음날 알람 설정
+        scheduleNextDayAlarm()
+    }
+
+    /**
+     * ⭐ 다음날 알람 설정 (AlarmActivity와 동일한 방식)
+     */
+    private fun scheduleNextDayAlarm() {
+        val alarmManager = DailyAlarmManager(this)
+        val currentDay = sharedPreferences.getInt("current_day", 1)
+        val nextDay = currentDay + 1
+
+        alarmManager.updateDailyAlarm(nextDay)
+
+        android.util.Log.d("LockScreen", "다음날(Day $nextDay) 알람 설정 완료")
     }
 
     private fun initViews() {

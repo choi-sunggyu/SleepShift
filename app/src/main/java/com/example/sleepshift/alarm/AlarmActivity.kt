@@ -187,10 +187,14 @@ class AlarmActivity : AppCompatActivity() {
         stopAlarmSounds()
         vibrator?.cancel()
 
-        // 다음 날 알람 설정
-        scheduleNextAlarm()
+        // ⭐ 코인 지급
+        val coinReward = calculateCoinReward()
+        addPawCoins(coinReward)
 
-        // 성공 애니메이션 표시 후 홈으로 이동
+        // ⭐ Day 카운트 증가 및 다음 날 알람 설정
+        incrementDayAndScheduleNextAlarm()
+
+        // 성공 애니메이션 표시 후 모닝 루틴으로 이동
         goToMorningRoutine()
     }
 
@@ -204,19 +208,48 @@ class AlarmActivity : AppCompatActivity() {
         mediaPlayer = null
     }
 
-//    private fun addPawCoins(amount: Int) {
-//        val sharedPref = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
-//        val currentCoins = sharedPref.getInt("paw_coin_count", 130)
-//        val newCount = currentCoins + amount
-//
-//        with(sharedPref.edit()) {
-//            putInt("paw_coin_count", newCount)
-//            apply()
-//        }
-//
-//        android.util.Log.d("AlarmActivity", "발바닥 코인 $amount 개 획득! 총: $newCount")
-//    }
+    /**
+     * ⭐ 코인 지급
+     */
+    private fun addPawCoins(amount: Int) {
+        val sharedPref = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
+        val currentCoins = sharedPref.getInt("paw_coin_count", 0)
+        val newCount = currentCoins + amount
 
+        with(sharedPref.edit()) {
+            putInt("paw_coin_count", newCount)
+            apply()
+        }
+
+        android.util.Log.d("AlarmActivity", "발바닥 코인 $amount 개 획득! 총: $newCount")
+    }
+
+    /**
+     * ⭐ Day 증가 및 다음 날 알람 설정 (LockScreen과 동일한 패턴)
+     */
+    private fun incrementDayAndScheduleNextAlarm() {
+        val sharedPref = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
+        val currentDay = sharedPref.getInt("current_day", 1)
+        val nextDay = currentDay + 1
+
+        // ⭐ Day 카운트 증가 (중요!)
+        sharedPref.edit()
+            .putInt("current_day", nextDay)
+            .apply()
+
+        android.util.Log.d("AlarmActivity", "Day $currentDay → Day $nextDay 증가")
+
+        // ⭐ 다음 날 알람 설정 (nextDay + 1이 아니라 nextDay)
+        val alarmManager = DailyAlarmManager(this)
+        alarmManager.updateDailyAlarm(nextDay)
+
+        android.util.Log.d("AlarmActivity", "Day $nextDay 알람 설정 완료")
+    }
+
+    /**
+     * ⭐ 구 메서드 (사용 안 함 - 삭제 가능)
+     */
+    @Deprecated("incrementDayAndScheduleNextAlarm()를 사용하세요")
     private fun scheduleNextAlarm() {
         val alarmManager = DailyAlarmManager(this)
         val sharedPref = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
@@ -227,7 +260,6 @@ class AlarmActivity : AppCompatActivity() {
 
     //모닝 루틴으로 이동
     private fun goToMorningRoutine() {
-
         Handler(Looper.getMainLooper()).postDelayed({
             val intent = Intent(this, MorningRoutineActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK

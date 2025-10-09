@@ -422,13 +422,13 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun startFloatingAnimation() {
-        val bubble: View = findViewById(com.example.sleepshift.R.id.bedtimeFloatingBubble)
+        val panda = binding.imgPanda  // bedtimeFloatingBubble → imgPanda로 변경
 
-        val moveUp = ObjectAnimator.ofFloat(bubble, "translationY", 0f, -50f)
+        val moveUp = ObjectAnimator.ofFloat(panda, "translationY", 0f, -50f)
         moveUp.duration = 2000
         moveUp.interpolator = AccelerateDecelerateInterpolator()
 
-        val moveDown = ObjectAnimator.ofFloat(bubble, "translationY", -50f, 0f)
+        val moveDown = ObjectAnimator.ofFloat(panda, "translationY", -50f, 0f)
         moveDown.duration = 2000
         moveDown.interpolator = AccelerateDecelerateInterpolator()
 

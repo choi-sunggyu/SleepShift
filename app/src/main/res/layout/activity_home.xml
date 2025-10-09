@@ -121,15 +121,24 @@
             android:layout_height="match_parent"
             android:padding="16dp">
 
-            <!-- 팬더 이미지 -->
+            <!-- 배경 이미지 (먼저 배치 = 뒤에 있음) -->
+            <ImageView
+                android:id="@+id/imgPandaBackground"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_centerInParent="true"
+                android:scaleType="centerCrop"
+                android:src="@drawable/background_image"
+                android:contentDescription="@string/desc_panda_background" />
+
+            <!-- 팬더 이미지 (나중에 배치 = 위에 있음) -->
             <ImageView
                 android:id="@+id/imgPanda"
-                android:layout_width="347dp"
-                android:layout_height="430dp"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
                 android:layout_centerInParent="true"
                 android:adjustViewBounds="true"
                 android:contentDescription="@string/desc_panda_image"
-                android:maxHeight="400dp"
                 android:scaleType="centerInside"
                 android:src="@drawable/panda_meditation" />
 

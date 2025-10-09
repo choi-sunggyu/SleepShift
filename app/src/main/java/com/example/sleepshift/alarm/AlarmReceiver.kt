@@ -8,6 +8,8 @@ import android.content.Intent
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.sleepshift.R
+import java.text.SimpleDateFormat
+import java.util.*
 
 class AlarmReceiver : BroadcastReceiver() {
 
@@ -47,6 +49,17 @@ class AlarmReceiver : BroadcastReceiver() {
             return
         }
 
+        // ⭐ 오늘 이미 수면 체크인을 했는지 확인
+        if (hasCheckedInToday(sharedPref)) {
+            Log.d("AlarmReceiver", "이미 수면 체크인 완료 - 취침 알림 건너뜀")
+
+            // 다음 날 취침 알림은 재설정
+            val alarmManager = com.example.sleepshift.util.DailyAlarmManager(context)
+            val currentDay = getCurrentDay(sharedPref)
+            alarmManager.updateDailyAlarm(currentDay)
+            return
+        }
+
         val avgBedtime = sharedPref.getString("avg_bedtime", "23:00") ?: "23:00"
 
         // 홈 화면으로 이동하는 Intent
@@ -83,6 +96,17 @@ class AlarmReceiver : BroadcastReceiver() {
         val alarmManager = com.example.sleepshift.util.DailyAlarmManager(context)
         val currentDay = getCurrentDay(sharedPref)
         alarmManager.updateDailyAlarm(currentDay)
+    }
+
+    /**
+     * ⭐ 오늘 수면 체크인을 했는지 확인
+     */
+    private fun hasCheckedInToday(sharedPref: android.content.SharedPreferences): Boolean {
+        val lastCheckInDate = sharedPref.getString("last_sleep_checkin_date", "") ?: ""
+        val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+
+        Log.d("AlarmReceiver", "마지막 체크인: $lastCheckInDate, 오늘: $today")
+        return lastCheckInDate == today
     }
 
     private fun triggerAlarm(context: Context) {

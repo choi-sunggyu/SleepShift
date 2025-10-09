@@ -204,18 +204,18 @@ class AlarmActivity : AppCompatActivity() {
         mediaPlayer = null
     }
 
-    private fun addPawCoins(amount: Int) {
-        val sharedPref = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
-        val currentCoins = sharedPref.getInt("paw_coin_count", 130)
-        val newCount = currentCoins + amount
-
-        with(sharedPref.edit()) {
-            putInt("paw_coin_count", newCount)
-            apply()
-        }
-
-        android.util.Log.d("AlarmActivity", "발바닥 코인 $amount 개 획득! 총: $newCount")
-    }
+//    private fun addPawCoins(amount: Int) {
+//        val sharedPref = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
+//        val currentCoins = sharedPref.getInt("paw_coin_count", 130)
+//        val newCount = currentCoins + amount
+//
+//        with(sharedPref.edit()) {
+//            putInt("paw_coin_count", newCount)
+//            apply()
+//        }
+//
+//        android.util.Log.d("AlarmActivity", "발바닥 코인 $amount 개 획득! 총: $newCount")
+//    }
 
     private fun scheduleNextAlarm() {
         val alarmManager = DailyAlarmManager(this)

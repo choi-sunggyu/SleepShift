@@ -42,6 +42,7 @@ class HomeActivity : AppCompatActivity() {
     private var floatingRunnable: Runnable? = null
     private val progressDots = mutableListOf<android.view.View>()
     private lateinit var alarmManager: DailyAlarmManager
+    private var floatingAnimator: ObjectAnimator? = null  // AnimatorSet 대신 단일 애니메이터
 
     // ⭐ 알림 권한 요청 런처 추가
     private val notificationPermissionLauncher = registerForActivityResult(
@@ -444,25 +445,19 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun startFloatingAnimation() {
-        val panda = binding.imgPanda  // bedtimeFloatingBubble → imgPanda로 변경
+        val panda = binding.imgPanda
 
-        val moveUp = ObjectAnimator.ofFloat(panda, "translationY", 0f, -50f)
-        moveUp.duration = 2000
-        moveUp.interpolator = AccelerateDecelerateInterpolator()
+        // ⭐ 단일 애니메이터로 부드럽게 무한 반복
+        floatingAnimator = ObjectAnimator.ofFloat(panda, "translationY", 0f, -30f).apply {
+            duration = 3000  // 더 긴 지속 시간으로 부드럽게
+            repeatCount = ObjectAnimator.INFINITE  // 무한 반복
+            repeatMode = ObjectAnimator.REVERSE  // 역방향 반복 (자동으로 위아래)
+            interpolator = AccelerateDecelerateInterpolator()  // 부드러운 가속/감속
+        }
 
-        val moveDown = ObjectAnimator.ofFloat(panda, "translationY", -50f, 0f)
-        moveDown.duration = 2000
-        moveDown.interpolator = AccelerateDecelerateInterpolator()
+        floatingAnimator?.start()
 
-        val animatorSet = AnimatorSet()
-        animatorSet.playSequentially(moveUp, moveDown)
-        animatorSet.addListener(object : AnimatorListenerAdapter() {
-            override fun onAnimationEnd(animation: Animator) {
-                animation.start()
-            }
-        })
-
-        animatorSet.start()
+        Log.d("HomeActivity", "부드러운 플로팅 애니메이션 시작")
     }
 
     private fun goToBed() {

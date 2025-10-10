@@ -47,6 +47,12 @@ class LockScreenActivity : AppCompatActivity() {
     // 코인 사용 관련
     private val UNLOCK_COST = 15 // 잠금 해제에 필요한 코인
 
+    // ⭐ 배경 이미지 변경용
+    private lateinit var backgroundImage: ImageView  // 또는 배경으로 사용 중인 View
+    private val earlyWakeCheckHandler = Handler(Looper.getMainLooper())
+    private var earlyWakeCheckRunnable: Runnable? = null
+    private var isEarlyWakeMode = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -82,6 +88,12 @@ class LockScreenActivity : AppCompatActivity() {
 
         // ⭐ 수면 체크인 기록 및 다음날 알람 설정
         recordSleepCheckInAndScheduleNextAlarm()
+
+        // ⭐ 배경 이미지 뷰 초기화
+        backgroundImage = findViewById(R.id.lockScreenBackground)  // layout의 실제 ID로 변경
+
+        // ⭐ 조기 기상 체크 시작
+        startEarlyWakeBackgroundCheck()
     }
 
     /**
@@ -440,8 +452,116 @@ class LockScreenActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * ⭐ 조기 기상 배경 체크 시작 - 1분마다 알람 1시간 전인지 확인
+     */
+    private fun startEarlyWakeBackgroundCheck() {
+        earlyWakeCheckRunnable = object : Runnable {
+            override fun run() {
+                if (!isEarlyWakeMode) {
+                    checkIfOneHourBeforeAlarm()
+                }
+                // 1분마다 체크
+                earlyWakeCheckHandler.postDelayed(this, 60000)
+            }
+        }
+        // 즉시 한 번 체크하고 시작
+        earlyWakeCheckRunnable?.let { earlyWakeCheckHandler.post(it) }
+    }
+
+    /**
+     * ⭐ 알람 1시간 전인지 확인하여 배경 변경
+     */
+    private fun checkIfOneHourBeforeAlarm() {
+        // 알람 시간 가져오기
+        val alarmTime = sharedPreferences.getString("today_alarm_time", null)
+            ?: sharedPreferences.getString("target_wake_time", "07:00")
+            ?: "07:00"
+
+        val timeParts = alarmTime.split(":")
+        val alarmHour = timeParts.getOrNull(0)?.toIntOrNull() ?: 7
+        val alarmMinute = timeParts.getOrNull(1)?.toIntOrNull() ?: 0
+
+        // 알람 시간 Calendar 설정
+        val alarmCalendar = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, alarmHour)
+            set(Calendar.MINUTE, alarmMinute)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+
+            // 현재 시간보다 과거면 다음날로 (새벽 알람 대응)
+            if (timeInMillis <= System.currentTimeMillis()) {
+                add(Calendar.DAY_OF_MONTH, 1)
+            }
+        }
+
+        // 알람 1시간 전 시간 계산
+        val oneHourBeforeAlarm = Calendar.getInstance().apply {
+            timeInMillis = alarmCalendar.timeInMillis
+            add(Calendar.HOUR_OF_DAY, -1)
+        }
+
+        val currentTime = System.currentTimeMillis()
+
+        // ⭐ 현재 시간이 알람 1시간 전 이후인지 확인
+        if (currentTime >= oneHourBeforeAlarm.timeInMillis) {
+            android.util.Log.d("LockScreen", "✅ 알람 1시간 전 도달! 배경 이미지 변경")
+            changeToEarlyWakeBackground()
+        }
+    }
+
+    /**
+     * ⭐ 조기 기상 배경으로 변경
+     */
+    private fun changeToEarlyWakeBackground() {
+        isEarlyWakeMode = true
+
+        // 배경 이미지 변경 (원하는 이미지로 변경)
+        backgroundImage.setImageResource(R.drawable.lock_screen_morning)  // 아침용 배경 이미지
+
+        // 또는 배경색 변경
+        // backgroundImage.setBackgroundColor(ContextCompat.getColor(this, R.color.morning_sky))
+
+        // 애니메이션 효과 추가 (선택사항)
+        backgroundImage.animate()
+            .alpha(0f)
+            .setDuration(500)
+            .withEndAction {
+                backgroundImage.setImageResource(R.drawable.lock_screen_morning)
+                backgroundImage.animate()
+                    .alpha(1f)
+                    .setDuration(500)
+                    .start()
+            }
+            .start()
+
+        // 메시지 변경 (선택사항)
+        tvGoodNightMessage.text = "곧 일어날 시간이에요! 🌅"
+
+        // 조기 기상 기록
+        sharedPreferences.edit {
+            putBoolean("early_wake_background_shown", true)
+            putLong("early_wake_background_time", System.currentTimeMillis())
+        }
+
+        android.util.Log.d("LockScreen", "배경 이미지가 아침 모드로 변경되었습니다")
+    }
+
+    /**
+     * ⭐ 조기 기상 체크 중단
+     */
+    private fun stopEarlyWakeCheck() {
+        earlyWakeCheckRunnable?.let {
+            earlyWakeCheckHandler.removeCallbacks(it)
+        }
+        earlyWakeCheckRunnable = null
+    }
+
     override fun onDestroy() {
         super.onDestroy()
+        // ⭐ 체크 중단
+        stopEarlyWakeCheck()
+
         countDownTimer?.cancel()
         countDownTimer = null
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)

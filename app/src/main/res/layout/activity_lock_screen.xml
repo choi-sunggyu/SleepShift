@@ -2,8 +2,15 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@drawable/lock_screen_background">
+    android:layout_height="match_parent">
+
+    <!-- ⭐ 배경 이미지 추가 -->
+    <ImageView
+        android:id="@+id/lockScreenBackground"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:src="@drawable/lock_screen_background" />
 
     <!-- 상단 메시지 영역 -->
     <LinearLayout

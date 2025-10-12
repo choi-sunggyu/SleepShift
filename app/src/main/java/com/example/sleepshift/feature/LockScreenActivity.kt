@@ -143,23 +143,102 @@ class LockScreenActivity : AppCompatActivity() {
      * ⭐ 잠금 모드 시작 (Screen Pinning + Foreground Service)
      */
     private fun startLockMode() {
-        // lock_screen_active 플래그 설정
         sharedPreferences.edit {
             putBoolean("lock_screen_active", true)
         }
 
-        // 1단계: Screen Pinning 시도
+        // Screen Pinning 시도 (있으면 좋고)
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 startLockTask()
-                android.util.Log.d("LockScreen", "Screen Pinning 활성화됨")
+                android.util.Log.d("LockScreen", "✅ Screen Pinning 활성화")
             }
         } catch (e: Exception) {
-            android.util.Log.e("LockScreen", "Screen Pinning 실패: ${e.message}")
+            android.util.Log.d("LockScreen", "Screen Pinning 미지원")
         }
 
-        // 2단계: Foreground Service 시작 (백업)
+        // ⭐ UsageStats 권한 체크
+        if (!hasUsageStatsPermission()) {
+            showUsageStatsPermissionDialog()
+        }
+
+        // Foreground Service 시작
         startLockMonitoringService()
+
+        // Accessibility 권한 체크
+        if (!isAccessibilityServiceEnabled()) {
+            showAccessibilityPermissionDialog()
+        }
+    }
+
+    private fun hasUsageStatsPermission(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP_MR1) {
+            return true // Android 5.1 미만은 필요 없음
+        }
+
+        val appOpsManager = getSystemService(Context.APP_OPS_SERVICE) as android.app.AppOpsManager
+        val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            appOpsManager.unsafeCheckOpNoThrow(
+                android.app.AppOpsManager.OPSTR_GET_USAGE_STATS,
+                android.os.Process.myUid(),
+                packageName
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            appOpsManager.checkOpNoThrow(
+                android.app.AppOpsManager.OPSTR_GET_USAGE_STATS,
+                android.os.Process.myUid(),
+                packageName
+            )
+        }
+
+        return mode == android.app.AppOpsManager.MODE_ALLOWED
+    }
+
+    /**
+     * ⭐ UsageStats 권한 요청 다이얼로그
+     */
+    private fun showUsageStatsPermissionDialog() {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("사용 정보 접근 권한 필요")
+            .setMessage("잠금 화면을 유지하려면\n사용 정보 접근 권한이 필요합니다.\n\n설정 → 특수 앱 접근 → 사용 정보 접근\n에서 SleepShift를 활성화해주세요.")
+            .setPositiveButton("설정으로 이동") { _, _ ->
+                try {
+                    val intent = Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS)
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    Toast.makeText(this, "설정 화면을 열 수 없습니다", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("나중에", null)
+            .show()
+    }
+
+    /**
+     * ⭐ Accessibility 서비스 활성화 확인
+     */
+    private fun isAccessibilityServiceEnabled(): Boolean {
+        val serviceName = "${packageName}/.service.AccessibilityLockService"
+        val enabledServices = android.provider.Settings.Secure.getString(
+            contentResolver,
+            android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        )
+        return enabledServices?.contains(serviceName) == true
+    }
+
+    /**
+     * ⭐ Accessibility 권한 요청 다이얼로그
+     */
+    private fun showAccessibilityPermissionDialog() {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("접근성 권한 필요")
+            .setMessage("더 강력한 잠금을 위해\n접근성 서비스 권한을 활성화해주세요.\n\n설정 → 접근성 → 설치된 서비스\n에서 SleepShift를 활성화해주세요.")
+            .setPositiveButton("설정으로 이동") { _, _ ->
+                val intent = Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                startActivity(intent)
+            }
+            .setNegativeButton("건너뛰기", null)
+            .show()
     }
 
     /**

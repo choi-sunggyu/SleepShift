@@ -1,6 +1,7 @@
 package com.example.sleepshift.service
 
 import android.app.*
+import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -54,10 +55,11 @@ class LockMonitoringService : Service() {
 
                 // LockScreen이 활성화되어 있는지 확인
                 if (!isLockScreenInForeground()) {
-                    // 다른 앱이 포그라운드에 있으면 LockScreen으로 복귀
+                    android.util.Log.d("LockMonitoring", "⚠️ 다른 앱 감지! LockScreen으로 복귀 시도")
                     bringLockScreenToFront()
                 }
             }
+            android.util.Log.d("LockMonitoring", "모니터링 루프 종료")
         }
     }
 
@@ -66,27 +68,74 @@ class LockMonitoringService : Service() {
         return sharedPref.getBoolean("lock_screen_active", false)
     }
 
+    /**
+     * ⭐ 개선: UsageStatsManager로 포그라운드 앱 체크
+     */
     private fun isLockScreenInForeground(): Boolean {
-        val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-
         return try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                // Android 10 이상은 제한적이므로 항상 true 반환 (Screen Pinning에 의존)
-                true
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
+                // Android 5.1 이상: UsageStatsManager 사용
+                isLockScreenInForegroundUsingUsageStats()
             } else {
+                // Android 5.0 이하: ActivityManager 사용
                 @Suppress("DEPRECATION")
-                val tasks = activityManager.getRunningTasks(1)
-                if (tasks.isNotEmpty()) {
-                    val topActivity = tasks[0].topActivity
-                    topActivity?.className?.contains("LockScreenActivity") == true
-                } else {
-                    false
-                }
+                isLockScreenInForegroundLegacy()
             }
         } catch (e: Exception) {
             android.util.Log.e("LockMonitoring", "포그라운드 체크 실패: ${e.message}")
-            true
+            // 에러 시 복귀 시도 (안전장치)
+            false
         }
+    }
+
+    /**
+     * ⭐ UsageStatsManager로 포그라운드 앱 확인 (Android 5.1+)
+     */
+    private fun isLockScreenInForegroundUsingUsageStats(): Boolean {
+        val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
+            ?: return false
+
+        val currentTime = System.currentTimeMillis()
+
+        // 최근 3초간의 사용 통계 조회
+        val stats = usageStatsManager.queryUsageStats(
+            UsageStatsManager.INTERVAL_DAILY,
+            currentTime - 3000,
+            currentTime
+        )
+
+        if (stats.isNullOrEmpty()) {
+            android.util.Log.w("LockMonitoring", "⚠️ UsageStats 권한이 없을 수 있음")
+            return false
+        }
+
+        // 가장 최근에 사용된 앱 찾기
+        val recentApp = stats.maxByOrNull { it.lastTimeUsed }
+        val foregroundPackage = recentApp?.packageName
+
+        val isLockScreen = foregroundPackage == packageName
+
+        if (!isLockScreen) {
+            android.util.Log.d("LockMonitoring", "포그라운드 앱: $foregroundPackage")
+        }
+
+        return isLockScreen
+    }
+
+    /**
+     * ⭐ ActivityManager로 포그라운드 앱 확인 (Android 5.0 이하)
+     */
+    @Suppress("DEPRECATION")
+    private fun isLockScreenInForegroundLegacy(): Boolean {
+        val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val tasks = activityManager.getRunningTasks(1)
+
+        if (tasks.isNotEmpty()) {
+            val topActivity = tasks[0].topActivity
+            return topActivity?.className?.contains("LockScreenActivity") == true
+        }
+
+        return false
     }
 
     private fun bringLockScreenToFront() {
@@ -94,11 +143,12 @@ class LockMonitoringService : Service() {
             val intent = Intent(this, LockScreenActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
             startActivity(intent)
-            android.util.Log.d("LockMonitoring", "LockScreen으로 복귀")
+            android.util.Log.d("LockMonitoring", "✅ LockScreen으로 복귀")
         } catch (e: Exception) {
-            android.util.Log.e("LockMonitoring", "LockScreen 복귀 실패: ${e.message}")
+            android.util.Log.e("LockMonitoring", "❌ LockScreen 복귀 실패: ${e.message}")
         }
     }
 

@@ -92,49 +92,6 @@
             android:background="@drawable/survey_time_button"
             android:fontFamily="@font/maplestory_light"
             android:layout_marginBottom="16dp" />
-
-        <!-- ⭐ 수면 사이클 안내 추가 -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:background="@drawable/info_box_background"
-            android:padding="16dp"
-            android:gravity="center_vertical">
-
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_info"
-                android:layout_marginEnd="12dp"
-                android:contentDescription="정보" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="💡 수면 사이클 TIP"
-                    android:textSize="14sp"
-                    android:textColor="@color/text_primary"
-                    android:fontFamily="@font/maplestory_light"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="4dp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="숙면을 위해 1시간 30분 단위로 수면하는 것을 추천드려요!\n(예: 6시간, 7시간 30분, 9시간)"
-                    android:textSize="12sp"
-                    android:textColor="@color/text_secondary"
-                    android:fontFamily="@font/maplestory_light"
-                    android:lineSpacingExtra="2dp" />
-            </LinearLayout>
-        </LinearLayout>
     </LinearLayout>
 
     <!-- Spacer -->

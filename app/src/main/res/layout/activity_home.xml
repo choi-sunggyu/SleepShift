@@ -28,7 +28,7 @@
                 android:fontFamily="@font/maplestory_light"
                 android:text="Day 1"
                 android:textColor="#2D3748"
-                android:textSize="28sp" />
+                android:textSize="50sp" />
 
             <TextView
                 android:layout_width="50dp"
@@ -125,7 +125,7 @@
             <ImageView
                 android:id="@+id/imgPandaBackground"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:layout_centerInParent="true"
                 android:scaleType="centerCrop"
                 android:src="@drawable/background_image"

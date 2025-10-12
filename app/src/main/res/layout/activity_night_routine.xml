@@ -291,7 +291,7 @@
                         android:fontFamily="@font/maplestory_light"
                         android:text="수면 체크인"
                         android:textColor="#000000"
-                        android:textSize="28sp"
+                        android:textSize="35sp"
                         android:gravity="center" />
 
                     <!-- 발바닥 코인 아이콘 -->

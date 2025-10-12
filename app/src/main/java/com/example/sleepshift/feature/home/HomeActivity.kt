@@ -42,7 +42,7 @@ class HomeActivity : AppCompatActivity() {
     private var floatingRunnable: Runnable? = null
     private val progressDots = mutableListOf<android.view.View>()
     private lateinit var alarmManager: DailyAlarmManager
-    private var floatingAnimator: ObjectAnimator? = null  // AnimatorSet 대신 단일 애니메이터
+    private var floatingAnimator: ObjectAnimator? = null
 
     // ⭐ 알림 권한 요청 런처 추가
     private val notificationPermissionLauncher = registerForActivityResult(
@@ -50,7 +50,7 @@ class HomeActivity : AppCompatActivity() {
     ) { isGranted ->
         if (isGranted) {
             Log.d("HomeActivity", "알림 권한 승인됨")
-            checkAlarmPermission() // 알림 승인 후 알람 권한 체크
+            checkAlarmPermission()
         } else {
             Log.w("HomeActivity", "알림 권한 거부됨")
             showPermissionDeniedDialog()
@@ -99,7 +99,7 @@ class HomeActivity : AppCompatActivity() {
                     Manifest.permission.POST_NOTIFICATIONS
                 ) == PackageManager.PERMISSION_GRANTED -> {
                     Log.d("HomeActivity", "알림 권한 이미 승인됨")
-                    checkAlarmPermission() // 바로 알람 권한 체크
+                    checkAlarmPermission()
                 }
                 shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS) -> {
                     // 권한 설명 표시 후 요청
@@ -121,7 +121,6 @@ class HomeActivity : AppCompatActivity() {
      */
     private fun checkAlarmPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            // ⭐ 변수명 변경 및 안전한 캐스팅
             val systemAlarmManager = getSystemService(AlarmManager::class.java)
 
             if (systemAlarmManager?.canScheduleExactAlarms() != true) {
@@ -129,7 +128,6 @@ class HomeActivity : AppCompatActivity() {
                 showAlarmPermissionDialog()
             } else {
                 Log.d("HomeActivity", "정확한 알람 권한 있음")
-                // 권한 확보 완료 - 알람 설정
                 setupDailyAlarm()
             }
         } else {
@@ -152,7 +150,7 @@ class HomeActivity : AppCompatActivity() {
             }
             .setNegativeButton("나중에") { dialog, _ ->
                 dialog.dismiss()
-                checkAlarmPermission() // 알림은 선택이지만 알람은 체크
+                checkAlarmPermission()
             }
             .show()
     }
@@ -208,7 +206,7 @@ class HomeActivity : AppCompatActivity() {
             .setMessage("알람 앱이 정상적으로 작동하려면 알림 권한이 필요합니다.")
             .setPositiveButton("확인") { dialog, _ ->
                 dialog.dismiss()
-                checkAlarmPermission() // 알람 권한은 계속 체크
+                checkAlarmPermission()
             }
             .show()
     }
@@ -219,7 +217,6 @@ class HomeActivity : AppCompatActivity() {
     private fun setupDailyAlarm() {
         val surveyCompleted = sharedPreferences.getBoolean("survey_completed", false)
 
-        // ⭐ 저장된 값 확인
         val avgBedtime = sharedPreferences.getString("avg_bedtime", "없음")
         val targetWakeTime = sharedPreferences.getString("target_wake_time", "없음")
         val minSleepMinutes = sharedPreferences.getInt("min_sleep_minutes", -1)
@@ -325,7 +322,6 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun getCurrentBedtime(): String {
-        // avg_bedtime 사용
         val avgBedtime = sharedPreferences.getString("avg_bedtime", "23:00") ?: "23:00"
         return avgBedtime
     }
@@ -367,12 +363,10 @@ class HomeActivity : AppCompatActivity() {
             }
 
             // ⭐ 취침을 안 했을 경우에만 오늘 알람 설정
-            // 취침했으면 LockScreen에서 이미 다음날 알람이 설정되어 있음
             val lastSleepCheckin = sharedPreferences.getString("last_sleep_checkin_date", "")
             val yesterday = getYesterdayDateString()
 
             if (lastSleepCheckin != yesterday && lastSleepCheckin != today) {
-                // 어제도 오늘도 취침 안 함 -> 오늘 알람 설정
                 setupDailyAlarm()
                 android.util.Log.d("HomeActivity", "취침 기록 없음 - 오늘 알람 설정")
             } else {
@@ -447,12 +441,11 @@ class HomeActivity : AppCompatActivity() {
     private fun startFloatingAnimation() {
         val panda = binding.imgPanda
 
-        // ⭐ 단일 애니메이터로 부드럽게 무한 반복
         floatingAnimator = ObjectAnimator.ofFloat(panda, "translationY", 0f, -30f).apply {
-            duration = 3000  // 더 긴 지속 시간으로 부드럽게
-            repeatCount = ObjectAnimator.INFINITE  // 무한 반복
-            repeatMode = ObjectAnimator.REVERSE  // 역방향 반복 (자동으로 위아래)
-            interpolator = AccelerateDecelerateInterpolator()  // 부드러운 가속/감속
+            duration = 3000
+            repeatCount = ObjectAnimator.INFINITE
+            repeatMode = ObjectAnimator.REVERSE
+            interpolator = AccelerateDecelerateInterpolator()
         }
 
         floatingAnimator?.start()
@@ -511,15 +504,55 @@ class HomeActivity : AppCompatActivity() {
             .start()
     }
 
+    /**
+     * ⭐ 자정 기준 Day 카운트 계산
+     * 앱 설치일(자정)과 오늘(자정) 사이의 날짜 차이 계산
+     */
     private fun getCurrentDay(): Int {
-        val installDate = sharedPreferences.getLong("app_install_date", System.currentTimeMillis())
-        val currentDate = System.currentTimeMillis()
-        val daysDiff = ((currentDate - installDate) / (24 * 60 * 60 * 1000)).toInt() + 1
+        val installDate = sharedPreferences.getLong("app_install_date", 0L)
 
-        return when {
-            daysDiff <= 0 -> 1
-            else -> daysDiff
+        if (installDate == 0L) {
+            return 1
         }
+
+        // 설치일의 자정 타임스탬프 가져오기
+        val installCalendar = Calendar.getInstance().apply {
+            timeInMillis = installDate
+        }
+
+        // 오늘의 자정 타임스탬프 가져오기
+        val todayCalendar = Calendar.getInstance()
+
+        // 날짜 차이 계산 (년, 월, 일 기준)
+        val installYear = installCalendar.get(Calendar.YEAR)
+        val installDayOfYear = installCalendar.get(Calendar.DAY_OF_YEAR)
+
+        val todayYear = todayCalendar.get(Calendar.YEAR)
+        val todayDayOfYear = todayCalendar.get(Calendar.DAY_OF_YEAR)
+
+        // 같은 해인 경우
+        if (installYear == todayYear) {
+            return (todayDayOfYear - installDayOfYear) + 1
+        }
+
+        // 다른 해인 경우 (년도를 넘긴 경우)
+        var daysDiff = 0
+        val tempCalendar = Calendar.getInstance().apply {
+            timeInMillis = installDate
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+
+        while (tempCalendar.get(Calendar.YEAR) < todayYear ||
+            (tempCalendar.get(Calendar.YEAR) == todayYear &&
+                    tempCalendar.get(Calendar.DAY_OF_YEAR) < todayDayOfYear)) {
+            daysDiff++
+            tempCalendar.add(Calendar.DAY_OF_MONTH, 1)
+        }
+
+        return daysDiff + 1
     }
 
     private fun getPawCoinCount(): Int {
@@ -573,11 +606,23 @@ class HomeActivity : AppCompatActivity() {
         updateBedtime()
     }
 
+    /**
+     * ⭐ 앱 설치일을 오늘 자정으로 설정
+     */
     private fun setAppInstallDate() {
+        val calendar = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+
         with(sharedPreferences.edit()) {
-            putLong("app_install_date", System.currentTimeMillis())
+            putLong("app_install_date", calendar.timeInMillis)
             apply()
         }
+
+        android.util.Log.d("HomeActivity", "앱 설치일 설정: ${calendar.time}")
     }
 
     private fun getTodayDateString(): String {

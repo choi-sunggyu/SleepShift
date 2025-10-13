@@ -100,7 +100,7 @@ class SurveyActivity : AppCompatActivity() {
                 putBoolean("alarm_enabled", true)
 
                 // 코인 초기화
-                putInt("paw_coin_count", 10)
+                putInt("paw_coin_count", 30)
                 putBoolean("is_first_run", false)
 
                 apply()

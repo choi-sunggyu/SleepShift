@@ -35,11 +35,13 @@ class AccessibilityLockService : AccessibilityService() {
      * ⭐ 시스템 패키지 확인 (설정, 권한 다이얼로그 등은 허용)
      */
     private fun isSystemPackage(packageName: String): Boolean {
+        // ⭐ AlarmActivity도 예외 처리
         return packageName.startsWith("com.android.systemui") ||
                 packageName.startsWith("com.android.settings") ||
                 packageName.startsWith("com.android.permissioncontroller") ||
                 packageName == "android" ||
-                packageName.startsWith("com.google.android.packageinstaller")
+                packageName.startsWith("com.google.android.packageinstaller") ||
+                packageName == this.packageName  // ⭐ 자기 앱의 모든 Activity 허용
     }
 
     private fun isLockActive(): Boolean {

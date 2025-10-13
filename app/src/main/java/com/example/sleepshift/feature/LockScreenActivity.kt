@@ -70,8 +70,6 @@ class LockScreenActivity : AppCompatActivity() {
         // 화면을 항상 켜진 상태로 유지
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        // 화면 밝기를 최소로 설정
-        setScreenBrightness(0.1f)
 
         // SharedPreferences 초기화
         sharedPreferences = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
@@ -140,36 +138,23 @@ class LockScreenActivity : AppCompatActivity() {
     }
 
     /**
-     * ⭐ 잠금 모드 시작 (Screen Pinning + Foreground Service)
+     * ⭐ 잠금 모드 시작 (Screen Pinning 제거)
      */
     private fun startLockMode() {
+        // lock_screen_active 플래그 설정
         sharedPreferences.edit {
             putBoolean("lock_screen_active", true)
         }
 
-        // Screen Pinning 시도 (있으면 좋고)
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                startLockTask()
-                android.util.Log.d("LockScreen", "✅ Screen Pinning 활성화")
-            }
-        } catch (e: Exception) {
-            android.util.Log.d("LockScreen", "Screen Pinning 미지원")
-        }
+        // ❌ Screen Pinning 완전 제거 (알림 반복 문제 해결)
+        // startLockTask() 호출하지 않음
 
-        // ⭐ UsageStats 권한 체크
-        if (!hasUsageStatsPermission()) {
-            showUsageStatsPermissionDialog()
-        }
-
-        // Foreground Service 시작
+        // ✅ Foreground Service + Accessibility만 사용
         startLockMonitoringService()
 
-        // Accessibility 권한 체크
-        if (!isAccessibilityServiceEnabled()) {
-            showAccessibilityPermissionDialog()
-        }
+        android.util.Log.d("LockScreen", "✅ 잠금 모드 시작 (Accessibility + Service)")
     }
+
 
     private fun hasUsageStatsPermission(): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP_MR1) {
@@ -463,19 +448,11 @@ class LockScreenActivity : AppCompatActivity() {
             putBoolean("lock_screen_active", false)
         }
 
-        // Screen Pinning 해제
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                stopLockTask()
-                android.util.Log.d("LockScreen", "Screen Pinning 해제됨")
-            }
-        } catch (e: Exception) {
-            android.util.Log.e("LockScreen", "Screen Pinning 해제 실패: ${e.message}")
-        }
+        // ❌ stopLockTask() 호출하지 않음 (어차피 startLockTask 안 했으므로)
 
         // Foreground Service 중지
         stopService(Intent(this, LockMonitoringService::class.java))
-        android.util.Log.d("LockScreen", "Lock Monitoring Service 중지됨")
+        android.util.Log.d("LockScreen", "✅ 잠금 모드 해제")
     }
 
     private fun usePawCoins(amount: Int): Boolean {

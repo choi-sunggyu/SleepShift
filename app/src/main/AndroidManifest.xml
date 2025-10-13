@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- 알림/정확알람/부팅 복구를 쓰지 않으면 권한 전부 제거 가능 -->
+    <!-- 권한 -->
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
@@ -10,13 +10,8 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-    <uses-permission android:name="android.permission.GET_TASKS" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
 
@@ -30,26 +25,64 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.SleepShift">
 
-        <!-- AdMob App ID 추가 -->
+        <!-- AdMob App ID -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-3940256099942544~3347511713" />
 
-        <!-- 런처: 스플래시 -->
+        <!-- ⭐ 1. 런처: 스플래시만 LAUNCHER로 설정 -->
         <activity
             android:name=".SplashActivity"
-            android:exported="true">
+            android:exported="true"
+            android:theme="@style/Theme.SleepShift">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
+        <!-- ⭐ 2. 권한 설정 화면 -->
+        <activity
+            android:name=".feature.PermissionActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SleepShift" />
+
+        <!-- 3. 온보딩 -->
         <activity
             android:name=".feature.onboarding.OnboardingActivity"
             android:exported="false" />
 
-        <!-- 알람 액티비티 (잠금 화면에서 표시) -->
+        <!-- 4. 설문조사 -->
+        <activity
+            android:name=".feature.survey.SurveyActivity"
+            android:exported="false" />
+
+        <!-- 5. 홈 -->
+        <activity
+            android:name=".feature.home.HomeActivity"
+            android:exported="false" />
+
+        <!-- 6. 설정 -->
+        <activity
+            android:name=".feature.SettingsActivity"
+            android:exported="false" />
+
+        <!-- 7. 나이트 루틴 -->
+        <activity
+            android:name=".feature.NightRoutineActivity"
+            android:exported="false" />
+
+        <!-- ⭐ 8. 잠금 화면 (Screen Pinning 제거) -->
+        <activity
+            android:name=".feature.LockScreenActivity"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:taskAffinity=""
+            android:exported="false"
+            android:screenOrientation="portrait"
+            tools:ignore="LockedOrientationActivity" />
+
+        <!-- ⭐ 9. 알람 액티비티 (잠금 화면에서 표시) -->
         <activity
             android:name=".feature.alarm.AlarmActivity"
             android:exported="false"
@@ -57,30 +90,26 @@
             android:excludeFromRecents="true"
             android:showOnLockScreen="true"
             android:turnScreenOn="true"
-            android:showWhenLocked="true" />
-
-        <!-- 기타 액티비티들 -->
-        <activity
-            android:name=".feature.survey.SurveyActivity"
-            android:exported="false" />
-        <activity
-            android:name=".feature.home.HomeActivity"
-            android:exported="false" />
-        <activity
-            android:name=".feature.SettingsActivity"
-            android:exported="false" />
-        <activity
-            android:name=".feature.NightRoutineActivity"
-            android:exported="false" />
-        <activity
-            android:name=".feature.LockScreenActivity"
-            android:excludeFromRecents="true"
-            android:launchMode="singleTask"
-            android:taskAffinity=""
-            android:lockTaskMode="if_whitelisted"
-            android:exported="false"
+            android:showWhenLocked="true"
+            android:screenOrientation="portrait"
             tools:ignore="LockedOrientationActivity" />
-        <!-- LockMonitoringService -->
+
+        <!-- 10. 리포트 -->
+        <activity
+            android:name=".feature.ReportActivity"
+            android:exported="false" />
+
+        <!-- 11. 모닝 루틴 -->
+        <activity
+            android:name=".feature.MorningRoutineActivity"
+            android:exported="false" />
+
+        <!-- 12. 로딩 -->
+        <activity
+            android:name=".feature.LoadingActivity"
+            android:exported="false" />
+
+        <!-- ⭐ LockMonitoringService -->
         <service
             android:name=".service.LockMonitoringService"
             android:enabled="true"
@@ -90,30 +119,25 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="수면 모드 잠금 화면 유지" />
         </service>
-        <!-- AccessibilityLockService (선택사항) -->
+
+        <!-- ⭐ AccessibilityLockService -->
         <service
             android:name=".service.AccessibilityLockService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
-            android:exported="false">
+            android:exported="true"
+            android:enabled="true"
+            android:label="Dozeo 수면 잠금">
             <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
+                <action android:name="android.accessibility.AccessibilityService" />
             </intent-filter>
             <meta-data
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_service_config" />
         </service>
-        <activity
-            android:name=".feature.ReportActivity"
-            android:exported="false" />
-        <activity
-            android:name=".feature.MorningRoutineActivity"
-            android:exported="false" />
-        <activity
-            android:name=".feature.LoadingActivity"
-            android:exported="false" />
 
-        <!-- ⭐ AlarmReceiver - 취침 알림 액션 추가 -->
-        <receiver android:name=".feature.alarm.AlarmReceiver"
+        <!-- ⭐ AlarmReceiver -->
+        <receiver
+            android:name=".feature.alarm.AlarmReceiver"
             android:enabled="true"
             android:exported="true">
             <intent-filter android:priority="1000">
@@ -122,5 +146,7 @@
                 <action android:name="com.example.sleepshift.BEDTIME_NOTIFICATION" />
             </intent-filter>
         </receiver>
+
     </application>
+
 </manifest>

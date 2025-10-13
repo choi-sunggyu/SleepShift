@@ -1,107 +1,161 @@
 package com.example.sleepshift.feature.survey
 
 import android.content.Context
-import android.view.LayoutInflater
 import android.widget.NumberPicker
-import com.example.sleepshift.R
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import java.time.LocalTime
 
 object TimePickerUtil {
 
     /**
-     * 수면 시간(시간:분) 선택 다이얼로그
-     * @param context Context
-     * @param title 다이얼로그 제목
-     * @param initialMinutes 초기 시간 (분 단위)
-     * @param onTimeSelected 선택 완료 콜백 (분 단위)
+     * 수면 시간(Duration) 선택 - 몇 시간 동안
      */
     fun showDurationPicker(
         context: Context,
-        title: String = "시간 선택",
-        initialMinutes: Int = 480, // 기본 8시간
+        title: String,
+        initialMinutes: Int,
         minHours: Int = 4,
         maxHours: Int = 12,
         onTimeSelected: (totalMinutes: Int) -> Unit
     ) {
-        val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_duration_picker, null)
-        val npH = dialogView.findViewById<NumberPicker>(R.id.npHours)
-        val npM = dialogView.findViewById<NumberPicker>(R.id.npMinutes)
+        val dialogView = android.view.LayoutInflater.from(context)
+            .inflate(com.example.sleepshift.R.layout.dialog_time_picker, null)
 
-        val initialHours = initialMinutes / 60
-        val initialMins = initialMinutes % 60
+        val hourPicker = dialogView.findViewById<NumberPicker>(com.example.sleepshift.R.id.hourPicker)
+        val minutePicker = dialogView.findViewById<NumberPicker>(com.example.sleepshift.R.id.minutePicker)
 
-        npH.minValue = minHours
-        npH.maxValue = maxHours
-        npH.value = initialHours.coerceIn(npH.minValue, npH.maxValue)
-        npH.wrapSelectorWheel = true
+        // Hour picker 설정
+        hourPicker.minValue = minHours
+        hourPicker.maxValue = maxHours
+        hourPicker.value = initialMinutes / 60
 
-        val minuteValues = arrayOf("00", "30")
-        npM.minValue = 0
-        npM.maxValue = minuteValues.lastIndex
-        npM.displayedValues = minuteValues
-        npM.value = if (initialMins >= 30) 1 else 0
-        npM.wrapSelectorWheel = true
+        // Minute picker 설정 (0, 15, 30, 45)
+        val minuteValues = arrayOf("00", "15", "30", "45")
+        minutePicker.minValue = 0
+        minutePicker.maxValue = minuteValues.size - 1
+        minutePicker.displayedValues = minuteValues
+        minutePicker.value = (initialMinutes % 60) / 15
 
         MaterialAlertDialogBuilder(context)
             .setTitle(title)
             .setView(dialogView)
-            .setPositiveButton("확인") { dlg, _ ->
-                val h = npH.value
-                val m = if (npM.value == 1) 30 else 0
-                onTimeSelected(h * 60 + m)
-                dlg.dismiss()
+            .setPositiveButton("확인") { _, _ ->
+                val hours = hourPicker.value
+                val minutes = minuteValues[minutePicker.value].toInt()
+                val totalMinutes = hours * 60 + minutes
+                onTimeSelected(totalMinutes)
             }
-            .setNegativeButton("취소") { dlg, _ -> dlg.dismiss() }
+            .setNegativeButton("취소", null)
             .show()
     }
 
     /**
-     * 취침/기상 시간 선택 다이얼로그 (24시간 형식)
-     * @param context Context
-     * @param title 다이얼로그 제목
-     * @param initialTime 초기 시간
-     * @param onTimeSelected 선택 완료 콜백
+     * ⭐ 알람 시간 선택 - 몇 시에 (24시간 형식)
      */
-    fun showTimePicker(
+    fun showAlarmTimePicker(
         context: Context,
-        title: String = "시간 선택",
-        initialTime: LocalTime = LocalTime.of(0, 0),
-        onTimeSelected: (hour: Int, minute: Int) -> Unit
+        title: String,
+        initialTime: String, // "HH:mm" 형식
+        onTimeSelected: (hour: Int, minute: Int, timeString: String) -> Unit
     ) {
-        val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_time_picker, null)
-        val npHour = dialogView.findViewById<NumberPicker>(R.id.npHour)
-        val npMinute = dialogView.findViewById<NumberPicker>(R.id.npMinute)
+        val dialogView = android.view.LayoutInflater.from(context)
+            .inflate(com.example.sleepshift.R.layout.dialog_time_picker, null)
 
-        // 시간 설정 (0-23)
-        npHour.minValue = 0
-        npHour.maxValue = 23
-        npHour.value = initialTime.hour
-        npHour.wrapSelectorWheel = true
-        npHour.setFormatter { value -> "%02d".format(value) }
+        val hourPicker = dialogView.findViewById<NumberPicker>(com.example.sleepshift.R.id.hourPicker)
+        val minutePicker = dialogView.findViewById<NumberPicker>(com.example.sleepshift.R.id.minutePicker)
 
-        // 분 설정 (0-59, 1분 단위)
-        npMinute.minValue = 0
-        npMinute.maxValue = 59
-        npMinute.value = initialTime.minute
-        npMinute.wrapSelectorWheel = true
-        npMinute.setFormatter { value -> "%02d".format(value) }
+        // 초기 시간 파싱
+        val timeParts = initialTime.split(":")
+        val initialHour = timeParts.getOrNull(0)?.toIntOrNull() ?: 7
+        val initialMinute = timeParts.getOrNull(1)?.toIntOrNull() ?: 0
+
+        // Hour picker 설정 (0~23시)
+        hourPicker.minValue = 0
+        hourPicker.maxValue = 23
+        hourPicker.value = initialHour
+        hourPicker.setFormatter { value -> String.format("%02d시", value) }
+
+        // Minute picker 설정 (0, 15, 30, 45)
+        val minuteValues = arrayOf("00", "15", "30", "45")
+        minutePicker.minValue = 0
+        minutePicker.maxValue = minuteValues.size - 1
+
+        // 가장 가까운 15분 단위로 설정
+        val minuteIndex = when {
+            initialMinute < 8 -> 0   // 0~7분 → 00분
+            initialMinute < 23 -> 1  // 8~22분 → 15분
+            initialMinute < 38 -> 2  // 23~37분 → 30분
+            initialMinute < 53 -> 3  // 38~52분 → 45분
+            else -> 0                // 53~59분 → 다음 시간 00분
+        }
+        minutePicker.value = minuteIndex
+        minutePicker.displayedValues = minuteValues.map { "${it}분" }.toTypedArray()
 
         MaterialAlertDialogBuilder(context)
             .setTitle(title)
             .setView(dialogView)
-            .setPositiveButton("확인") { dlg, _ ->
-                val h = npHour.value
-                val m = npMinute.value
-                onTimeSelected(h, m)
-                dlg.dismiss()
+            .setPositiveButton("확인") { _, _ ->
+                val hour = hourPicker.value
+                val minute = minuteValues[minutePicker.value].toInt()
+                val timeString = String.format("%02d:%02d", hour, minute)
+                onTimeSelected(hour, minute, timeString)
             }
-            .setNegativeButton("취소") { dlg, _ -> dlg.dismiss() }
+            .setNegativeButton("취소", null)
             .show()
     }
 
     /**
-     * 분을 HH:mm 형식으로 변환
+     * ⭐ 취침 시간 선택 - 몇 시에 (저녁~새벽)
      */
-    fun minutesToHHmm(minutes: Int): String = "%02d:%02d".format(minutes / 60, minutes % 60)
+    fun showBedtimePicker(
+        context: Context,
+        title: String,
+        initialTime: String,
+        onTimeSelected: (hour: Int, minute: Int, timeString: String) -> Unit
+    ) {
+        val dialogView = android.view.LayoutInflater.from(context)
+            .inflate(com.example.sleepshift.R.layout.dialog_time_picker, null)
+
+        val hourPicker = dialogView.findViewById<NumberPicker>(com.example.sleepshift.R.id.hourPicker)
+        val minutePicker = dialogView.findViewById<NumberPicker>(com.example.sleepshift.R.id.minutePicker)
+
+        val timeParts = initialTime.split(":")
+        val initialHour = timeParts.getOrNull(0)?.toIntOrNull() ?: 22
+        val initialMinute = timeParts.getOrNull(1)?.toIntOrNull() ?: 0
+
+        // Hour picker 설정 (20~23시, 0~4시)
+        val hourValues = (20..23).toList() + (0..4).toList()
+        val hourDisplayValues = hourValues.map { String.format("%02d시", it) }.toTypedArray()
+
+        hourPicker.minValue = 0
+        hourPicker.maxValue = hourValues.size - 1
+        hourPicker.displayedValues = hourDisplayValues
+        hourPicker.value = hourValues.indexOf(initialHour).takeIf { it >= 0 } ?: 2 // 기본 22시
+
+        // Minute picker 설정
+        val minuteValues = arrayOf("00", "15", "30", "45")
+        minutePicker.minValue = 0
+        minutePicker.maxValue = minuteValues.size - 1
+
+        val minuteIndex = when {
+            initialMinute < 8 -> 0
+            initialMinute < 23 -> 1
+            initialMinute < 38 -> 2
+            initialMinute < 53 -> 3
+            else -> 0
+        }
+        minutePicker.value = minuteIndex
+        minutePicker.displayedValues = minuteValues.map { "${it}분" }.toTypedArray()
+
+        MaterialAlertDialogBuilder(context)
+            .setTitle(title)
+            .setView(dialogView)
+            .setPositiveButton("확인") { _, _ ->
+                val hour = hourValues[hourPicker.value]
+                val minute = minuteValues[minutePicker.value].toInt()
+                val timeString = String.format("%02d:%02d", hour, minute)
+                onTimeSelected(hour, minute, timeString)
+            }
+            .setNegativeButton("취소", null)
+            .show()
+    }
 }

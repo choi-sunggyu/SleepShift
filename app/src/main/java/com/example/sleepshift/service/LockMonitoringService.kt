@@ -51,15 +51,17 @@ class LockMonitoringService : Service() {
     private fun startMonitoring() {
         serviceScope.launch {
             while (isActive && isMonitoring && isLockScreenActive()) {
-                delay(1000) // 1초마다 체크
+                delay(500) // ⭐ 0.5초마다 체크 (더 빠르게)
 
-                // LockScreen이 활성화되어 있는지 확인
                 if (!isLockScreenInForeground()) {
-                    android.util.Log.d("LockMonitoring", "⚠️ 다른 앱 감지! LockScreen으로 복귀 시도")
+                    android.util.Log.d("LockMonitoring", "⚠️ 다른 앱 감지! 복귀 시도")
+                    bringLockScreenToFront()
+
+                    // ⭐ 연속 체크 (더 빠른 복귀)
+                    delay(200)
                     bringLockScreenToFront()
                 }
             }
-            android.util.Log.d("LockMonitoring", "모니터링 루프 종료")
         }
     }
 
@@ -97,7 +99,6 @@ class LockMonitoringService : Service() {
 
         val currentTime = System.currentTimeMillis()
 
-        // 최근 3초간의 사용 통계 조회
         val stats = usageStatsManager.queryUsageStats(
             UsageStatsManager.INTERVAL_DAILY,
             currentTime - 3000,
@@ -109,17 +110,17 @@ class LockMonitoringService : Service() {
             return false
         }
 
-        // 가장 최근에 사용된 앱 찾기
         val recentApp = stats.maxByOrNull { it.lastTimeUsed }
         val foregroundPackage = recentApp?.packageName
 
-        val isLockScreen = foregroundPackage == packageName
+        // ⭐ 자기 앱이면 어떤 Activity든 허용
+        val isOwnApp = foregroundPackage == packageName
 
-        if (!isLockScreen) {
+        if (!isOwnApp) {
             android.util.Log.d("LockMonitoring", "포그라운드 앱: $foregroundPackage")
         }
 
-        return isLockScreen
+        return isOwnApp  // ⭐ 변경: LockScreen뿐만 아니라 AlarmActivity도 허용
     }
 
     /**

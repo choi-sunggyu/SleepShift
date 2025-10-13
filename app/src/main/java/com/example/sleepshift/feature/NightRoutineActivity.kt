@@ -1,6 +1,5 @@
 package com.example.sleepshift.feature
 
-import android.app.TimePickerDialog
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -18,6 +17,7 @@ import androidx.viewpager2.widget.ViewPager2
 import com.example.sleepshift.R
 import com.example.sleepshift.feature.adapter.MoodPagerAdapter
 import com.example.sleepshift.feature.night.NightRoutineViewModel
+import com.example.sleepshift.feature.survey.TimePickerUtil
 import com.example.sleepshift.util.NightRoutineConstants
 
 class NightRoutineActivity : AppCompatActivity() {
@@ -161,15 +161,15 @@ class NightRoutineActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * ⭐ 알람 시간 변경 - TimePickerUtil 사용
+     */
     private fun handleAlarmTimeChange() {
         if (!viewModel.canChangeAlarm()) {
             return
         }
 
         val currentTime = viewModel.alarmTime.value ?: "07:00"
-        val timeParts = currentTime.split(":")
-        val currentHour = timeParts.getOrNull(0)?.toIntOrNull() ?: 7
-        val currentMinute = timeParts.getOrNull(1)?.toIntOrNull() ?: 0
         val currentCoins = viewModel.getCoinCount()
 
         AlertDialog.Builder(this)
@@ -180,22 +180,27 @@ class NightRoutineActivity : AppCompatActivity() {
                         "현재 보유: ${currentCoins}개 → ${currentCoins - NightRoutineConstants.ALARM_CHANGE_COST}개"
             )
             .setPositiveButton("변경") { _, _ ->
-                showTimePicker(currentHour, currentMinute, currentTime)
+                showAlarmTimePicker(currentTime)
             }
             .setNegativeButton("취소", null)
             .show()
     }
 
-    private fun showTimePicker(currentHour: Int, currentMinute: Int, currentTime: String) {
-        TimePickerDialog(this, { _, hour, minute ->
-            val newTime = String.format("%02d:%02d", hour, minute)
-
-            if (newTime != currentTime) {
-                viewModel.changeAlarmTime(newTime, hour, minute)
+    /**
+     * ⭐ TimePickerUtil을 사용한 알람 시간 선택
+     */
+    private fun showAlarmTimePicker(currentTime: String) {
+        TimePickerUtil.showAlarmTimePicker(
+            context = this,
+            title = "기상 시간 선택",
+            initialTime = currentTime
+        ) { hour, minute, timeString ->
+            if (timeString != currentTime) {
+                viewModel.changeAlarmTime(timeString, hour, minute)
             } else {
                 Toast.makeText(this, "알람 시간이 동일합니다", Toast.LENGTH_SHORT).show()
             }
-        }, currentHour, currentMinute, true).show()
+        }
     }
 
     private fun showInsufficientCoinsDialog(shortage: Int) {

@@ -21,7 +21,7 @@ import com.example.sleepshift.permission.PermissionManager
 import com.example.sleepshift.util.Constants
 import com.example.sleepshift.util.DailyAlarmManager
 
-class HomeActivity : AppCompatActivity() {
+class   HomeActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityHomeBinding
     private val viewModel: HomeViewModel by viewModels()

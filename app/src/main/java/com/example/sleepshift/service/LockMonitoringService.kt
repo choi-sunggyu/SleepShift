@@ -48,18 +48,22 @@ class LockMonitoringService : Service() {
         android.util.Log.d("LockMonitoring", "Foreground Service 시작됨")
     }
 
+    /**
+     * ⭐⭐⭐ 개선된 모니터링 로직 - 더 빠른 복귀
+     */
     private fun startMonitoring() {
         serviceScope.launch {
             while (isActive && isMonitoring && isLockScreenActive()) {
-                delay(500) // ⭐ 0.5초마다 체크 (더 빠르게)
+                delay(300) // ⭐ 0.3초마다 체크 (기존 0.5초에서 단축)
 
                 if (!isLockScreenInForeground()) {
                     android.util.Log.d("LockMonitoring", "⚠️ 다른 앱 감지! 복귀 시도")
-                    bringLockScreenToFront()
 
-                    // ⭐ 연속 체크 (더 빠른 복귀)
-                    delay(200)
-                    bringLockScreenToFront()
+                    // ⭐⭐⭐ 연속 3번 복귀 시도 (더 확실한 복귀)
+                    repeat(3) {
+                        bringLockScreenToFront()
+                        delay(100)
+                    }
                 }
             }
         }
@@ -71,27 +75,24 @@ class LockMonitoringService : Service() {
     }
 
     /**
-     * ⭐ 개선: UsageStatsManager로 포그라운드 앱 체크
+     * ⭐ 포그라운드 앱 체크
      */
     private fun isLockScreenInForeground(): Boolean {
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
-                // Android 5.1 이상: UsageStatsManager 사용
                 isLockScreenInForegroundUsingUsageStats()
             } else {
-                // Android 5.0 이하: ActivityManager 사용
                 @Suppress("DEPRECATION")
                 isLockScreenInForegroundLegacy()
             }
         } catch (e: Exception) {
             android.util.Log.e("LockMonitoring", "포그라운드 체크 실패: ${e.message}")
-            // 에러 시 복귀 시도 (안전장치)
             false
         }
     }
 
     /**
-     * ⭐ UsageStatsManager로 포그라운드 앱 확인 (Android 5.1+)
+     * ⭐ UsageStatsManager로 포그라운드 앱 확인
      */
     private fun isLockScreenInForegroundUsingUsageStats(): Boolean {
         val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
@@ -113,14 +114,14 @@ class LockMonitoringService : Service() {
         val recentApp = stats.maxByOrNull { it.lastTimeUsed }
         val foregroundPackage = recentApp?.packageName
 
-        // ⭐ 자기 앱이면 어떤 Activity든 허용
+        // ⭐ 자기 앱이면 어떤 Activity든 허용 (AlarmActivity도 포함)
         val isOwnApp = foregroundPackage == packageName
 
         if (!isOwnApp) {
             android.util.Log.d("LockMonitoring", "포그라운드 앱: $foregroundPackage")
         }
 
-        return isOwnApp  // ⭐ 변경: LockScreen뿐만 아니라 AlarmActivity도 허용
+        return isOwnApp
     }
 
     /**
@@ -133,12 +134,15 @@ class LockMonitoringService : Service() {
 
         if (tasks.isNotEmpty()) {
             val topActivity = tasks[0].topActivity
-            return topActivity?.className?.contains("LockScreenActivity") == true
+            return topActivity?.packageName == packageName
         }
 
         return false
     }
 
+    /**
+     * ⭐ LockScreen으로 복귀
+     */
     private fun bringLockScreenToFront() {
         try {
             val intent = Intent(this, LockScreenActivity::class.java)

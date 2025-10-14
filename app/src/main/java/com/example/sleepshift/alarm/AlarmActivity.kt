@@ -232,14 +232,24 @@ class AlarmActivity : AppCompatActivity() {
         val currentDay = sharedPref.getInt("current_day", 1)
         val nextDay = currentDay + 1
 
-        // ⭐ Day 카운트 증가 (중요!)
+        // ⭐ Day 카운트 증가
         sharedPref.edit()
             .putInt("current_day", nextDay)
             .apply()
 
         android.util.Log.d("AlarmActivity", "Day $currentDay → Day $nextDay 증가")
 
-        // ⭐ 다음 날 알람 설정 (nextDay + 1이 아니라 nextDay)
+        // ⭐ 일회성 알람 플래그 제거 (알람이 울렸으므로)
+        if (sharedPref.getBoolean("is_one_time_alarm", false)) {
+            sharedPref.edit()
+                .putBoolean("is_one_time_alarm", false)
+                .remove("one_time_alarm_time")
+                .apply()
+
+            android.util.Log.d("AlarmActivity", "일회성 알람 플래그 제거")
+        }
+
+        // ⭐ 다음 날 알람 설정
         val alarmManager = DailyAlarmManager(this)
         alarmManager.updateDailyAlarm(nextDay)
 

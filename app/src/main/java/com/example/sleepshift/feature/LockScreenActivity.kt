@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.os.CountDownTimer
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
@@ -262,11 +263,24 @@ class LockScreenActivity : AppCompatActivity() {
     private fun scheduleNextDayAlarm() {
         val alarmManager = DailyAlarmManager(this)
         val currentDay = sharedPreferences.getInt("current_day", 1)
-        val nextDay = currentDay + 1
 
-        alarmManager.updateDailyAlarm(nextDay)
+        // ⭐ 일회성 알람인 경우 플래그 유지
+        val isOneTimeAlarm = sharedPreferences.getBoolean("is_one_time_alarm", false)
 
-        android.util.Log.d("LockScreen", "다음날(Day $nextDay) 알람 설정 완료")
+        if (isOneTimeAlarm) {
+            // ⭐ 일회성 알람은 Day만 증가시키고 알람은 재설정하지 않음
+            sharedPreferences.edit {
+                putInt("current_day", currentDay + 1)
+            }
+
+            android.util.Log.d("LockScreen", "일회성 알람 유지, Day만 증가: $currentDay → ${currentDay + 1}")
+        } else {
+            // ⭐ 일반 알람은 다음날 알람 재설정
+            val nextDay = currentDay + 1
+            alarmManager.updateDailyAlarm(nextDay)
+
+            android.util.Log.d("LockScreen", "다음날(Day $nextDay) 알람 설정 완료")
+        }
     }
 
     private fun initViews() {
@@ -426,6 +440,11 @@ class LockScreenActivity : AppCompatActivity() {
             return
         }
 
+        // ⭐ 잠금 해제 플래그 설정
+        sharedPreferences.edit {
+            putBoolean("is_unlocking", true)
+        }
+
         // ⭐ 잠금 모드 해제
         stopLockMode()
 
@@ -436,6 +455,12 @@ class LockScreenActivity : AppCompatActivity() {
         val intent = Intent(this, HomeActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
         startActivity(intent)
+
+        // ⭐ 플래그 리셋
+        sharedPreferences.edit {
+            putBoolean("is_unlocking", false)
+        }
+
         finish()
     }
 
@@ -490,8 +515,44 @@ class LockScreenActivity : AppCompatActivity() {
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         super.onBackPressed()
-        // 뒤로가기 완전 차단
+        // ⭐ super 호출 제거!
+        // super.onBackPressed()  // ❌ 이거 때문에 뒤로가기가 작동했음
+
+        // ⭐ 뒤로가기 완전 차단 - 토스트만 표시
         Toast.makeText(this, "잠금 해제 버튼을 사용해주세요", Toast.LENGTH_SHORT).show()
+        Log.d("LockScreen", "뒤로가기 차단됨")
+    }
+
+    // ⭐ onUserLeaveHint도 오버라이드하여 홈 버튼 차단
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        Log.d("LockScreen", "홈 버튼 감지 - 복귀 시도")
+
+        // 즉시 다시 포그라운드로
+        val intent = Intent(this, LockScreenActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+        startActivity(intent)
+    }
+
+    // ⭐ onPause도 오버라이드
+    override fun onPause() {
+        super.onPause()
+
+        // 잠금 해제된 경우가 아니라면 다시 포그라운드로
+        val isUnlocking = sharedPreferences.getBoolean("is_unlocking", false)
+
+        if (!isUnlocking) {
+            Log.d("LockScreen", "비정상 종료 감지 - 복귀 시도")
+            Handler(Looper.getMainLooper()).postDelayed({
+                if (sharedPreferences.getBoolean("lock_screen_active", false)) {
+                    val intent = Intent(this, LockScreenActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                            Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                    startActivity(intent)
+                }
+            }, 100)
+        }
     }
 
     override fun onResume() {

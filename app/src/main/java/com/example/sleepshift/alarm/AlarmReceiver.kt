@@ -113,17 +113,24 @@ class AlarmReceiver : BroadcastReceiver() {
         val sharedPref = context.getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
         val isAlarmEnabled = sharedPref.getBoolean("alarm_enabled", true)
 
+        Log.d("AlarmReceiver", "=== 알람 트리거 시작 ===")
+        Log.d("AlarmReceiver", "알람 활성화: $isAlarmEnabled")
+
         if (!isAlarmEnabled) {
             Log.d("AlarmReceiver", "알람이 비활성화되어 있음")
             return
         }
 
         val todayAlarmTime = sharedPref.getString("today_alarm_time", "07:00")
-        Log.d("AlarmReceiver", "설정된 알람 시간: $todayAlarmTime")
+        val currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
 
-        // ⭐ 알람 시간 기록 제거 (더 이상 필요 없음)
+        Log.d("AlarmReceiver", "설정된 알람 시간: $todayAlarmTime")
+        Log.d("AlarmReceiver", "현재 시간: $currentTime")
+
+        // ⭐ 알람 트리거 기록
         sharedPref.edit()
             .putLong("last_alarm_triggered", System.currentTimeMillis())
+            .putString("last_alarm_trigger_time", currentTime)  // ⭐ 추가
             .apply()
 
         val alarmIntent = Intent(context, AlarmActivity::class.java).apply {
@@ -135,11 +142,52 @@ class AlarmReceiver : BroadcastReceiver() {
 
         try {
             context.startActivity(alarmIntent)
-            Log.d("AlarmReceiver", "알람 화면 시작 성공")
+            Log.d("AlarmReceiver", "✅ 알람 화면 시작 성공")
+
+            // ⭐ 성공 기록
+            sharedPref.edit()
+                .putBoolean("last_alarm_success", true)
+                .apply()
 
         } catch (e: Exception) {
-            Log.e("AlarmReceiver", "알람 화면 시작 실패: ${e.message}")
+            Log.e("AlarmReceiver", "❌ 알람 화면 시작 실패: ${e.message}")
+            e.printStackTrace()
+
+            // ⭐ 실패 기록 및 대체 알림
+            sharedPref.edit()
+                .putBoolean("last_alarm_success", false)
+                .putString("last_alarm_error", e.message)
+                .apply()
+
+            // ⭐ 대체 알림 표시
+            showFallbackNotification(context)
         }
+    }
+
+    // ⭐ 대체 알림 메서드 추가
+    private fun showFallbackNotification(context: Context) {
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        val intent = Intent(context, AlarmActivity::class.java)
+        val pendingIntent = PendingIntent.getActivity(
+            context, 9999, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(context, "alarm_channel")
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle("⏰ 기상 시간입니다!")
+            .setContentText("알람을 확인해주세요")
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setAutoCancel(false)
+            .setOngoing(true)
+            .setContentIntent(pendingIntent)
+            .setFullScreenIntent(pendingIntent, true)  // ⭐ 전체 화면 인텐트
+            .build()
+
+        notificationManager.notify(1001, notification)
+        Log.d("AlarmReceiver", "대체 알림 표시됨")
     }
 
     private fun restoreAlarms(context: Context) {

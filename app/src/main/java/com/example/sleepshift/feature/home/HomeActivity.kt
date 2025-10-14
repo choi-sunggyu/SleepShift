@@ -1,6 +1,9 @@
 package com.example.sleepshift.feature.home
 
 import android.animation.ObjectAnimator
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -20,8 +23,9 @@ import com.example.sleepshift.feature.SettingsActivity
 import com.example.sleepshift.permission.PermissionManager
 import com.example.sleepshift.util.Constants
 import com.example.sleepshift.util.DailyAlarmManager
+import java.util.*
 
-class   HomeActivity : AppCompatActivity() {
+class HomeActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityHomeBinding
     private val viewModel: HomeViewModel by viewModels()
@@ -45,6 +49,9 @@ class   HomeActivity : AppCompatActivity() {
         binding = ActivityHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // ⭐⭐⭐ 알람 노티피케이션 채널 생성 (추가된 부분)
+        createAlarmNotificationChannel()
+
         initializeManagers()
         setupUI()
         observeViewModel()
@@ -53,6 +60,32 @@ class   HomeActivity : AppCompatActivity() {
         permissionManager.requestAllPermissions(notificationPermissionLauncher)
 
         viewModel.checkDailyProgress()
+    }
+
+    /**
+     * ⭐⭐⭐ 알람 노티피케이션 채널 생성
+     * AlarmReceiver에서 사용하는 "alarm_channel" 생성
+     */
+    private fun createAlarmNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channelId = "alarm_channel"
+            val channelName = "알람"
+            val importance = NotificationManager.IMPORTANCE_HIGH
+
+            val channel = NotificationChannel(channelId, channelName, importance).apply {
+                description = "알람 알림 채널"
+                enableVibration(true)
+                setShowBadge(true)
+                lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+                // ⭐ 알람은 방해 금지 모드에서도 울려야 함
+                setBypassDnd(true)
+            }
+
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+
+            android.util.Log.d("HomeActivity", "✅ alarm_channel 노티피케이션 채널 생성됨")
+        }
     }
 
     private fun initializeManagers() {
@@ -99,7 +132,13 @@ class   HomeActivity : AppCompatActivity() {
 
         if (viewModel.shouldSetupAlarm()) {
             val currentDay = viewModel.currentDay.value ?: 1
-            alarmManager.updateDailyAlarm(currentDay)
+            val success = alarmManager.updateDailyAlarm(currentDay)
+
+            if (success) {
+                android.util.Log.d("HomeActivity", "✅ 알람 설정 성공")
+            } else {
+                android.util.Log.e("HomeActivity", "❌ 알람 설정 실패 - 권한 확인 필요")
+            }
         }
     }
 
@@ -229,10 +268,30 @@ class   HomeActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * ⭐ 디버그용: 알람 상태 확인
+     * 개발 중에만 사용하세요
+     */
+    private fun checkAlarmStatus() {
+        val sharedPref = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
+
+        android.util.Log.d("HomeActivity", "=== 알람 상태 확인 ===")
+        android.util.Log.d("HomeActivity", "today_alarm_time: ${sharedPref.getString("today_alarm_time", "없음")}")
+        android.util.Log.d("HomeActivity", "is_one_time_alarm: ${sharedPref.getBoolean("is_one_time_alarm", false)}")
+        android.util.Log.d("HomeActivity", "one_time_alarm_time: ${sharedPref.getString("one_time_alarm_time", "없음")}")
+        android.util.Log.d("HomeActivity", "current_day: ${sharedPref.getInt("current_day", 0)}")
+        android.util.Log.d("HomeActivity", "last_alarm_triggered: ${Date(sharedPref.getLong("last_alarm_triggered", 0))}")
+        android.util.Log.d("HomeActivity", "last_alarm_success: ${sharedPref.getBoolean("last_alarm_success", false)}")
+        android.util.Log.d("HomeActivity", "========================")
+    }
+
     override fun onResume() {
         super.onResume()
         viewModel.updateAllData()
         startFloatingAnimation()
+
+        // ⭐ 디버그: 알람 상태 확인 (필요할 때만 주석 해제)
+        // checkAlarmStatus()
     }
 
     override fun onPause() {

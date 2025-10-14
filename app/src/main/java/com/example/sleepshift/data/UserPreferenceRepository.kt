@@ -83,6 +83,47 @@ class UserPreferenceRepository(context: Context) { //데이터 접근 계층
     }
 
     /**
+     * 일회성 알람 여부 설정
+     */
+    fun setIsOneTimeAlarm(isOneTime: Boolean) {
+        prefs.edit().putBoolean("is_one_time_alarm", isOneTime).apply()
+        android.util.Log.d("Repository", "✅ is_one_time_alarm 설정: $isOneTime")
+    }
+
+    /**
+     * 일회성 알람 여부 확인
+     */
+    fun getIsOneTimeAlarm(): Boolean {
+        return prefs.getBoolean("is_one_time_alarm", false)
+    }
+
+    /**
+     * 일회성 알람 시간 설정
+     */
+    fun setOneTimeAlarmTime(time: String) {
+        prefs.edit().putString("one_time_alarm_time", time).apply()
+        android.util.Log.d("Repository", "✅ one_time_alarm_time 설정: $time")
+    }
+
+    /**
+     * 일회성 알람 시간 가져오기
+     */
+    fun getOneTimeAlarmTime(): String? {
+        return prefs.getString("one_time_alarm_time", null)
+    }
+
+    /**
+     * 일회성 알람 플래그 제거 (알람이 울린 후 호출)
+     */
+    fun clearOneTimeAlarm() {
+        prefs.edit()
+            .putBoolean("is_one_time_alarm", false)
+            .remove("one_time_alarm_time")
+            .apply()
+        android.util.Log.d("Repository", "✅ 일회성 알람 플래그 제거됨")
+    }
+
+    /**
      * 오늘의 알람 시간 가져오기
      */
     fun getTodayAlarmTime(): String? {

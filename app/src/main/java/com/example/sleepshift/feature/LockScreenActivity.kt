@@ -1,6 +1,8 @@
 package com.example.sleepshift.feature
 
 import android.annotation.SuppressLint
+import android.app.AlarmManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -44,6 +46,8 @@ class LockScreenActivity : AppCompatActivity() {
     private var countDownTimer: CountDownTimer? = null
     private var isLongPressing = false
     private val handler = Handler(Looper.getMainLooper())
+    private var returnRunnable: Runnable? = null  // ⭐ Handler 중복 방지용
+    private var pauseCount = 0  // ⭐ onPause 호출 횟수 추적
 
     // 코인 사용 관련
     private val UNLOCK_COST = 15
@@ -83,8 +87,10 @@ class LockScreenActivity : AppCompatActivity() {
         // ⭐ 배경 이미지 안전하게 초기화
         initBackgroundImage()
 
-        // ⭐ 조기 기상 체크 시작
-        startEarlyWakeBackgroundCheck()
+        // ⭐⭐⭐ 조기 기상 체크는 일단 비활성화 (안정성 우선)
+        // startEarlyWakeBackgroundCheck()
+
+        Log.d("LockScreen", "✅ LockScreenActivity 초기화 완료")
     }
 
     /**
@@ -448,50 +454,79 @@ class LockScreenActivity : AppCompatActivity() {
     }
 
     /**
-     * 홈 버튼 감지
+     * 홈 버튼 감지 (즉시 복귀)
      */
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        Log.d("LockScreen", "홈 버튼 감지 - 복귀 시도")
 
-        val intent = Intent(this, LockScreenActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
-        startActivity(intent)
+        val isUnlocking = sharedPreferences.getBoolean("is_unlocking", false)
+        val isAlarmRinging = sharedPreferences.getBoolean("is_alarm_ringing", false)
+
+        if (!isUnlocking && !isAlarmRinging) {
+            Log.d("LockScreen", "홈 버튼 감지 - 즉시 복귀 시도")
+
+            // ⭐ 즉시 복귀 (딜레이 없음)
+            val intent = Intent(this, LockScreenActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
+                    Intent.FLAG_ACTIVITY_NO_ANIMATION
+            startActivity(intent)
+        } else {
+            Log.d("LockScreen", "홈 버튼 무시 (잠금해제 중 또는 알람 울림)")
+        }
     }
 
     /**
-     * ⭐ 비정상 종료 감지 (알람 제외)
+     * ⭐ 비정상 종료 감지 (알람 제외, Handler 중복 방지)
      */
     override fun onPause() {
         super.onPause()
+
+        pauseCount++
+        Log.d("LockScreen", "onPause 호출 #$pauseCount")
 
         val isUnlocking = sharedPreferences.getBoolean("is_unlocking", false)
         val isAlarmRinging = sharedPreferences.getBoolean("is_alarm_ringing", false)
 
         // ⭐ 알람이 울리는 중이면 복귀하지 않음
         if (!isUnlocking && !isAlarmRinging) {
-            Log.d("LockScreen", "비정상 종료 감지 - 복귀 대기")
+            // ⭐ 기존 Runnable 취소
+            returnRunnable?.let {
+                handler.removeCallbacks(it)
+                Log.d("LockScreen", "기존 복귀 Runnable 취소됨")
+            }
 
-            // ⭐⭐⭐ 딜레이를 500ms로 증가 (AlarmActivity가 플래그 설정할 시간)
-            Handler(Looper.getMainLooper()).postDelayed({
+            Log.d("LockScreen", "비정상 종료 감지 - 복귀 대기 (300ms)")
+
+            // ⭐ 새 Runnable 생성
+            returnRunnable = Runnable {
                 // ⭐ 재확인: 알람이 울리기 시작했는지
                 val stillNotAlarm = !sharedPreferences.getBoolean("is_alarm_ringing", false)
                 val stillLocked = sharedPreferences.getBoolean("lock_screen_active", false)
+                val stillNotUnlocking = !sharedPreferences.getBoolean("is_unlocking", false)
 
-                if (stillLocked && stillNotAlarm) {
+                if (stillLocked && stillNotAlarm && stillNotUnlocking) {
+                    Log.d("LockScreen", "복귀 조건 충족 - 실행")
                     val intent = Intent(this, LockScreenActivity::class.java)
                     intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                            Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                            Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
+                            Intent.FLAG_ACTIVITY_NO_ANIMATION
                     startActivity(intent)
-                    Log.d("LockScreen", "복귀 실행됨")
                 } else {
-                    Log.d("LockScreen", "복귀 취소 (알람 감지됨)")
+                    Log.d("LockScreen", "복귀 취소 (잠금:$stillLocked, 알람:$stillNotAlarm, 해제:$stillNotUnlocking)")
                 }
-            }, 500)  // ⭐ 100ms → 500ms로 증가
+                returnRunnable = null
+            }
+
+            // ⭐ 300ms 후 실행 (더 빠르게)
+            handler.postDelayed(returnRunnable!!, 300)
+
         } else {
             if (isAlarmRinging) {
                 Log.d("LockScreen", "알람이 울리는 중 - 복귀하지 않음")
+            }
+            if (isUnlocking) {
+                Log.d("LockScreen", "잠금 해제 중 - 복귀하지 않음")
             }
         }
     }
@@ -643,6 +678,11 @@ class LockScreenActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         stopEarlyWakeCheck()
+
+        // ⭐ 복귀 Runnable 취소
+        returnRunnable?.let { handler.removeCallbacks(it) }
+        returnRunnable = null
+
         countDownTimer?.cancel()
         countDownTimer = null
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)

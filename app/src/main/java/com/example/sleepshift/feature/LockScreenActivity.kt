@@ -512,9 +512,9 @@ class LockScreenActivity : AppCompatActivity() {
         window.attributes = layoutParams
     }
 
+    @SuppressLint("MissingSuperCall")
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
-        super.onBackPressed()
         // ⭐ super 호출 제거!
         // super.onBackPressed()  // ❌ 이거 때문에 뒤로가기가 작동했음
 
@@ -555,11 +555,31 @@ class LockScreenActivity : AppCompatActivity() {
         }
     }
 
+    override fun onStop() {
+        super.onStop()
+        if (!sharedPreferences.getBoolean("is_unlocking", false)) {
+            // 즉시 복귀
+            startActivity(Intent(this, LockScreenActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+            })
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         updateCoinDisplay()
         checkUnlockAvailability()
         enableImmersiveMode()
+        updateAlarmTimeDisplay()
+    }
+
+    private fun updateAlarmTimeDisplay() {
+        val alarmTime = sharedPreferences.getString("today_alarm_time", null)
+            ?: sharedPreferences.getString("target_wake_time", "07:00")
+            ?: "07:00"
+
+        val wakeTimeText = findViewById<TextView>(R.id.tvWakeTimeMessage)
+        wakeTimeText?.text = "${alarmTime}에 깨워드릴게요"
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {

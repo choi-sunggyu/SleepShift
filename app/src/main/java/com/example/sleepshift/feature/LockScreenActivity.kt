@@ -46,10 +46,10 @@ class LockScreenActivity : AppCompatActivity() {
     private val handler = Handler(Looper.getMainLooper())
 
     // 코인 사용 관련
-    private val UNLOCK_COST = 15 // 잠금 해제에 필요한 코인
+    private val UNLOCK_COST = 15
 
-    // ⭐ 배경 이미지 변경용
-    private lateinit var backgroundImage: ImageView  // 또는 배경으로 사용 중인 View
+    // ⭐ 배경 이미지 변경용 (nullable로 변경)
+    private var backgroundImage: ImageView? = null
     private val earlyWakeCheckHandler = Handler(Looper.getMainLooper())
     private var earlyWakeCheckRunnable: Runnable? = null
     private var isEarlyWakeMode = false
@@ -57,20 +57,17 @@ class LockScreenActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // ⭐ 코드에서 화면 방향 설정 (Android 16 미만에서만 적용)
-        if (Build.VERSION.SDK_INT < 35) { // UPSIDE_DOWN_CAKE = 35
+        // 화면 방향 설정 (Android 16 미만)
+        if (Build.VERSION.SDK_INT < 35) {
             @Suppress("DEPRECATION")
             requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         }
 
-        // ⭐ 잠금 화면 설정 (OS 레벨)
         setupLockScreenMode()
-
         setContentView(R.layout.activity_lock_screen)
 
         // 화면을 항상 켜진 상태로 유지
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-
 
         // SharedPreferences 초기화
         sharedPreferences = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
@@ -79,28 +76,38 @@ class LockScreenActivity : AppCompatActivity() {
         setupUI()
         setupUnlockButton()
 
-        // ⭐ Immersive Mode 설정
         enableImmersiveMode()
-
-        // ⭐ 잠금 모드 시작
         startLockMode()
-
-        // ⭐ 수면 체크인 기록 및 다음날 알람 설정
         recordSleepCheckInAndScheduleNextAlarm()
 
-        // ⭐ 배경 이미지 뷰 초기화
-        backgroundImage = findViewById(R.id.lockScreenBackground)  // layout의 실제 ID로 변경
+        // ⭐ 배경 이미지 안전하게 초기화
+        initBackgroundImage()
 
         // ⭐ 조기 기상 체크 시작
         startEarlyWakeBackgroundCheck()
     }
 
     /**
-     * ⭐ 잠금 화면 모드 설정
+     * ⭐ 배경 이미지 안전하게 초기화
+     */
+    private fun initBackgroundImage() {
+        try {
+            backgroundImage = findViewById(R.id.lockScreenBackground)
+            if (backgroundImage == null) {
+                Log.w("LockScreen", "⚠️ lockScreenBackground를 찾을 수 없습니다 (선택사항)")
+            } else {
+                Log.d("LockScreen", "✅ 배경 이미지 초기화 완료")
+            }
+        } catch (e: Exception) {
+            Log.e("LockScreen", "❌ backgroundImage 초기화 실패 (계속 진행)", e)
+        }
+    }
+
+    /**
+     * 잠금 화면 모드 설정
      */
     private fun setupLockScreenMode() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-            // Android 8.1 이상: 잠금 화면 위에 표시
             setShowWhenLocked(true)
             setTurnScreenOn(true)
         } else {
@@ -114,18 +121,16 @@ class LockScreenActivity : AppCompatActivity() {
     }
 
     /**
-     * ⭐ Immersive Sticky Mode - 네비게이션 바 숨김
+     * Immersive Sticky Mode
      */
     private fun enableImmersiveMode() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // Android 11 이상
             window.setDecorFitsSystemWindows(false)
             window.insetsController?.apply {
                 hide(android.view.WindowInsets.Type.systemBars())
                 systemBarsBehavior = android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             }
         } else {
-            // Android 10 이하
             @Suppress("DEPRECATION")
             window.decorView.systemUiVisibility = (
                     View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
@@ -139,96 +144,19 @@ class LockScreenActivity : AppCompatActivity() {
     }
 
     /**
-     * ⭐ 잠금 모드 시작 (Screen Pinning 제거)
+     * 잠금 모드 시작
      */
     private fun startLockMode() {
-        // lock_screen_active 플래그 설정
         sharedPreferences.edit {
             putBoolean("lock_screen_active", true)
         }
 
-        // ❌ Screen Pinning 완전 제거 (알림 반복 문제 해결)
-        // startLockTask() 호출하지 않음
-
-        // ✅ Foreground Service + Accessibility만 사용
         startLockMonitoringService()
-
-        android.util.Log.d("LockScreen", "✅ 잠금 모드 시작 (Accessibility + Service)")
-    }
-
-
-    private fun hasUsageStatsPermission(): Boolean {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP_MR1) {
-            return true // Android 5.1 미만은 필요 없음
-        }
-
-        val appOpsManager = getSystemService(Context.APP_OPS_SERVICE) as android.app.AppOpsManager
-        val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            appOpsManager.unsafeCheckOpNoThrow(
-                android.app.AppOpsManager.OPSTR_GET_USAGE_STATS,
-                android.os.Process.myUid(),
-                packageName
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            appOpsManager.checkOpNoThrow(
-                android.app.AppOpsManager.OPSTR_GET_USAGE_STATS,
-                android.os.Process.myUid(),
-                packageName
-            )
-        }
-
-        return mode == android.app.AppOpsManager.MODE_ALLOWED
+        Log.d("LockScreen", "✅ 잠금 모드 시작")
     }
 
     /**
-     * ⭐ UsageStats 권한 요청 다이얼로그
-     */
-    private fun showUsageStatsPermissionDialog() {
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("사용 정보 접근 권한 필요")
-            .setMessage("잠금 화면을 유지하려면\n사용 정보 접근 권한이 필요합니다.\n\n설정 → 특수 앱 접근 → 사용 정보 접근\n에서 SleepShift를 활성화해주세요.")
-            .setPositiveButton("설정으로 이동") { _, _ ->
-                try {
-                    val intent = Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS)
-                    startActivity(intent)
-                } catch (e: Exception) {
-                    Toast.makeText(this, "설정 화면을 열 수 없습니다", Toast.LENGTH_SHORT).show()
-                }
-            }
-            .setNegativeButton("나중에", null)
-            .show()
-    }
-
-    /**
-     * ⭐ Accessibility 서비스 활성화 확인
-     */
-    private fun isAccessibilityServiceEnabled(): Boolean {
-        val serviceName = "${packageName}/.service.AccessibilityLockService"
-        val enabledServices = android.provider.Settings.Secure.getString(
-            contentResolver,
-            android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-        )
-        return enabledServices?.contains(serviceName) == true
-    }
-
-    /**
-     * ⭐ Accessibility 권한 요청 다이얼로그
-     */
-    private fun showAccessibilityPermissionDialog() {
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("접근성 권한 필요")
-            .setMessage("더 강력한 잠금을 위해\n접근성 서비스 권한을 활성화해주세요.\n\n설정 → 접근성 → 설치된 서비스\n에서 SleepShift를 활성화해주세요.")
-            .setPositiveButton("설정으로 이동") { _, _ ->
-                val intent = Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)
-                startActivity(intent)
-            }
-            .setNegativeButton("건너뛰기", null)
-            .show()
-    }
-
-    /**
-     * ⭐ 잠금 감시 서비스 시작
+     * 잠금 감시 서비스 시작
      */
     private fun startLockMonitoringService() {
         val intent = Intent(this, LockMonitoringService::class.java)
@@ -237,11 +165,11 @@ class LockScreenActivity : AppCompatActivity() {
         } else {
             startService(intent)
         }
-        android.util.Log.d("LockScreen", "Lock Monitoring Service 시작됨")
+        Log.d("LockScreen", "Lock Monitoring Service 시작됨")
     }
 
     /**
-     * ⭐ 수면 체크인 기록 및 다음날 알람 설정
+     * 수면 체크인 기록 및 다음날 알람 설정
      */
     private fun recordSleepCheckInAndScheduleNextAlarm() {
         val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
@@ -251,35 +179,27 @@ class LockScreenActivity : AppCompatActivity() {
             putLong("last_sleep_checkin_time", System.currentTimeMillis())
         }
 
-        android.util.Log.d("LockScreen", "수면 체크인 기록됨: $today")
-
-        // ⭐ 다음날 알람 설정
+        Log.d("LockScreen", "수면 체크인 기록됨: $today")
         scheduleNextDayAlarm()
     }
 
     /**
-     * ⭐ 다음날 알람 설정 (AlarmActivity와 동일한 방식)
+     * 다음날 알람 설정
      */
     private fun scheduleNextDayAlarm() {
         val alarmManager = DailyAlarmManager(this)
         val currentDay = sharedPreferences.getInt("current_day", 1)
-
-        // ⭐ 일회성 알람인 경우 플래그 유지
         val isOneTimeAlarm = sharedPreferences.getBoolean("is_one_time_alarm", false)
 
         if (isOneTimeAlarm) {
-            // ⭐ 일회성 알람은 Day만 증가시키고 알람은 재설정하지 않음
             sharedPreferences.edit {
                 putInt("current_day", currentDay + 1)
             }
-
-            android.util.Log.d("LockScreen", "일회성 알람 유지, Day만 증가: $currentDay → ${currentDay + 1}")
+            Log.d("LockScreen", "일회성 알람 유지, Day만 증가: $currentDay → ${currentDay + 1}")
         } else {
-            // ⭐ 일반 알람은 다음날 알람 재설정
             val nextDay = currentDay + 1
             alarmManager.updateDailyAlarm(nextDay)
-
-            android.util.Log.d("LockScreen", "다음날(Day $nextDay) 알람 설정 완료")
+            Log.d("LockScreen", "다음날(Day $nextDay) 알람 설정 완료")
         }
     }
 
@@ -299,15 +219,26 @@ class LockScreenActivity : AppCompatActivity() {
         tvGoodNightMessage.text = "${userName}님 잘자요!"
 
         updateCoinDisplay()
-
-        val alarmTime = sharedPreferences.getString("today_alarm_time", null)
-            ?: sharedPreferences.getString("target_wake_time", "07:00")
-            ?: "07:00"
-
-        val wakeTimeText = findViewById<TextView>(R.id.tvWakeTimeMessage)
-        wakeTimeText?.text = "${alarmTime}에 깨워드릴게요"
-
+        updateAlarmTimeDisplay()
         checkUnlockAvailability()
+    }
+
+    /**
+     * ⭐ 알람 시간 표시 업데이트 (새로 추가)
+     */
+    private fun updateAlarmTimeDisplay() {
+        try {
+            val alarmTime = sharedPreferences.getString("today_alarm_time", null)
+                ?: sharedPreferences.getString("target_wake_time", "07:00")
+                ?: "07:00"
+
+            val wakeTimeText = findViewById<TextView>(R.id.tvWakeTimeMessage)
+            wakeTimeText?.text = "${alarmTime}에 깨워드릴게요"
+
+            Log.d("LockScreen", "알람 시간 표시: $alarmTime")
+        } catch (e: Exception) {
+            Log.e("LockScreen", "알람 시간 표시 실패", e)
+        }
     }
 
     private fun updateCoinDisplay() {
@@ -440,12 +371,10 @@ class LockScreenActivity : AppCompatActivity() {
             return
         }
 
-        // ⭐ 잠금 해제 플래그 설정
         sharedPreferences.edit {
             putBoolean("is_unlocking", true)
         }
 
-        // ⭐ 잠금 모드 해제
         stopLockMode()
 
         Toast.makeText(this, "잠금이 해제되었습니다! (코인 ${UNLOCK_COST}개 사용)", Toast.LENGTH_LONG).show()
@@ -456,7 +385,6 @@ class LockScreenActivity : AppCompatActivity() {
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
         startActivity(intent)
 
-        // ⭐ 플래그 리셋
         sharedPreferences.edit {
             putBoolean("is_unlocking", false)
         }
@@ -465,19 +393,15 @@ class LockScreenActivity : AppCompatActivity() {
     }
 
     /**
-     * ⭐ 잠금 모드 해제
+     * 잠금 모드 해제
      */
     private fun stopLockMode() {
-        // lock_screen_active 플래그 해제
         sharedPreferences.edit {
             putBoolean("lock_screen_active", false)
         }
 
-        // ❌ stopLockTask() 호출하지 않음 (어차피 startLockTask 안 했으므로)
-
-        // Foreground Service 중지
         stopService(Intent(this, LockMonitoringService::class.java))
-        android.util.Log.d("LockScreen", "✅ 잠금 모드 해제")
+        Log.d("LockScreen", "✅ 잠금 모드 해제")
     }
 
     private fun usePawCoins(amount: Int): Boolean {
@@ -490,11 +414,11 @@ class LockScreenActivity : AppCompatActivity() {
                 .putInt("paw_coin_count", newCoins)
                 .apply()
 
-            android.util.Log.d("LockScreen", "코인 사용: ${amount}개, 잔액: ${newCoins}개")
+            Log.d("LockScreen", "코인 사용: ${amount}개, 잔액: ${newCoins}개")
             return true
         }
 
-        android.util.Log.d("LockScreen", "코인 부족: 현재 ${currentCoins}개, 필요 ${amount}개")
+        Log.d("LockScreen", "코인 부족: 현재 ${currentCoins}개, 필요 ${amount}개")
         return false
     }
 
@@ -512,74 +436,76 @@ class LockScreenActivity : AppCompatActivity() {
         window.attributes = layoutParams
     }
 
+    /**
+     * ⭐ 뒤로가기 완전 차단 (super 호출 제거)
+     */
     @SuppressLint("MissingSuperCall")
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
-        // ⭐ super 호출 제거!
-        // super.onBackPressed()  // ❌ 이거 때문에 뒤로가기가 작동했음
-
-        // ⭐ 뒤로가기 완전 차단 - 토스트만 표시
+        // 의도적으로 super를 호출하지 않아 뒤로가기를 완전히 차단
         Toast.makeText(this, "잠금 해제 버튼을 사용해주세요", Toast.LENGTH_SHORT).show()
         Log.d("LockScreen", "뒤로가기 차단됨")
     }
 
-    // ⭐ onUserLeaveHint도 오버라이드하여 홈 버튼 차단
+    /**
+     * 홈 버튼 감지
+     */
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
         Log.d("LockScreen", "홈 버튼 감지 - 복귀 시도")
 
-        // 즉시 다시 포그라운드로
         val intent = Intent(this, LockScreenActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                 Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
         startActivity(intent)
     }
 
-    // ⭐ onPause도 오버라이드
+    /**
+     * ⭐ 비정상 종료 감지 (알람 제외)
+     */
     override fun onPause() {
         super.onPause()
 
-        // 잠금 해제된 경우가 아니라면 다시 포그라운드로
         val isUnlocking = sharedPreferences.getBoolean("is_unlocking", false)
+        val isAlarmRinging = sharedPreferences.getBoolean("is_alarm_ringing", false)
 
-        if (!isUnlocking) {
-            Log.d("LockScreen", "비정상 종료 감지 - 복귀 시도")
+        // ⭐ 알람이 울리는 중이면 복귀하지 않음
+        if (!isUnlocking && !isAlarmRinging) {
+            Log.d("LockScreen", "비정상 종료 감지 - 복귀 대기")
+
+            // ⭐⭐⭐ 딜레이를 500ms로 증가 (AlarmActivity가 플래그 설정할 시간)
             Handler(Looper.getMainLooper()).postDelayed({
-                if (sharedPreferences.getBoolean("lock_screen_active", false)) {
+                // ⭐ 재확인: 알람이 울리기 시작했는지
+                val stillNotAlarm = !sharedPreferences.getBoolean("is_alarm_ringing", false)
+                val stillLocked = sharedPreferences.getBoolean("lock_screen_active", false)
+
+                if (stillLocked && stillNotAlarm) {
                     val intent = Intent(this, LockScreenActivity::class.java)
                     intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                             Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
                     startActivity(intent)
+                    Log.d("LockScreen", "복귀 실행됨")
+                } else {
+                    Log.d("LockScreen", "복귀 취소 (알람 감지됨)")
                 }
-            }, 100)
+            }, 500)  // ⭐ 100ms → 500ms로 증가
+        } else {
+            if (isAlarmRinging) {
+                Log.d("LockScreen", "알람이 울리는 중 - 복귀하지 않음")
+            }
         }
     }
 
-    override fun onStop() {
-        super.onStop()
-        if (!sharedPreferences.getBoolean("is_unlocking", false)) {
-            // 즉시 복귀
-            startActivity(Intent(this, LockScreenActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
-            })
-        }
-    }
-
+    /**
+     * ⭐ onResume에서 데이터 업데이트
+     */
     override fun onResume() {
         super.onResume()
         updateCoinDisplay()
+        updateAlarmTimeDisplay()  // ⭐ 알람 시간 재확인
         checkUnlockAvailability()
         enableImmersiveMode()
-        updateAlarmTimeDisplay()
-    }
-
-    private fun updateAlarmTimeDisplay() {
-        val alarmTime = sharedPreferences.getString("today_alarm_time", null)
-            ?: sharedPreferences.getString("target_wake_time", "07:00")
-            ?: "07:00"
-
-        val wakeTimeText = findViewById<TextView>(R.id.tvWakeTimeMessage)
-        wakeTimeText?.text = "${alarmTime}에 깨워드릴게요"
+        Log.d("LockScreen", "onResume - 데이터 업데이트 완료")
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -590,7 +516,7 @@ class LockScreenActivity : AppCompatActivity() {
     }
 
     /**
-     * ⭐ 조기 기상 배경 체크 시작 - 1분마다 알람 1시간 전인지 확인
+     * ⭐ 조기 기상 배경 체크 시작
      */
     private fun startEarlyWakeBackgroundCheck() {
         earlyWakeCheckRunnable = object : Runnable {
@@ -604,103 +530,122 @@ class LockScreenActivity : AppCompatActivity() {
         }
         // 즉시 한 번 체크하고 시작
         earlyWakeCheckRunnable?.let { earlyWakeCheckHandler.post(it) }
+        Log.d("LockScreen", "조기 기상 체크 시작")
     }
 
     /**
-     * ⭐ 알람 1시간 전인지 확인하여 배경 변경
+     * ⭐ 안전한 조기 기상 체크
      */
     private fun checkIfOneHourBeforeAlarm() {
-        // 알람 시간 가져오기
-        val alarmTime = sharedPreferences.getString("today_alarm_time", null)
-            ?: sharedPreferences.getString("target_wake_time", "07:00")
-            ?: "07:00"
+        try {
+            // 알람 시간 가져오기
+            val alarmTime = sharedPreferences.getString("today_alarm_time", null)
+                ?: sharedPreferences.getString("target_wake_time", "07:00")
+                ?: "07:00"
 
-        val timeParts = alarmTime.split(":")
-        val alarmHour = timeParts.getOrNull(0)?.toIntOrNull() ?: 7
-        val alarmMinute = timeParts.getOrNull(1)?.toIntOrNull() ?: 0
+            val timeParts = alarmTime.split(":")
+            val alarmHour = timeParts.getOrNull(0)?.toIntOrNull() ?: 7
+            val alarmMinute = timeParts.getOrNull(1)?.toIntOrNull() ?: 0
 
-        // 알람 시간 Calendar 설정
-        val alarmCalendar = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, alarmHour)
-            set(Calendar.MINUTE, alarmMinute)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
+            // 알람 시간 Calendar 설정
+            val alarmCalendar = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, alarmHour)
+                set(Calendar.MINUTE, alarmMinute)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
 
-            // 현재 시간보다 과거면 다음날로 (새벽 알람 대응)
-            if (timeInMillis <= System.currentTimeMillis()) {
-                add(Calendar.DAY_OF_MONTH, 1)
+                // 현재 시간보다 과거면 다음날로
+                if (timeInMillis <= System.currentTimeMillis()) {
+                    add(Calendar.DAY_OF_MONTH, 1)
+                }
             }
-        }
 
-        // 알람 1시간 전 시간 계산
-        val oneHourBeforeAlarm = Calendar.getInstance().apply {
-            timeInMillis = alarmCalendar.timeInMillis
-            add(Calendar.HOUR_OF_DAY, -1)
-        }
+            // 알람 1시간 전 시간 계산
+            val oneHourBeforeAlarm = Calendar.getInstance().apply {
+                timeInMillis = alarmCalendar.timeInMillis
+                add(Calendar.HOUR_OF_DAY, -1)
+            }
 
-        val currentTime = System.currentTimeMillis()
+            val currentTime = System.currentTimeMillis()
 
-        // ⭐ 현재 시간이 알람 1시간 전 이후인지 확인
-        if (currentTime >= oneHourBeforeAlarm.timeInMillis) {
-            android.util.Log.d("LockScreen", "✅ 알람 1시간 전 도달! 배경 이미지 변경")
-            changeToEarlyWakeBackground()
+            // 현재 시간이 알람 1시간 전 ~ 알람 시간 사이인지 확인
+            if (currentTime >= oneHourBeforeAlarm.timeInMillis &&
+                currentTime < alarmCalendar.timeInMillis) {
+                Log.d("LockScreen", "✅ 알람 1시간 전 도달! 배경 이미지 변경")
+                changeToEarlyWakeBackground()
+            }
+        } catch (e: Exception) {
+            Log.e("LockScreen", "❌ 조기 기상 체크 실패", e)
         }
     }
 
     /**
-     * ⭐ 조기 기상 배경으로 변경
+     * ⭐ 안전한 조기 기상 배경 변경
      */
     private fun changeToEarlyWakeBackground() {
-        isEarlyWakeMode = true
+        try {
+            isEarlyWakeMode = true
 
-        // 배경 이미지 변경 (원하는 이미지로 변경)
-        backgroundImage.setImageResource(R.drawable.lock_screen_morning)  // 아침용 배경 이미지
+            // backgroundImage가 있을 때만 변경
+            backgroundImage?.let { bgImage ->
+                // 리소스 존재 여부 확인
+                try {
+                    @Suppress("DEPRECATION")
+                    resources.getDrawable(R.drawable.lock_screen_morning, null)
 
-        // 또는 배경색 변경
-        // backgroundImage.setBackgroundColor(ContextCompat.getColor(this, R.color.morning_sky))
+                    // 애니메이션 효과
+                    bgImage.animate()
+                        .alpha(0f)
+                        .setDuration(500)
+                        .withEndAction {
+                            bgImage.setImageResource(R.drawable.lock_screen_morning)
+                            bgImage.animate()
+                                .alpha(1f)
+                                .setDuration(500)
+                                .start()
+                        }
+                        .start()
 
-        // 애니메이션 효과 추가 (선택사항)
-        backgroundImage.animate()
-            .alpha(0f)
-            .setDuration(500)
-            .withEndAction {
-                backgroundImage.setImageResource(R.drawable.lock_screen_morning)
-                backgroundImage.animate()
-                    .alpha(1f)
-                    .setDuration(500)
-                    .start()
+                    Log.d("LockScreen", "배경 이미지 변경 완료")
+                } catch (e: Exception) {
+                    Log.w("LockScreen", "lock_screen_morning 이미지 없음 (무시)", e)
+                }
+            } ?: run {
+                Log.d("LockScreen", "backgroundImage가 null (배경 변경 건너뜀)")
             }
-            .start()
 
-        // 메시지 변경 (선택사항)
-        tvGoodNightMessage.text = "곧 일어날 시간이에요! 🌅"
+            // 메시지 변경
+            tvGoodNightMessage.text = "곧 일어날 시간이에요! 🌅"
 
-        // 조기 기상 기록
-        sharedPreferences.edit {
-            putBoolean("early_wake_background_shown", true)
-            putLong("early_wake_background_time", System.currentTimeMillis())
+            // 조기 기상 기록
+            sharedPreferences.edit {
+                putBoolean("early_wake_background_shown", true)
+                putLong("early_wake_background_time", System.currentTimeMillis())
+            }
+
+            Log.d("LockScreen", "조기 기상 모드 활성화 완료")
+        } catch (e: Exception) {
+            Log.e("LockScreen", "❌ 배경 변경 실패", e)
         }
-
-        android.util.Log.d("LockScreen", "배경 이미지가 아침 모드로 변경되었습니다")
     }
 
     /**
-     * ⭐ 조기 기상 체크 중단
+     * 조기 기상 체크 중단
      */
     private fun stopEarlyWakeCheck() {
         earlyWakeCheckRunnable?.let {
             earlyWakeCheckHandler.removeCallbacks(it)
         }
         earlyWakeCheckRunnable = null
+        Log.d("LockScreen", "조기 기상 체크 중단")
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        // ⭐ 체크 중단
         stopEarlyWakeCheck()
-
         countDownTimer?.cancel()
         countDownTimer = null
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        Log.d("LockScreen", "LockScreenActivity 종료")
     }
 }

@@ -30,7 +30,7 @@
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-3940256099942544~3347511713" />
 
-        <!-- ⭐ 1. 런처: 스플래시만 LAUNCHER로 설정 -->
+        <!-- 1. 런처: 스플래시만 LAUNCHER로 설정 -->
         <activity
             android:name=".SplashActivity"
             android:exported="true"
@@ -41,7 +41,7 @@
             </intent-filter>
         </activity>
 
-        <!-- ⭐ 2. 권한 설정 화면 -->
+        <!-- 2. 권한 설정 화면 -->
         <activity
             android:name=".feature.PermissionActivity"
             android:exported="false"
@@ -72,21 +72,22 @@
             android:name=".feature.NightRoutineActivity"
             android:exported="false" />
 
-        <!-- ⭐ 8. 잠금 화면 (Screen Pinning 제거) -->
+        <!-- ⭐ 8. 잠금 화면 (별도 태스크) -->
         <activity
             android:name=".feature.LockScreenActivity"
             android:excludeFromRecents="true"
             android:launchMode="singleTask"
-            android:taskAffinity=""
+            android:taskAffinity=".lockscreen"
             android:exported="false"
             android:screenOrientation="portrait"
             tools:ignore="LockedOrientationActivity" />
 
-        <!-- ⭐ 9. 알람 액티비티 (잠금 화면에서 표시) -->
+        <!-- ⭐⭐⭐ 9. 알람 액티비티 (별도 태스크, 최우선 표시) -->
         <activity
             android:name=".feature.alarm.AlarmActivity"
             android:exported="false"
-            android:launchMode="singleTop"
+            android:launchMode="singleInstance"
+            android:taskAffinity=".alarm"
             android:excludeFromRecents="true"
             android:showOnLockScreen="true"
             android:turnScreenOn="true"
@@ -109,7 +110,7 @@
             android:name=".feature.LoadingActivity"
             android:exported="false" />
 
-        <!-- ⭐ LockMonitoringService -->
+        <!-- LockMonitoringService -->
         <service
             android:name=".service.LockMonitoringService"
             android:enabled="true"
@@ -120,7 +121,7 @@
                 android:value="수면 모드 잠금 화면 유지" />
         </service>
 
-        <!-- ⭐ AccessibilityLockService -->
+        <!-- AccessibilityLockService -->
         <service
             android:name=".service.AccessibilityLockService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
@@ -135,11 +136,11 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
-        <!-- ⭐ AlarmReceiver -->
+        <!-- AlarmReceiver -->
         <receiver
             android:name=".feature.alarm.AlarmReceiver"
             android:enabled="true"
-            android:exported="true">
+            android:exported="false">
             <intent-filter android:priority="1000">
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="com.example.sleepshift.ALARM_TRIGGER" />

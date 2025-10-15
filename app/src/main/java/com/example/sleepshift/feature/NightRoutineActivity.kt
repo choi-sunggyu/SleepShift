@@ -1,5 +1,10 @@
 package com.example.sleepshift.feature
 
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.content.Context
+import android.os.Build
+import java.util.Calendar
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -19,6 +24,9 @@ import com.example.sleepshift.feature.adapter.MoodPagerAdapter
 import com.example.sleepshift.feature.night.NightRoutineViewModel
 import com.example.sleepshift.feature.survey.TimePickerUtil
 import com.example.sleepshift.util.NightRoutineConstants
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class NightRoutineActivity : AppCompatActivity() {
 
@@ -196,10 +204,85 @@ class NightRoutineActivity : AppCompatActivity() {
             initialTime = currentTime
         ) { hour, minute, timeString ->
             if (timeString != currentTime) {
+                // 1. ViewModel에서 코인 차감 및 데이터 저장
                 viewModel.changeAlarmTime(timeString, hour, minute)
+
+                // 2. ⭐⭐⭐ 실제 알람 설정 (핵심!)
+                setOneTimeAlarm(hour, minute, timeString)
+
+                Log.d(TAG, "알람 시간 변경 완료: $timeString")
             } else {
                 Toast.makeText(this, "알람 시간이 동일합니다", Toast.LENGTH_SHORT).show()
             }
+        }
+    }
+
+    private fun setOneTimeAlarm(hour: Int, minute: Int, timeString: String) {
+        try {
+            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+            // AlarmReceiver Intent
+            val intent = Intent(this, com.example.sleepshift.feature.alarm.AlarmReceiver::class.java).apply {
+                action = "com.example.sleepshift.ALARM_TRIGGER"
+            }
+
+            val pendingIntent = PendingIntent.getBroadcast(
+                this,
+                1000,  // 일회성 알람용 고유 ID
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            // 알람 시간 계산
+            val calendar = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, hour)
+                set(Calendar.MINUTE, minute)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+
+                // 이미 지난 시간이면 다음날로
+                if (timeInMillis <= System.currentTimeMillis()) {
+                    add(Calendar.DAY_OF_MONTH, 1)
+                }
+            }
+
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            Log.d(TAG, "⏰ 일회성 알람 설정 시작")
+            Log.d(TAG, "  - 설정 시간: $timeString")
+            Log.d(TAG, "  - 실제 알람: ${dateFormat.format(calendar.time)}")
+            Log.d(TAG, "  - 현재 시간: ${dateFormat.format(Date())}")
+
+            // 정확한 알람 설정
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (alarmManager.canScheduleExactAlarms()) {
+                    alarmManager.setAlarmClock(
+                        AlarmManager.AlarmClockInfo(calendar.timeInMillis, pendingIntent),
+                        pendingIntent
+                    )
+                    Log.d(TAG, "✅ setAlarmClock 호출 완료 (Android 12+)")
+                } else {
+                    Log.w(TAG, "⚠️ 정확한 알람 권한 없음 - 권한 요청")
+                    startActivity(Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM))
+                    Toast.makeText(this, "정확한 알람 권한을 허용해주세요", Toast.LENGTH_LONG).show()
+                    return
+                }
+            } else {
+                alarmManager.setAlarmClock(
+                    AlarmManager.AlarmClockInfo(calendar.timeInMillis, pendingIntent),
+                    pendingIntent
+                )
+                Log.d(TAG, "✅ setAlarmClock 호출 완료 (Android 11 이하)")
+            }
+
+            Log.d(TAG, "✅ 일회성 알람 설정 완료")
+            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+            Toast.makeText(this, "알람이 ${timeString}에 설정되었습니다", Toast.LENGTH_SHORT).show()
+
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ 알람 설정 실패", e)
+            Toast.makeText(this, "알람 설정에 실패했습니다: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 

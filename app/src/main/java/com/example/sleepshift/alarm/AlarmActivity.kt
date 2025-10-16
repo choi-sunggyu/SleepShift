@@ -58,6 +58,19 @@ class AlarmActivity : AppCompatActivity() {
     }
 
     /**
+     * ⭐ onResume에서 코인 동기화 (문제 5 해결)
+     */
+    override fun onResume() {
+        super.onResume()
+
+        // ⭐⭐⭐ 코인 업데이트
+        val currentCoins = sharedPreferences.getInt("paw_coin_count", 0)
+        binding.tvCoinCount.text = currentCoins.toString()
+
+        Log.d("AlarmActivity", "onResume - 코인 업데이트: $currentCoins")
+    }
+
+    /**
      * ⭐⭐⭐ 알람 플래그 설정 (LockScreen 무한 복귀 방지)
      */
     private fun setAlarmFlags() {
@@ -106,8 +119,9 @@ class AlarmActivity : AppCompatActivity() {
         val userName = sharedPreferences.getString("user_name", "사용자") ?: "사용자"
         binding.tvGoodMorningMessage.text = "${userName}님\n좋은 아침 입니다 !"
 
-        val coinReward = calculateCoinReward()
-        binding.tvCoinCount.text = coinReward.toString()
+        // ⭐⭐⭐ 알람 해제 시 보상 없음 (문제 2 해결)
+        val currentCoins = sharedPreferences.getInt("paw_coin_count", 0)
+        binding.tvCoinCount.text = currentCoins.toString()
 
         binding.tvUnlockText.text = "알람해제"
         binding.tvUnlockHint.text = "해제를 원하시면 3초간 누르세요"
@@ -221,17 +235,16 @@ class AlarmActivity : AppCompatActivity() {
         stopAlarmSounds()
         vibrator?.cancel()
 
-        // 코인 지급
-        val coinReward = calculateCoinReward()
-        addPawCoins(coinReward)
+        // ⭐⭐⭐ 알람 해제 시 코인 지급 없음 (문제 2 해결)
+        // 코인은 모닝 루틴 완료 시에만 지급
 
-        // Day 카운트 증가 및 다음 날 알람 설정
+        // ⭐ Day 카운트 증가 및 다음 날 알람 설정
         incrementDayAndScheduleNextAlarm()
 
         // ⭐ 알람 플래그 해제
         clearAlarmFlags()
 
-        // 성공 애니메이션 표시 후 모닝 루틴으로 이동
+        // 모닝 루틴으로 이동
         goToMorningRoutine()
     }
 
@@ -294,6 +307,14 @@ class AlarmActivity : AppCompatActivity() {
      * 모닝 루틴으로 이동
      */
     private fun goToMorningRoutine() {
+        // ⭐⭐⭐ 모닝 루틴 진입 플래그 설정 (알람 재울림 방지)
+        sharedPreferences.edit {
+            putBoolean("is_in_morning_routine", true)
+            putLong("morning_routine_start_time", System.currentTimeMillis())
+        }
+
+        Log.d("AlarmActivity", "✅ 모닝 루틴 진입 플래그 설정")
+
         Handler(Looper.getMainLooper()).postDelayed({
             val intent = Intent(this, MorningRoutineActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK

@@ -3,9 +3,8 @@ package com.example.sleepshift.feature
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
-import android.os.Build
-import java.util.Calendar
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -17,6 +16,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 import androidx.lifecycle.ViewModelProvider
 import androidx.viewpager2.widget.ViewPager2
 import com.example.sleepshift.R
@@ -25,8 +25,7 @@ import com.example.sleepshift.feature.night.NightRoutineViewModel
 import com.example.sleepshift.feature.survey.TimePickerUtil
 import com.example.sleepshift.util.NightRoutineConstants
 import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.util.*
 
 class NightRoutineActivity : AppCompatActivity() {
 
@@ -170,7 +169,7 @@ class NightRoutineActivity : AppCompatActivity() {
     }
 
     /**
-     * ⭐ 알람 시간 변경 - TimePickerUtil 사용
+     * ⭐ 알람 시간 변경
      */
     private fun handleAlarmTimeChange() {
         if (!viewModel.canChangeAlarm()) {
@@ -195,7 +194,7 @@ class NightRoutineActivity : AppCompatActivity() {
     }
 
     /**
-     * ⭐ TimePickerUtil을 사용한 알람 시간 선택
+     * ⭐⭐⭐ 알람 시간 선택 및 설정
      */
     private fun showAlarmTimePicker(currentTime: String) {
         TimePickerUtil.showAlarmTimePicker(
@@ -207,7 +206,7 @@ class NightRoutineActivity : AppCompatActivity() {
                 // 1. ViewModel에서 코인 차감 및 데이터 저장
                 viewModel.changeAlarmTime(timeString, hour, minute)
 
-                // 2. ⭐⭐⭐ 실제 알람 설정 (핵심!)
+                // 2. ⭐⭐⭐ 실제 알람 설정
                 setOneTimeAlarm(hour, minute, timeString)
 
                 Log.d(TAG, "알람 시간 변경 완료: $timeString")
@@ -217,6 +216,9 @@ class NightRoutineActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * ⭐⭐⭐ 일회성 알람 설정
+     */
     private fun setOneTimeAlarm(hour: Int, minute: Int, timeString: String) {
         try {
             val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -310,14 +312,27 @@ class NightRoutineActivity : AppCompatActivity() {
         Log.d(TAG, "알람 변경 완료: $time, 잔여 코인: $coins")
     }
 
+    /**
+     * ⭐⭐⭐ 수면 체크인 (잠금 화면으로 이동)
+     */
     private fun handleSleepCheckIn() {
         val currentMood = moodAdapter.getMoodAt(selectedMoodPosition)
 
         viewModel.processSleepCheckIn(currentMood.moodName, selectedMoodPosition)
 
+        // ⭐⭐⭐ 잠금 화면으로 정상 이동 플래그 설정
+        val sharedPreferences = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
+        sharedPreferences.edit {
+            putBoolean("is_going_to_lockscreen", true)  // ⭐ 정상 이동 플래그
+        }
+
+        Log.d(TAG, "✅ 잠금 화면 정상 이동 플래그 설정")
+
         // 잠금 화면으로 이동
         val intent = Intent(this, LockScreenActivity::class.java)
         startActivity(intent)
+
+        // ⭐ 플래그는 LockScreenActivity에서 해제함
     }
 
     private fun dpToPx(dp: Int): Int {
@@ -326,7 +341,12 @@ class NightRoutineActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // ViewModel이 자동으로 데이터 로드
+        // ⭐ 코인 업데이트 (알람 변경 후 돌아왔을 때 반영)
+        val sharedPreferences = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
+        val currentCoins = sharedPreferences.getInt("paw_coin_count", 0)
+        tvPawCoinCount.text = currentCoins.toString()
+
+        Log.d(TAG, "onResume - 코인 업데이트: $currentCoins")
     }
 
     companion object {

@@ -39,7 +39,7 @@ class NightRoutineViewModel(application: Application) : AndroidViewModel(applica
     }
 
     private fun getCurrentAlarmTime(): String {
-        return repository.getTodayAlarmTime()  // ⭐ 오늘 설정한 알람 시간
+        return repository.getTodayAlarmTime()  // 오늘 설정한 알람 시간
             ?: repository.getTargetWakeTime()    // 목표 기상 시간
             ?: "07:00"                            // 기본값
     }
@@ -59,10 +59,7 @@ class NightRoutineViewModel(application: Application) : AndroidViewModel(applica
     }
 
     /**
-     * ⭐⭐⭐ 수정: 알람 시간 변경 및 코인 차감 + 일회성 알람 플래그 설정
-     *
-     * 이 메서드는 코인 차감과 UI 업데이트만 담당합니다.
-     * 실제 알람 설정은 NightRoutineActivity의 setOneTimeAlarmDirectly()가 처리합니다.
+     * ⭐⭐⭐ 수정: 알람 시간 변경 및 코인 차감 (commit()으로 즉시 반영)
      */
     fun changeAlarmTime(newTime: String, hour: Int, minute: Int) {
         val currentTime = _alarmTime.value ?: return
@@ -75,28 +72,33 @@ class NightRoutineViewModel(application: Application) : AndroidViewModel(applica
         android.util.Log.d("NightRoutineViewModel", "⚙️ changeAlarmTime 시작")
         android.util.Log.d("NightRoutineViewModel", "새 시간: $newTime")
 
-        // 1. 코인 차감
+        // 1. ⭐⭐⭐ 코인 차감 (commit()으로 즉시 반영!)
         val currentCoins = _coinCount.value ?: 0
         val newCoins = currentCoins - NightRoutineConstants.ALARM_CHANGE_COST
 
-        repository.setPawCoinCount(newCoins)
+        // ⭐ commit() 사용하여 즉시 디스크에 저장
+        val success = repository.setPawCoinCountSync(newCoins)
 
-        // 2. ⭐⭐⭐ 일회성 알람으로 저장 (핵심!)
+        if (!success) {
+            android.util.Log.e("NightRoutineViewModel", "❌ 코인 차감 실패!")
+            return
+        }
+
+        android.util.Log.d("NightRoutineViewModel", "✅ 코인 차감 완료: $currentCoins → $newCoins")
+
+        // 2. 일회성 알람으로 저장
         repository.setTodayAlarmTime(newTime)
-        repository.setIsOneTimeAlarm(true)  // ⭐ 일회성 알람 플래그
-        repository.setOneTimeAlarmTime(newTime)  // ⭐ 일회성 알람 시간
+        repository.setIsOneTimeAlarm(true)
+        repository.setOneTimeAlarmTime(newTime)
 
         android.util.Log.d("NightRoutineViewModel", "✅ Repository 저장 완료")
         android.util.Log.d("NightRoutineViewModel", "  - today_alarm_time: $newTime")
         android.util.Log.d("NightRoutineViewModel", "  - is_one_time_alarm: true")
         android.util.Log.d("NightRoutineViewModel", "  - one_time_alarm_time: $newTime")
 
+        // 3. LiveData 업데이트
         _coinCount.value = newCoins
         _alarmTime.value = newTime
-
-        // 3. ⭐ 실제 알람 설정은 Activity의 setOneTimeAlarmDirectly()가 처리
-        // AlarmScheduler는 호출하지 않음
-        android.util.Log.d("NightRoutineViewModel", "⏰ 실제 알람 설정은 Activity가 처리")
 
         // 플래그 설정
         isAlarmTimeChanged = true

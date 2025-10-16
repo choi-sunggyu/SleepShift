@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.os.CountDownTimer
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
@@ -29,10 +30,14 @@ class MorningRoutineActivity : AppCompatActivity() {
         3 to false
     )
 
-    private val TOTAL_TIME_SECONDS = 180  // 3분
-    private val MAX_TIME_SECONDS = 420    // 7분
+    private val TOTAL_TIME_SECONDS = 180  // 3분 (대기 시간)
+    private val MAX_TIME_SECONDS = 420    // 7분 (총 시간: 3분 대기 + 4분 활성화)
     private var elapsedSeconds = 0
     private var isUnlockEnabled = false
+
+    // ⭐ Handler 중복 방지
+    private val handler = Handler(Looper.getMainLooper())
+    private var returnRunnable: Runnable? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,14 +49,10 @@ class MorningRoutineActivity : AppCompatActivity() {
         // ⭐ 오늘 이미 완료했는지 체크
         val today = getTodayDateString()
         val lastCompleted = sharedPreferences.getString("last_routine_completed", "")
-
-        // ⭐ 마이그레이션: 기존 "2025-10-4" 형식을 "2025-10-04"로 변환
         val normalizedLastCompleted = normalizeDate(lastCompleted ?: "")
 
-        // ⭐ 디버깅 로그
-        android.util.Log.d("MorningRoutine", "오늘: $today")
-        android.util.Log.d("MorningRoutine", "마지막 완료: $lastCompleted")
-        android.util.Log.d("MorningRoutine", "같은가? ${today == lastCompleted}")
+        Log.d("MorningRoutine", "오늘: $today")
+        Log.d("MorningRoutine", "마지막 완료: $lastCompleted")
 
         if (today == normalizedLastCompleted) {
             Toast.makeText(this, "오늘 모닝 루틴은 이미 완료했습니다", Toast.LENGTH_LONG).show()
@@ -75,10 +76,67 @@ class MorningRoutineActivity : AppCompatActivity() {
         setupRoutineCards()
         setupUnlockButton()
         startTimer()
+
+        Log.d("MorningRoutine", "✅ 모닝 루틴 시작")
     }
 
     /**
-     * ⭐ 날짜 형식 정규화 (2025-10-4 → 2025-10-04)
+     * ⭐⭐⭐ 홈 버튼 감지 (문제 4 해결)
+     */
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        Log.d("MorningRoutine", "홈 버튼 감지 - 즉시 복귀")
+
+        // ⭐ 즉시 복귀
+        val intent = Intent(this, MorningRoutineActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
+                Intent.FLAG_ACTIVITY_NO_ANIMATION
+        startActivity(intent)
+    }
+
+    /**
+     * ⭐⭐⭐ 비정상 종료 감지 (문제 4 해결)
+     */
+    override fun onPause() {
+        super.onPause()
+
+        Log.d("MorningRoutine", "onPause 호출 - 복귀 대기")
+
+        // ⭐ 기존 Runnable 취소
+        returnRunnable?.let {
+            handler.removeCallbacks(it)
+            Log.d("MorningRoutine", "기존 복귀 Runnable 취소됨")
+        }
+
+        // ⭐ 새 Runnable 생성
+        returnRunnable = Runnable {
+            Log.d("MorningRoutine", "복귀 실행")
+            val intent = Intent(this, MorningRoutineActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
+                    Intent.FLAG_ACTIVITY_NO_ANIMATION
+            startActivity(intent)
+            returnRunnable = null
+        }
+
+        // ⭐ 300ms 후 실행
+        handler.postDelayed(returnRunnable!!, 300)
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        // ⭐ 복귀 Runnable 취소 (정상 복귀)
+        returnRunnable?.let {
+            handler.removeCallbacks(it)
+            returnRunnable = null
+            Log.d("MorningRoutine", "onResume - 복귀 Runnable 취소")
+        }
+    }
+
+    /**
+     * 날짜 형식 정규화
      */
     private fun normalizeDate(dateString: String): String {
         if (dateString.isEmpty()) return ""
@@ -104,7 +162,7 @@ class MorningRoutineActivity : AppCompatActivity() {
         if (savedDate != today) {
             resetRoutines()
             sharedPreferences.edit { putString("routine_date", today) }
-            android.util.Log.d("MorningRoutine", "새로운 날 - 미션 초기화")
+            Log.d("MorningRoutine", "새로운 날 - 미션 초기화")
         } else {
             routineCompleted[1] = sharedPreferences.getBoolean("routine_1_completed", false)
             routineCompleted[2] = sharedPreferences.getBoolean("routine_2_completed", false)
@@ -114,7 +172,7 @@ class MorningRoutineActivity : AppCompatActivity() {
             if (routineCompleted[2] == true) updateRoutineUI(2, binding.routineCard2, binding.tvRoutine2Status, true)
             if (routineCompleted[3] == true) updateRoutineUI(3, binding.routineCard3, binding.tvRoutine3Status, true)
 
-            android.util.Log.d("MorningRoutine", "미션 상태 불러옴: ${routineCompleted.values.count { it }}/3 완료")
+            Log.d("MorningRoutine", "미션 상태 불러옴: ${routineCompleted.values.count { it }}/3 완료")
         }
     }
 
@@ -275,7 +333,10 @@ class MorningRoutineActivity : AppCompatActivity() {
     }
 
     /**
-     * ⭐ 타이머 시작 (분:초 형식으로 표시)
+     * ⭐⭐⭐ 타이머 시작
+     * - 0~3분: 대기 시간 (버튼 비활성화)
+     * - 3~7분: 활성화 시간 (4분간 루틴 완료 가능)
+     * - 7분 초과: 재알람
      */
     private fun startTimer() {
         countDownTimer = object : CountDownTimer(MAX_TIME_SECONDS * 1000L, 1000) {
@@ -320,7 +381,7 @@ class MorningRoutineActivity : AppCompatActivity() {
     }
 
     /**
-     * ⭐ 초를 분:초 형식으로 변환
+     * 초를 분:초 형식으로 변환
      */
     private fun formatTime(totalSeconds: Int): String {
         val minutes = totalSeconds / 60
@@ -375,18 +436,36 @@ class MorningRoutineActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * ⭐⭐⭐ 모닝 루틴 완료 (문제 2 해결)
+     */
     private fun unlockSuccess() {
         countDownTimer?.cancel()
 
         consecutiveSuccessManager.recordAlarmDismissed()
 
-        // ⭐ 간단하게! 무조건 1개 지급
-        val coinReward = 1
-        addPawCoins(coinReward)
+        // ⭐⭐⭐ 한 번에 알람 해제했는지 확인 (재울림 없음)
+        val isFirstTry = sharedPreferences.getBoolean("is_in_morning_routine", false)
+
+        // ⭐⭐⭐ 보상: 한 번에 해제하면 2개, 재울림 후엔 0개
+        val coinReward = if (isFirstTry) 2 else 0
+
+        if (coinReward > 0) {
+            addPawCoins(coinReward)
+            Log.d("MorningRoutine", "✅ 한 번에 알람 해제 성공! 곰젤리 +$coinReward")
+        } else {
+            Log.d("MorningRoutine", "⚠️ 재알람 후 완료 - 보상 없음")
+        }
+
+        // ⭐ 모닝 루틴 플래그 해제
+        sharedPreferences.edit {
+            putBoolean("is_in_morning_routine", false)
+            remove("morning_routine_start_time")
+        }
 
         // ⭐ 오늘 완료 기록
         val today = getTodayDateString()
-        android.util.Log.d("MorningRoutine", "완료 날짜 저장: $today")
+        Log.d("MorningRoutine", "완료 날짜 저장: $today")
         sharedPreferences.edit {
             putString("last_routine_completed", today)
         }
@@ -394,11 +473,13 @@ class MorningRoutineActivity : AppCompatActivity() {
         // 미션 초기화 (다음 날을 위해)
         resetRoutines()
 
-        Toast.makeText(
-            this,
-            "✨ 모닝 루틴 완료!\n곰젤리 +${coinReward}개 획득!",
-            Toast.LENGTH_LONG
-        ).show()
+        val message = if (coinReward > 0) {
+            "✨ 모닝 루틴 완료!\n곰젤리 +${coinReward}개 획득!"
+        } else {
+            "✨ 모닝 루틴 완료!\n(재알람으로 보상 없음)"
+        }
+
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
 
         Handler(Looper.getMainLooper()).postDelayed({
             val intent = Intent(this, HomeActivity::class.java)
@@ -406,10 +487,6 @@ class MorningRoutineActivity : AppCompatActivity() {
             startActivity(intent)
             finish()
         }, 1500)
-    }
-
-    private fun getCurrentDay(): Int {
-        return sharedPreferences.getInt("current_day", 1)
     }
 
     private fun addPawCoins(amount: Int) {
@@ -420,7 +497,7 @@ class MorningRoutineActivity : AppCompatActivity() {
             putInt("paw_coin_count", newCount)
         }
 
-        android.util.Log.d("MorningRoutine", "곰젤리 $amount 개 획득! 총: $newCount")
+        Log.d("MorningRoutine", "곰젤리 $amount 개 획득! 총: $newCount")
     }
 
     /**
@@ -428,6 +505,11 @@ class MorningRoutineActivity : AppCompatActivity() {
      */
     private fun triggerReAlarm() {
         countDownTimer?.cancel()
+
+        // ⭐ 재알람 플래그 (다음엔 보상 없음)
+        sharedPreferences.edit {
+            putBoolean("is_in_morning_routine", false)
+        }
 
         Toast.makeText(
             this,
@@ -446,5 +528,13 @@ class MorningRoutineActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         countDownTimer?.cancel()
+
+        // ⭐ 복귀 Runnable 정리
+        returnRunnable?.let {
+            handler.removeCallbacks(it)
+            returnRunnable = null
+        }
+
+        Log.d("MorningRoutine", "MorningRoutineActivity 종료")
     }
 }

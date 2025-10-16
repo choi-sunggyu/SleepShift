@@ -24,6 +24,20 @@ class UserPreferenceRepository(context: Context) { //데이터 접근 계층
         prefs.edit().putInt("paw_coin_count", count).apply()
     }
 
+    /**
+     * ⭐⭐⭐ 코인 즉시 저장 (commit 사용 - 동기식)
+     */
+    fun setPawCoinCountSync(count: Int): Boolean {
+        return try {
+            val success = prefs.edit().putInt("paw_coin_count", count).commit()
+            android.util.Log.d("Repository", "코인 저장 (commit): $count, 성공: $success")
+            success
+        } catch (e: Exception) {
+            android.util.Log.e("Repository", "코인 저장 실패", e)
+            false
+        }
+    }
+
     fun addPawCoins(amount: Int) {
         val newCount = getPawCoinCount() + amount
         setPawCoinCount(newCount)
@@ -71,15 +85,18 @@ class UserPreferenceRepository(context: Context) { //데이터 접근 계층
     // 연속 완료 횟수
     fun getTotalStreakCompletions(): Int = prefs.getInt("total_streak_completions", 0)
 
-    fun UserPreferenceRepository.setTodayAlarmTime(time: String) {
-        prefs.edit().putString("today_alarm_time", time).apply()
-    }
-
     /**
      * 오늘의 알람 시간 설정
      */
     fun setTodayAlarmTime(time: String) {
         prefs.edit().putString("today_alarm_time", time).apply()
+    }
+
+    /**
+     * 오늘의 알람 시간 가져오기
+     */
+    fun getTodayAlarmTime(): String? {
+        return prefs.getString("today_alarm_time", null)
     }
 
     /**
@@ -121,13 +138,6 @@ class UserPreferenceRepository(context: Context) { //데이터 접근 계층
             .remove("one_time_alarm_time")
             .apply()
         android.util.Log.d("Repository", "✅ 일회성 알람 플래그 제거됨")
-    }
-
-    /**
-     * 오늘의 알람 시간 가져오기
-     */
-    fun getTodayAlarmTime(): String? {
-        return prefs.getString("today_alarm_time", null)
     }
 
     /**

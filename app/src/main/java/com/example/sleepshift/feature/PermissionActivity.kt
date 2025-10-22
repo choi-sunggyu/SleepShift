@@ -259,19 +259,6 @@ class PermissionActivity : AppCompatActivity() {
             btnUsageStats.alpha = 1.0f
         }
 
-        // ⭐ Accessibility를 선택사항으로
-        if (isAccessibilityServiceEnabled()) {
-            tvAccessibilityStatus.text = "✅ 활성화됨 (추가 보안)"
-            tvAccessibilityStatus.setTextColor(getColor(android.R.color.holo_green_dark))
-            btnAccessibility.isEnabled = false
-            btnAccessibility.alpha = 0.5f
-        } else {
-            tvAccessibilityStatus.text = "⭕ 선택사항"
-            tvAccessibilityStatus.setTextColor(getColor(android.R.color.darker_gray))
-            btnAccessibility.isEnabled = true
-            btnAccessibility.alpha = 1.0f
-        }
-
         // Exact Alarm
         if (hasExactAlarmPermission()) {
             tvExactAlarmStatus.text = "✅ 허용됨"

@@ -5,7 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
-import com.example.sleepshift.feature.LockScreenActivity
+import com.example.sleepshift.LockScreenActivity
 
 class AccessibilityLockService : AccessibilityService() {
 

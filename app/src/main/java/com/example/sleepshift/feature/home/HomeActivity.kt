@@ -15,11 +15,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.example.sleepshift.LockScreenActivity
+import com.example.sleepshift.LockScreenService
 import com.example.sleepshift.R
 import com.example.sleepshift.databinding.ActivityHomeBinding
-import com.example.sleepshift.feature.NightRoutineActivity
 import com.example.sleepshift.feature.ReportActivity
 import com.example.sleepshift.feature.SettingsActivity
+import com.example.sleepshift.service.LockMonitoringService
 import com.example.sleepshift.permission.PermissionManager
 import com.example.sleepshift.util.Constants
 import com.example.sleepshift.util.DailyAlarmManager
@@ -46,45 +48,46 @@ class HomeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // 🔹 앱 실행 시 자동으로 잠금화면 띄우기
+        val intent = Intent(this, LockScreenActivity::class.java)
+        startActivity(intent)
+
+        // 🔹 백그라운드 감시 서비스 실행
+        val serviceIntent = Intent(this, LockScreenService::class.java)
+        startService(serviceIntent)
+
         binding = ActivityHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // ⭐⭐⭐ 알람 노티피케이션 채널 생성 (추가된 부분)
         createAlarmNotificationChannel()
-
         initializeManagers()
         setupUI()
         observeViewModel()
 
         requestIgnoreBatteryOptimization()
         permissionManager.requestAllPermissions(notificationPermissionLauncher)
-
         viewModel.checkDailyProgress()
+        finish() // 메인화면 숨기기 (잠금화면만 보이도록)
     }
 
-    /**
-     * ⭐⭐⭐ 알람 노티피케이션 채널 생성
-     * AlarmReceiver에서 사용하는 "alarm_channel" 생성
-     */
+    /** 알람 채널 생성 */
     private fun createAlarmNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channelId = "alarm_channel"
-            val channelName = "알람"
-            val importance = NotificationManager.IMPORTANCE_HIGH
-
-            val channel = NotificationChannel(channelId, channelName, importance).apply {
+            val channel = NotificationChannel(
+                "alarm_channel",
+                "알람",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
                 description = "알람 알림 채널"
                 enableVibration(true)
                 setShowBadge(true)
                 lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
-                // ⭐ 알람은 방해 금지 모드에서도 울려야 함
                 setBypassDnd(true)
             }
 
-            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
-
-            android.util.Log.d("HomeActivity", "✅ alarm_channel 노티피케이션 채널 생성됨")
+            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            manager.createNotificationChannel(channel)
         }
     }
 
@@ -105,23 +108,18 @@ class HomeActivity : AppCompatActivity() {
         viewModel.currentDay.observe(this) { day ->
             binding.tvDayCount.text = "Day $day"
         }
-
         viewModel.bedtime.observe(this) { bedtime ->
             binding.tvBedtime.text = bedtime
         }
-
         viewModel.coinCount.observe(this) { count ->
             binding.tvPawCoinCount.text = count.toString()
         }
-
         viewModel.currentStreak.observe(this) { streak ->
             updateProgressDots(streak)
         }
-
-        viewModel.showStreakCompletion.observe(this) { completions ->
-            showStreakCompletionDialog(completions)
+        viewModel.showStreakCompletion.observe(this) {
+            showStreakCompletionDialog(it)
         }
-
         viewModel.showStreakBroken.observe(this) {
             Toast.makeText(this, "연속 기록이 끊겼습니다. 다시 도전하세요!", Toast.LENGTH_SHORT).show()
         }
@@ -133,7 +131,6 @@ class HomeActivity : AppCompatActivity() {
         if (viewModel.shouldSetupAlarm()) {
             val currentDay = viewModel.currentDay.value ?: 1
             val success = alarmManager.updateDailyAlarm(currentDay)
-
             if (success) {
                 android.util.Log.d("HomeActivity", "✅ 알람 설정 성공")
             } else {
@@ -158,8 +155,17 @@ class HomeActivity : AppCompatActivity() {
 
         binding.btnGoToBed.setOnClickListener {
             viewModel.recordBedtime()
-            startActivity(Intent(this, NightRoutineActivity::class.java))
             animateButton(binding.btnGoToBed)
+
+            // ✅ 기존 NightRoutineActivity 대신 잠금화면 실행
+            saveLockState(true)
+            val lockIntent = Intent(this, LockScreenActivity::class.java)
+            lockIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            startActivity(lockIntent)
+
+            // ✅ Foreground Service 시작
+            val serviceIntent = Intent(this, LockMonitoringService::class.java)
+            startForegroundService(serviceIntent)
         }
 
         binding.btnCalendar.setOnClickListener {
@@ -171,11 +177,13 @@ class HomeActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateProgressDots(streak: Int) {
-        progressDots.forEach { dot ->
-            dot.setBackgroundResource(R.drawable.progress_dot_inactive)
-        }
+    private fun saveLockState(locked: Boolean) {
+        val prefs = getSharedPreferences("lock_prefs", MODE_PRIVATE)
+        prefs.edit().putBoolean("isLocked", locked).apply()
+    }
 
+    private fun updateProgressDots(streak: Int) {
+        progressDots.forEach { it.setBackgroundResource(R.drawable.progress_dot_inactive) }
         val activeDots = minOf(streak, Constants.STREAK_COMPLETION_DAYS)
         for (i in 0 until activeDots) {
             progressDots[i].setBackgroundResource(R.drawable.progress_dot_active)
@@ -184,7 +192,6 @@ class HomeActivity : AppCompatActivity() {
 
     private fun startFloatingAnimation() {
         floatingAnimator?.cancel()
-
         floatingAnimator = ObjectAnimator.ofFloat(
             binding.imgPanda,
             "translationY",
@@ -210,8 +217,7 @@ class HomeActivity : AppCompatActivity() {
                     .scaleY(1.0f)
                     .setDuration(Constants.CLICK_ANIMATION_DURATION)
                     .start()
-            }
-            .start()
+            }.start()
     }
 
     private fun showPawCoinInfo() {
@@ -231,31 +237,22 @@ class HomeActivity : AppCompatActivity() {
                     .scaleY(1.0f)
                     .setDuration(150)
                     .start()
-            }
-            .start()
+            }.start()
     }
 
     private fun showStreakCompletionDialog(totalCompletions: Int) {
         AlertDialog.Builder(this)
             .setTitle("${Constants.STREAK_COMPLETION_DAYS}일 연속 달성!")
-            .setMessage(
-                "축하합니다!\n" +
-                        "${Constants.STREAK_COMPLETION_DAYS}일 연속으로 규칙적인 수면을 유지했습니다.\n\n" +
-                        "총 ${totalCompletions}회 달성"
-            )
-            .setPositiveButton("확인") { dialog, _ ->
-                dialog.dismiss()
-                viewModel.updateAllData()
-            }
+            .setMessage("축하합니다!\n${Constants.STREAK_COMPLETION_DAYS}일 연속으로 규칙적인 수면을 유지했습니다.\n\n총 ${totalCompletions}회 달성")
+            .setPositiveButton("확인") { d, _ -> d.dismiss(); viewModel.updateAllData() }
             .setCancelable(false)
             .show()
     }
 
     private fun requestIgnoreBatteryOptimization() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val powerManager = getSystemService(PowerManager::class.java)
-
-            if (!powerManager.isIgnoringBatteryOptimizations(packageName)) {
+            val pm = getSystemService(PowerManager::class.java)
+            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
                 try {
                     val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
                         data = android.net.Uri.parse("package:$packageName")
@@ -268,30 +265,10 @@ class HomeActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * ⭐ 디버그용: 알람 상태 확인
-     * 개발 중에만 사용하세요
-     */
-    private fun checkAlarmStatus() {
-        val sharedPref = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
-
-        android.util.Log.d("HomeActivity", "=== 알람 상태 확인 ===")
-        android.util.Log.d("HomeActivity", "today_alarm_time: ${sharedPref.getString("today_alarm_time", "없음")}")
-        android.util.Log.d("HomeActivity", "is_one_time_alarm: ${sharedPref.getBoolean("is_one_time_alarm", false)}")
-        android.util.Log.d("HomeActivity", "one_time_alarm_time: ${sharedPref.getString("one_time_alarm_time", "없음")}")
-        android.util.Log.d("HomeActivity", "current_day: ${sharedPref.getInt("current_day", 0)}")
-        android.util.Log.d("HomeActivity", "last_alarm_triggered: ${Date(sharedPref.getLong("last_alarm_triggered", 0))}")
-        android.util.Log.d("HomeActivity", "last_alarm_success: ${sharedPref.getBoolean("last_alarm_success", false)}")
-        android.util.Log.d("HomeActivity", "========================")
-    }
-
     override fun onResume() {
         super.onResume()
         viewModel.updateAllData()
         startFloatingAnimation()
-
-        // ⭐ 디버그: 알람 상태 확인 (필요할 때만 주석 해제)
-        // checkAlarmStatus()
     }
 
     override fun onPause() {

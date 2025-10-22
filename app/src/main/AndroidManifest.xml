@@ -14,6 +14,9 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
 
     <application
         android:allowBackup="true"
@@ -72,16 +75,34 @@
             android:name=".feature.NightRoutineActivity"
             android:exported="false" />
 
-        <!-- ⭐ 8. 잠금 화면 (Screen Pinning 활성화) -->
         <activity
-            android:name=".feature.LockScreenActivity"
-            android:excludeFromRecents="true"
+            android:name=".LockScreenActivity"
             android:launchMode="singleTask"
-            android:taskAffinity=".lockscreen"
-            android:lockTaskMode="if_whitelisted"
-            android:exported="false"
+            android:excludeFromRecents="true"
+            android:showOnLockScreen="true"
+            android:taskAffinity=""
+            android:turnScreenOn="true"
+            android:exported="true"
+            android:theme="@style/Theme.AppCompat.NoActionBar"
             android:screenOrientation="portrait"
-            tools:ignore="LockedOrientationActivity" />
+            android:finishOnTaskLaunch="false"
+            android:showWhenLocked="true">
+            <intent-filter>
+                <action android:name="com.example.sleepshift.LOCK_SCREEN" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name=".LockScreenService"
+            android:enabled="true"
+            android:exported="false" />
+
+        <service
+            android:name=".service.LockMonitoringService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
 
         <!-- ⭐⭐⭐ 9. 알람 액티비티 (별도 태스크, 최우선 표시) -->
         <activity
@@ -111,17 +132,6 @@
             android:name=".feature.LoadingActivity"
             android:exported="false" />
 
-        <!-- LockMonitoringService -->
-        <service
-            android:name=".service.LockMonitoringService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="specialUse">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="수면 모드 잠금 화면 유지" />
-        </service>
-
         <!-- AccessibilityLockService -->
         <service
             android:name=".service.AccessibilityLockService"
@@ -131,6 +141,18 @@
             android:label="Dozeo 수면 잠금">
             <intent-filter>
                 <action android:name="android.accessibility.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
+        <service
+            android:name=".service.LockAccessibilityService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
             </intent-filter>
             <meta-data
                 android:name="android.accessibilityservice"

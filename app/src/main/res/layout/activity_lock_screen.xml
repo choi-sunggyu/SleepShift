@@ -32,18 +32,18 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" />
 
+        <!-- 발바닥 코인 표시 -->
         <TextView
             android:id="@+id/tvWakeTimeMessage"
-            android:text="6시에 깨워드릴게요"
-            android:textSize="16sp"
-            android:textColor="#E2E8F0"
-            android:layout_marginTop="8dp"
-            android:gravity="center"
-            android:fontFamily="@font/maplestory_light"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:fontFamily="@font/maplestory_light"
+            android:gravity="center"
+            android:text="6시에 깨워드릴게요"
+            android:textColor="#E2E8F0"
+            android:textSize="16sp" />
 
-        <!-- 발바닥 코인 표시 -->
         <LinearLayout
             android:id="@+id/coinSection"
             android:layout_width="wrap_content"

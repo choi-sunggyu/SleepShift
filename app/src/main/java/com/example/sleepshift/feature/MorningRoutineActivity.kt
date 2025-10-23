@@ -7,6 +7,7 @@ import android.os.CountDownTimer
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.KeyEvent
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
@@ -78,6 +79,18 @@ class MorningRoutineActivity : AppCompatActivity() {
         startTimer()
 
         Log.d("MorningRoutine", "✅ 모닝 루틴 시작")
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        return when (keyCode) {
+            KeyEvent.KEYCODE_HOME,
+            KeyEvent.KEYCODE_APP_SWITCH,  // ⭐ 오버뷰 버튼 차단 추가
+            KeyEvent.KEYCODE_BACK -> {
+                Toast.makeText(this, "모닝 루틴을 완료해주세요!", Toast.LENGTH_SHORT).show()
+                true
+            }
+            else -> super.onKeyDown(keyCode, event)
+        }
     }
 
     /**

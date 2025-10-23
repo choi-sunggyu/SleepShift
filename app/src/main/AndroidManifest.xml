@@ -77,21 +77,13 @@
 
         <activity
             android:name=".LockScreenActivity"
+            android:exported="false"
             android:launchMode="singleTask"
-            android:excludeFromRecents="true"
-            android:showOnLockScreen="true"
-            android:taskAffinity=""
             android:turnScreenOn="true"
-            android:exported="true"
-            android:theme="@style/Theme.AppCompat.NoActionBar"
-            android:screenOrientation="portrait"
-            android:finishOnTaskLaunch="false"
-            android:showWhenLocked="true">
-            <intent-filter>
-                <action android:name="com.example.sleepshift.LOCK_SCREEN" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
+            android:excludeFromRecents="true"
+            android:showWhenLocked="true"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:screenOrientation="portrait" />
 
         <service
             android:name=".LockScreenService"

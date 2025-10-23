@@ -15,6 +15,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.example.sleepshift.R
 import com.example.sleepshift.feature.onboarding.OnboardingActivity
+import com.example.sleepshift.service.AccessibilityLockService
 
 class PermissionActivity : AppCompatActivity() {
 
@@ -239,19 +240,19 @@ class PermissionActivity : AppCompatActivity() {
      * ⭐ 모든 필수 권한 확인 (Accessibility 포함)
      */
     private fun allPermissionsGranted(): Boolean {
-        val usageStats = hasUsageStatsPermission()
-        val accessibility = isAccessibilityServiceEnabled()
-        val exactAlarm = hasExactAlarmPermission()
+        val am = getSystemService(Context.ACCESSIBILITY_SERVICE) as android.view.accessibility.AccessibilityManager
+        val enabledServices =
+            am.getEnabledAccessibilityServiceList(android.accessibilityservice.AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
 
-        android.util.Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        android.util.Log.d(TAG, "권한 상태:")
-        android.util.Log.d(TAG, "  - 사용 정보 접근: $usageStats")
-        android.util.Log.d(TAG, "  - 접근성 서비스: $accessibility")
-        android.util.Log.d(TAG, "  - 정확한 알람: $exactAlarm")
-        android.util.Log.d(TAG, "  - 모두 허용: ${usageStats && accessibility && exactAlarm}")
-        android.util.Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        for (service in enabledServices) {
+            if (service.resolveInfo.serviceInfo.packageName == packageName) {
+                android.util.Log.d(TAG, "✅ 접근성 서비스 활성화: ${service.resolveInfo.serviceInfo.name}")
+                return true
+            }
+        }
 
-        return usageStats && accessibility && exactAlarm
+        android.util.Log.d(TAG, "❌ 접근성 서비스 비활성화")
+        return false
     }
 
     /**
@@ -285,6 +286,8 @@ class PermissionActivity : AppCompatActivity() {
      * 접근성 서비스 활성화 확인
      */
     private fun isAccessibilityServiceEnabled(): Boolean {
+        val myServiceId = "$packageName/${AccessibilityLockService::class.java.canonicalName}"
+        android.util.Log.d(TAG, "내 서비스 ID: $myServiceId")
         val possibleServiceNames = listOf(
             "$packageName/.service.AccessibilityLockService",
             "$packageName/com.example.sleepshift.service.AccessibilityLockService",
@@ -378,7 +381,9 @@ class PermissionActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         android.util.Log.d(TAG, "onResume - 권한 상태 재확인")
-        updatePermissionStatus()
+        window.decorView.postDelayed({
+            updatePermissionStatus()
+        }, 800) // 0.8초 후 재확인
     }
 
     companion object {

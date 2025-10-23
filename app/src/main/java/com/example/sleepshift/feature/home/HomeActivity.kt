@@ -15,14 +15,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import com.example.sleepshift.LockScreenActivity
-import com.example.sleepshift.LockScreenService
 import com.example.sleepshift.R
 import com.example.sleepshift.databinding.ActivityHomeBinding
 import com.example.sleepshift.feature.NightRoutineActivity
 import com.example.sleepshift.feature.ReportActivity
 import com.example.sleepshift.feature.SettingsActivity
-import com.example.sleepshift.service.LockMonitoringService
+import com.example.sleepshift.feature.lockscreen.LockScreenActivity
 import com.example.sleepshift.permission.PermissionManager
 import com.example.sleepshift.util.Constants
 import com.example.sleepshift.util.DailyAlarmManager

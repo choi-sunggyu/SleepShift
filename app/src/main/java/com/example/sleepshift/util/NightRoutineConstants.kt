@@ -3,6 +3,7 @@ package com.example.sleepshift.util
 object NightRoutineConstants {
     // 코인 비용
     const val ALARM_CHANGE_COST = 2
+    const val UNLOCK_COST = 15
 
     // 보상
     const val PERFECT_BEDTIME_REWARD = 2

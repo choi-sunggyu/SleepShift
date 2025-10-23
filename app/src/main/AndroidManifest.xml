@@ -76,7 +76,7 @@
             android:exported="false" />
 
         <activity
-            android:name=".LockScreenActivity"
+            android:name=".feature.lockscreen.LockScreenActivity"
             android:exported="false"
             android:launchMode="singleTask"
             android:turnScreenOn="true"

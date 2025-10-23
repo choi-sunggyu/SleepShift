@@ -4,7 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.content.Intent
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
-import com.example.sleepshift.LockScreenActivity
+import com.example.sleepshift.feature.lockscreen.LockScreenActivity
 
 /**
  * 접근성 서비스를 사용해 포그라운드 앱 변화를 감지합니다.

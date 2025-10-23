@@ -1,6 +1,7 @@
 <resources>
     <string name="channel_name">Bedtime Reminder</string>
     <string name="app_name">Dozeo</string>
+    <string name="accessibility_service_description">수면 시간 동안 다른 앱 사용을 제한하여 건강한 수면 습관을 돕습니다.</string>
     <string name="channel_desc">Reminds you to go to bed earlier by 30 minutes each day.</string>
     <string name="done">완료</string>
     <string name="skip">건너뛰기</string>
@@ -14,10 +15,6 @@
     <string name="desc_unlock">잠금 해제</string>
     <string name="desc_home">메인 화면</string>
     <string name="desc_panda_background">팬더 배경</string>
-    <string name="accessibility_service_description">
-        수면 모드 중 다른 앱으로 이동하는 것을 방지하여 수면 습관 개선을 돕습니다.
-        이 서비스는 잠금 화면이 활성화된 동안에만 작동합니다.
-    </string>
 
 
     <!-- TODO: Remove or change this placeholder text -->

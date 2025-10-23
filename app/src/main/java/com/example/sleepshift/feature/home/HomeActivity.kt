@@ -19,6 +19,7 @@ import com.example.sleepshift.LockScreenActivity
 import com.example.sleepshift.LockScreenService
 import com.example.sleepshift.R
 import com.example.sleepshift.databinding.ActivityHomeBinding
+import com.example.sleepshift.feature.NightRoutineActivity
 import com.example.sleepshift.feature.ReportActivity
 import com.example.sleepshift.feature.SettingsActivity
 import com.example.sleepshift.service.LockMonitoringService
@@ -49,14 +50,6 @@ class HomeActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 🔹 앱 실행 시 자동으로 잠금화면 띄우기
-        val intent = Intent(this, LockScreenActivity::class.java)
-        startActivity(intent)
-
-        // 🔹 백그라운드 감시 서비스 실행
-        val serviceIntent = Intent(this, LockScreenService::class.java)
-        startService(serviceIntent)
-
         binding = ActivityHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -66,9 +59,53 @@ class HomeActivity : AppCompatActivity() {
         observeViewModel()
 
         requestIgnoreBatteryOptimization()
+        requestUsageStatsPermission()
         permissionManager.requestAllPermissions(notificationPermissionLauncher)
         viewModel.checkDailyProgress()
-        finish() // 메인화면 숨기기 (잠금화면만 보이도록)
+
+        // ✅ 잠금 상태 확인 후 필요시에만 LockScreenActivity 실행
+        checkAndShowLockScreen()
+    }
+
+    /** 잠금 상태 확인 */
+    private fun checkAndShowLockScreen() {
+        val prefs = getSharedPreferences("lock_prefs", MODE_PRIVATE)
+        val isLocked = prefs.getBoolean("isLocked", false)
+
+        if (isLocked) {
+            // 잠금 상태일 경우 LockScreenActivity 실행
+            val intent = Intent(this, LockScreenActivity::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(intent)
+        }
+    }
+
+    /** 사용 통계 권한 요청 */
+    private fun requestUsageStatsPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            try {
+                val appOps = getSystemService(Context.APP_OPS_SERVICE) as android.app.AppOpsManager
+                val mode = appOps.checkOpNoThrow(
+                    android.app.AppOpsManager.OPSTR_GET_USAGE_STATS,
+                    android.os.Process.myUid(),
+                    packageName
+                )
+
+                if (mode != android.app.AppOpsManager.MODE_ALLOWED) {
+                    AlertDialog.Builder(this)
+                        .setTitle("사용 통계 권한 필요")
+                        .setMessage("다른 앱 차단 기능을 위해 사용 통계 권한이 필요합니다.")
+                        .setPositiveButton("설정하기") { _, _ ->
+                            val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+                            startActivity(intent)
+                        }
+                        .setNegativeButton("나중에", null)
+                        .show()
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("HomeActivity", "사용 통계 권한 확인 실패: ${e.message}")
+            }
+        }
     }
 
     /** 알람 채널 생성 */
@@ -157,15 +194,9 @@ class HomeActivity : AppCompatActivity() {
             viewModel.recordBedtime()
             animateButton(binding.btnGoToBed)
 
-            // ✅ 기존 NightRoutineActivity 대신 잠금화면 실행
-            saveLockState(true)
-            val lockIntent = Intent(this, LockScreenActivity::class.java)
-            lockIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-            startActivity(lockIntent)
-
-            // ✅ Foreground Service 시작
-            val serviceIntent = Intent(this, LockMonitoringService::class.java)
-            startForegroundService(serviceIntent)
+            // ✅ 나이트 루틴 화면으로 이동
+            val intent = Intent(this, NightRoutineActivity::class.java)
+            startActivity(intent)
         }
 
         binding.btnCalendar.setOnClickListener {
@@ -175,11 +206,6 @@ class HomeActivity : AppCompatActivity() {
         binding.imgPawCoin.setOnClickListener {
             showPawCoinInfo()
         }
-    }
-
-    private fun saveLockState(locked: Boolean) {
-        val prefs = getSharedPreferences("lock_prefs", MODE_PRIVATE)
-        prefs.edit().putBoolean("isLocked", locked).apply()
     }
 
     private fun updateProgressDots(streak: Int) {
@@ -269,6 +295,9 @@ class HomeActivity : AppCompatActivity() {
         super.onResume()
         viewModel.updateAllData()
         startFloatingAnimation()
+
+        // ✅ 잠금 상태 재확인
+        checkAndShowLockScreen()
     }
 
     override fun onPause() {

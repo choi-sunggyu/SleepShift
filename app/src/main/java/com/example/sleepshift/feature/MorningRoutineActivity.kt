@@ -31,7 +31,7 @@ class MorningRoutineActivity : AppCompatActivity() {
     )
 
     private val TOTAL_TIME_SECONDS = 180  // 3분 (대기 시간)
-    private val MAX_TIME_SECONDS = 420    // 7분 (총 시간: 3분 대기 + 4분 활성화)
+    private val MAX_TIME_SECONDS = 600    // 10분 (총 시간: 3분 대기 + 7분 활성화)
     private var elapsedSeconds = 0
     private var isUnlockEnabled = false
 
@@ -335,8 +335,8 @@ class MorningRoutineActivity : AppCompatActivity() {
     /**
      * ⭐⭐⭐ 타이머 시작
      * - 0~3분: 대기 시간 (버튼 비활성화)
-     * - 3~7분: 활성화 시간 (4분간 루틴 완료 가능)
-     * - 7분 초과: 재알람
+     * - 3~10분: 활성화 시간 (7분간 루틴 완료 가능)
+     * - 10분 초과: 재알람
      */
     private fun startTimer() {
         countDownTimer = object : CountDownTimer(MAX_TIME_SECONDS * 1000L, 1000) {
@@ -355,7 +355,7 @@ class MorningRoutineActivity : AppCompatActivity() {
                         enableUnlockButton()
                     }
 
-                    // ⭐ 3분~7분: 남은 시간 카운트다운 (4:00 → 3:59 → ... → 0:00)
+                    // ⭐ 3분~10분: 남은 시간 카운트다운 (4:00 → 3:59 → ... → 0:00)
                     val remainingSeconds = MAX_TIME_SECONDS - elapsedSeconds
 
                     if (remainingSeconds > 60) {

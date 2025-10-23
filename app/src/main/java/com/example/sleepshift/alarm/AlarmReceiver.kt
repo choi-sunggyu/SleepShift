@@ -13,30 +13,60 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 class AlarmReceiver : BroadcastReceiver() {
-
     override fun onReceive(context: Context, intent: Intent) {
-        Log.d("AlarmReceiver", "수신됨: ${intent.action}")
+        Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        Log.d(TAG, "⏰ AlarmReceiver 호출됨")
+        Log.d(TAG, "Action: ${intent.action}")
 
         when (intent.action) {
-            Intent.ACTION_BOOT_COMPLETED -> {
-                Log.d("AlarmReceiver", "부팅 완료 - 알람 재설정")
-                restoreAlarms(context)
-                return
-            }
             "com.example.sleepshift.ALARM_TRIGGER" -> {
-                Log.d("AlarmReceiver", "기상 알람 트리거")
-                triggerAlarm(context)
+                val lockPrefs = context.getSharedPreferences("lock_prefs", Context.MODE_PRIVATE)
+                val sleepPrefs = context.getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
+
+                // ⭐ 1. 알람 시간 플래그 설정
+                lockPrefs.edit().apply {
+                    putBoolean("is_alarm_time", true)
+                    putBoolean("isLocked", false) // 잠금 해제
+                    commit() // 즉시 반영
+                }
+                Log.d(TAG, "✅ 알람 시간 플래그 설정 및 잠금 해제")
+
+                // ⭐ 2. 이 알람에 대한 고유 ID 생성 (타임스탬프)
+                val alarmId = System.currentTimeMillis()
+
+                sleepPrefs.edit().apply {
+                    putLong("current_alarm_id", alarmId) // 현재 울린 알람 ID
+                    putBoolean("morning_routine_completed", false) // 모닝루틴 미완료 상태
+                    commit()
+                }
+                Log.d(TAG, "✅ 알람 ID 생성: $alarmId")
+                Log.d(TAG, "✅ 모닝루틴 상태 초기화 - 이 알람에 대해 수행 가능")
+
+                // ⭐ 3. AlarmActivity 실행
+                val alarmIntent = Intent(context, AlarmActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    putExtra("alarm_id", alarmId) // 알람 ID 전달
+                }
+                context.startActivity(alarmIntent)
+                Log.d(TAG, "✅ AlarmActivity 시작")
             }
-            "com.example.sleepshift.BEDTIME_NOTIFICATION" -> {
-                Log.d("AlarmReceiver", "취침 알림 트리거")
-                showBedtimeNotification(context)
+
+            "android.intent.action.BOOT_COMPLETED" -> {
+                Log.d(TAG, "부팅 완료 - 알람 재설정 필요")
+                // TODO: 부팅 후 알람 재설정
             }
+
             else -> {
-                Log.d("AlarmReceiver", "기본 알람 처리")
-                triggerAlarm(context)
+                Log.d(TAG, "알 수 없는 액션: ${intent.action}")
             }
         }
+        Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
     }
+
+    companion object {
+        private const val TAG = "AlarmReceiver"
+    }
+
 
     /**
      * 취침 알림 표시

@@ -12,7 +12,7 @@
         android:padding="24dp"
         android:gravity="center_horizontal">
 
-        <!-- 상단 아이콘/이미지 (선택사항) -->
+        <!-- 상단 아이콘/이미지 -->
         <ImageView
             android:layout_width="80dp"
             android:layout_height="80dp"
@@ -96,7 +96,7 @@
                 android:layout_marginTop="12dp" />
         </LinearLayout>
 
-        <!-- 권한 2: 접근성 서비스 -->
+        <!-- 권한 2: 접근성 서비스 (필수로 변경) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -120,16 +120,16 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="🔒 접근성 서비스 (선택)"
+                        android:text="🔒 접근성 서비스"
                         android:textSize="18sp"
                         android:textStyle="bold"
-                        android:textColor="#FFFFFF" />
+                        android:textColor="@color/white" />
 
                     <TextView
                         android:id="@+id/tvAccessibilityStatus"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="⭕ 선택사항"
+                        android:text="❌ 필요"
                         android:textSize="14sp"
                         android:layout_marginTop="4dp" />
                 </LinearLayout>
@@ -145,9 +145,9 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="추가 보안을 위한 선택사항입니다.\n설정하지 않아도 앱이 정상 작동합니다."
+                android:text="다른 앱 실행을 감지하여\n강력한 잠금 기능을 제공합니다"
                 android:textSize="13sp"
-                android:textColor="#AAAAAA"
+                android:textColor="@color/text_secondary"
                 android:layout_marginTop="12dp" />
         </LinearLayout>
 

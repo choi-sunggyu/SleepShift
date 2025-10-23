@@ -24,6 +24,7 @@ import com.example.sleepshift.R
 import com.example.sleepshift.feature.adapter.MoodPagerAdapter
 import com.example.sleepshift.feature.night.NightRoutineViewModel
 import com.example.sleepshift.feature.survey.TimePickerUtil
+import com.example.sleepshift.service.AccessibilityLockService
 import com.example.sleepshift.util.NightRoutineConstants
 import java.text.SimpleDateFormat
 import java.util.*
@@ -236,25 +237,42 @@ class NightRoutineActivity : AppCompatActivity() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            // 알람 시간 계산
+            // ⭐⭐⭐ 알람 시간 계산 (수정)
             val calendar = Calendar.getInstance().apply {
                 set(Calendar.HOUR_OF_DAY, hour)
                 set(Calendar.MINUTE, minute)
                 set(Calendar.SECOND, 0)
                 set(Calendar.MILLISECOND, 0)
+            }
 
-                // 이미 지난 시간이면 다음날로
-                if (timeInMillis <= System.currentTimeMillis()) {
-                    add(Calendar.DAY_OF_MONTH, 1)
-                }
+            val now = Calendar.getInstance()
+
+            // ⭐ 현재 시간과 비교하여 다음날로 설정할지 결정
+            if (calendar.timeInMillis <= now.timeInMillis) {
+                // 설정한 시간이 현재 시간보다 이전이면 다음날로
+                calendar.add(Calendar.DAY_OF_MONTH, 1)
+                Log.d(TAG, "⚠️ 설정 시간이 과거이므로 다음날로 설정")
             }
 
             val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
             Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
             Log.d(TAG, "⏰ 일회성 알람 설정 시작")
             Log.d(TAG, "  - 설정 시간: $timeString")
-            Log.d(TAG, "  - 실제 알람: ${dateFormat.format(calendar.time)}")
-            Log.d(TAG, "  - 현재 시간: ${dateFormat.format(Date())}")
+            Log.d(TAG, "  - 현재 시간: ${dateFormat.format(now.time)}")
+            Log.d(TAG, "  - 알람 울릴 시간: ${dateFormat.format(calendar.time)}")
+
+            val timeDiff = (calendar.timeInMillis - now.timeInMillis) / 1000 / 60
+            Log.d(TAG, "  - 알람까지 남은 시간: ${timeDiff}분")
+
+            // ⭐ 알람 시간이 너무 가까우면 경고
+            if (timeDiff < 5) {
+                Log.w(TAG, "⚠️ 알람 시간이 너무 가깝습니다! (${timeDiff}분 후)")
+                Toast.makeText(
+                    this,
+                    "알람이 ${timeDiff}분 후에 울립니다. 시간을 확인해주세요!",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
 
             // 정확한 알람 설정
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -281,7 +299,11 @@ class NightRoutineActivity : AppCompatActivity() {
             Log.d(TAG, "✅ 일회성 알람 설정 완료")
             Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
-            Toast.makeText(this, "알람이 ${timeString}에 설정되었습니다", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                this,
+                "알람이 ${timeString}에 설정되었습니다\n(약 ${timeDiff}분 후)",
+                Toast.LENGTH_LONG
+            ).show()
 
         } catch (e: Exception) {
             Log.e(TAG, "❌ 알람 설정 실패", e)
@@ -317,24 +339,71 @@ class NightRoutineActivity : AppCompatActivity() {
      * ⭐⭐⭐ 수면 체크인 (잠금 화면으로 이동)
      */
     private fun handleSleepCheckIn() {
-        val currentMood = moodAdapter.getMoodAt(selectedMoodPosition)
+        try {
+            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            Log.d(TAG, "✅ 수면 체크인 시작")
 
-        viewModel.processSleepCheckIn(currentMood.moodName, selectedMoodPosition)
+            val currentMood = moodAdapter.getMoodAt(selectedMoodPosition)
+            viewModel.processSleepCheckIn(currentMood.moodName, selectedMoodPosition)
 
-        // ⭐⭐⭐ 잠금 화면으로 정상 이동 플래그 설정
-        val sharedPreferences = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
-        sharedPreferences.edit {
-            putBoolean("is_going_to_lockscreen", true)  // ⭐ 정상 이동 플래그
+            // ✅ Accessibility 체크 완전 제거 - 무조건 진행
+            Log.d(TAG, "Accessibility 체크 건너뜀 - 바로 잠금 화면으로 이동")
+
+            // ✅ 잠금 상태 저장
+            val lockPrefs = getSharedPreferences("lock_prefs", MODE_PRIVATE)
+            lockPrefs.edit {
+                putBoolean("isLocked", true)
+            }
+            Log.d(TAG, "✅ 잠금 상태 저장 완료")
+
+            // ✅ 잠금 화면으로 이동
+            val intent = Intent(this, LockScreenActivity::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(intent)
+            Log.d(TAG, "✅ LockScreenActivity 시작")
+
+            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+            finish() // 나이트 루틴 화면 종료
+
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ 수면 체크인 중 오류 발생", e)
+            Toast.makeText(this, "오류가 발생했습니다: ${e.message}", Toast.LENGTH_LONG).show()
         }
-
-        Log.d(TAG, "✅ 잠금 화면 정상 이동 플래그 설정")
-
-        // 잠금 화면으로 이동
-        val intent = Intent(this, LockScreenActivity::class.java)
-        startActivity(intent)
-
-        // ⭐ 플래그는 LockScreenActivity에서 해제함
     }
+
+
+    /**
+     * Accessibility 권한 요청 다이얼로그
+     */
+    private fun showAccessibilityPermissionDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("접근성 권한 필요")
+            .setMessage("다른 앱 차단 기능을 사용하려면 접근성 서비스를 활성화해야 합니다.\n\n" +
+                    "📱 설정 방법:\n" +
+                    "1. 설정 앱 열기\n" +
+                    "2. 접근성 메뉴 진입\n" +
+                    "3. '다운로드한 앱' 또는 '설치된 서비스' 찾기\n" +
+                    "4. 'Dozeo 수면 잠금' 또는 'SleepShift' 찾아서 활성화\n\n" +
+                    "활성화 후 앱으로 돌아와 다시 시도해주세요.")
+            .setPositiveButton("설정으로 이동") { _, _ ->
+                try {
+                    val intent = Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                    startActivity(intent)
+                    Toast.makeText(this, "접근성 설정에서 'Dozeo 수면 잠금'을 활성화해주세요", Toast.LENGTH_LONG).show()
+                } catch (e: Exception) {
+                    Log.e(TAG, "설정 화면 열기 실패", e)
+                    Toast.makeText(this, "설정 화면을 열 수 없습니다", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("나중에") { dialog, _ ->
+                dialog.dismiss()
+                Toast.makeText(this, "접근성 권한 없이는 다른 앱 차단 기능을 사용할 수 없습니다", Toast.LENGTH_LONG).show()
+            }
+            .setCancelable(false)
+            .show()
+    }
+
 
     private fun dpToPx(dp: Int): Int {
         return (dp * resources.displayMetrics.density).toInt()

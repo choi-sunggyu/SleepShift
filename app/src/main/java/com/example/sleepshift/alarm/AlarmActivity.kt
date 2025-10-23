@@ -336,14 +336,17 @@ class AlarmActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
 
-        // ⭐⭐⭐ 알람 플래그 해제 (안전장치)
-        clearAlarmFlags()
+        // ⭐ 알람 시간 플래그 해제
+        val lockPrefs = getSharedPreferences("lock_prefs", MODE_PRIVATE)
+        lockPrefs.edit().putBoolean("is_alarm_time", false).apply()
 
-        stopAlarmSounds()
-        countDownTimer?.cancel()
-        vibrator?.cancel()
-        longPressHandler?.removeCallbacksAndMessages(null)
-
-        Log.d("AlarmActivity", "✅ 알람 액티비티 종료")
+//        clearAlarmFlags()
+//
+//        stopAlarmSounds()
+//        countDownTimer?.cancel()
+//        vibrator?.cancel()
+//        longPressHandler?.removeCallbacksAndMessages(null)
+//
+//        Log.d("AlarmActivity", "✅ 알람 액티비티 종료")
     }
 }

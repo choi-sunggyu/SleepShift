@@ -6,7 +6,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
-import com.example.sleepshift.feature.lockscreen.LockScreenActivity
+import com.example.sleepshift.feature.LockScreenActivity
 import com.example.sleepshift.R
 import kotlinx.coroutines.*
 

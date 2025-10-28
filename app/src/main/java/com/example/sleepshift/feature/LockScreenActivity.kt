@@ -1,4 +1,4 @@
-package com.example.sleepshift.feature.lockscreen
+package com.example.sleepshift.feature
 
 import android.annotation.SuppressLint
 import android.content.Context

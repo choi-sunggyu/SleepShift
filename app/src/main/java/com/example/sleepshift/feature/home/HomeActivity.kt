@@ -20,7 +20,7 @@ import com.example.sleepshift.databinding.ActivityHomeBinding
 import com.example.sleepshift.feature.NightRoutineActivity
 import com.example.sleepshift.feature.ReportActivity
 import com.example.sleepshift.feature.SettingsActivity
-import com.example.sleepshift.feature.lockscreen.LockScreenActivity
+import com.example.sleepshift.feature.LockScreenActivity
 import com.example.sleepshift.permission.PermissionManager
 import com.example.sleepshift.util.Constants
 import com.example.sleepshift.util.DailyAlarmManager

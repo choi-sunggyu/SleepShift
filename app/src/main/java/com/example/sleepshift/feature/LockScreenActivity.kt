@@ -12,6 +12,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.sleepshift.R
+import com.example.sleepshift.service.LockOverlayService
 
 class LockScreenActivity : AppCompatActivity() {
 
@@ -120,18 +121,20 @@ class LockScreenActivity : AppCompatActivity() {
                 apply()
             }
 
-            // ⭐⭐⭐ 핵심: isLocked를 false로 설정!
+            // ⭐ 잠금 플래그 해제
             val lockPrefs = getSharedPreferences("lock_prefs", Context.MODE_PRIVATE)
             lockPrefs.edit().putBoolean("isLocked", false).apply()
 
+            // ⭐⭐⭐ 오버레이 서비스 중지
+            LockOverlayService.stop(this)
+
             Toast.makeText(this, "잠금 해제 완료! 코인 -$UNLOCK_COST", Toast.LENGTH_SHORT).show()
 
-            // ⭐ HomeActivity로 직접 이동 (더 나은 방법)
             val intent = Intent(this, com.example.sleepshift.feature.home.HomeActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
             startActivity(intent)
 
-            finish() // 락스크린 종료
+            finish()
         } else {
             Toast.makeText(this, "코인이 부족합니다!", Toast.LENGTH_SHORT).show()
         }

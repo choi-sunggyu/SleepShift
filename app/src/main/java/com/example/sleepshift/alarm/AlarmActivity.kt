@@ -19,6 +19,7 @@ import com.example.sleepshift.R
 import com.example.sleepshift.databinding.ActivityAlarmBinding
 import com.example.sleepshift.feature.MorningRoutineActivity
 import com.example.sleepshift.feature.home.HomeActivity
+import com.example.sleepshift.service.LockOverlayService
 import com.example.sleepshift.util.DailyAlarmManager
 import com.example.sleepshift.util.ConsecutiveSuccessManager
 
@@ -234,6 +235,16 @@ class AlarmActivity : AppCompatActivity() {
     private fun dismissAlarm() {
         stopAlarmSounds()
         vibrator?.cancel()
+
+        val lockPrefs = getSharedPreferences("lock_prefs", MODE_PRIVATE)
+        lockPrefs.edit().apply {
+            putBoolean("isLocked", false)
+            putBoolean("is_alarm_time", false)
+            apply()
+        }
+
+        // ⭐ 오버레이 서비스 중지
+        LockOverlayService.stop(this)
 
         // ⭐⭐⭐ 알람 해제 시 코인 지급 없음 (문제 2 해결)
         // 코인은 모닝 루틴 완료 시에만 지급

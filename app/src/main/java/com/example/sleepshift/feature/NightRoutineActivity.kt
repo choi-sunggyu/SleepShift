@@ -4,8 +4,10 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.view.View
 import android.widget.ImageView
@@ -23,6 +25,7 @@ import com.example.sleepshift.R
 import com.example.sleepshift.feature.adapter.MoodPagerAdapter
 import com.example.sleepshift.feature.night.NightRoutineViewModel
 import com.example.sleepshift.feature.survey.TimePickerUtil
+import com.example.sleepshift.service.LockOverlayService
 import com.example.sleepshift.util.NightRoutineConstants
 import java.text.SimpleDateFormat
 import java.util.*
@@ -165,6 +168,48 @@ class NightRoutineActivity : AppCompatActivity() {
 
         viewModel.showRewardMessage.observe(this) { message ->
             Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun startLockMode() {
+        // 1. 잠금 플래그 설정
+        val lockPrefs = getSharedPreferences("lock_prefs", MODE_PRIVATE)
+        lockPrefs.edit().putBoolean("isLocked", true).apply()
+
+        // 2. 오버레이 권한 확인
+        if (!checkOverlayPermission(this)) {
+            requestOverlayPermission(this)
+            return
+        }
+
+        // 3. 오버레이 서비스 시작
+        LockOverlayService.start(this)
+
+        // 4. LockScreenActivity 시작
+        val intent = Intent(this, LockScreenActivity::class.java)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        startActivity(intent)
+
+        finish()
+    }
+
+    // 권한 체크 메서드
+    private fun checkOverlayPermission(context: Context): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Settings.canDrawOverlays(context)
+        } else {
+            true
+        }
+    }
+
+    private fun requestOverlayPermission(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val intent = Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:${context.packageName}")
+            )
+            startActivity(intent)
+            Toast.makeText(this, "다른 앱 위에 표시 권한을 허용해주세요", Toast.LENGTH_LONG).show()
         }
     }
 

@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
@@ -60,6 +61,28 @@ class HomeActivity : AppCompatActivity() {
         requestUsageStatsPermission()
         permissionManager.requestAllPermissions(notificationPermissionLauncher)
         viewModel.checkDailyProgress()
+
+        // ⭐ 오버레이 권한 체크 (한 번만)
+        checkOverlayPermissionIfNeeded()
+    }
+
+    private fun checkOverlayPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (!Settings.canDrawOverlays(this)) {
+                AlertDialog.Builder(this)
+                    .setTitle("권한 필요")
+                    .setMessage("수면 잠금 기능을 위해 '다른 앱 위에 표시' 권한이 필요합니다.")
+                    .setPositiveButton("설정하기") { _, _ ->
+                        val intent = Intent(
+                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                            Uri.parse("package:$packageName")
+                        )
+                        startActivity(intent)
+                    }
+                    .setNegativeButton("나중에", null)
+                    .show()
+            }
+        }
     }
 
     /** 잠금 상태 확인 */

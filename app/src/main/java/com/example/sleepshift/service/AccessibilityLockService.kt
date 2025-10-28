@@ -1,83 +1,100 @@
 package com.example.sleepshift.service
 
 import android.accessibilityservice.AccessibilityService
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
 import android.content.Intent
-import android.provider.Settings
-import android.text.TextUtils
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import com.example.sleepshift.feature.LockScreenActivity
 
 class AccessibilityLockService : AccessibilityService() {
 
+    companion object {
+        private const val TAG = "AccessibilityLockSvc"
+    }
+
+    // 허용할 패키지 목록
     private val allowedPackages = setOf(
-        "com.example.sleepshift",
-        "com.android.systemui",
-        "com.android.launcher",
-        "com.google.android.apps.nexuslauncher",
-        "com.sec.android.app.launcher",
-        "com.android.settings"
+        "com.example.sleepshift",  // 우리 앱
+        "com.android.systemui"      // 시스템 UI (알림, 상태바 등)
     )
+
+    override fun onServiceConnected() {
+        super.onServiceConnected()
+
+        // ⭐ 서비스 설정 강화
+        serviceInfo = serviceInfo.apply {
+            flags = flags or
+                    AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS or
+                    AccessibilityServiceInfo.FLAG_REQUEST_TOUCH_EXPLORATION_MODE or
+                    AccessibilityServiceInfo.FLAG_REQUEST_FILTER_KEY_EVENTS  // 키 이벤트 가로채기
+        }
+
+        Log.d(TAG, "✅ AccessibilityLockService 연결됨 (강화 모드)")
+    }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
 
-        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-            val packageName = event.packageName?.toString() ?: return
-            val className = event.className?.toString() ?: ""
+        // 잠금 상태 확인 (통일된 플래그 사용)
+        val lockPrefs = getSharedPreferences("lock_prefs", Context.MODE_PRIVATE)
+        val isLocked = lockPrefs.getBoolean("isLocked", false)
 
-            val lockPrefs = getSharedPreferences("lock_prefs", Context.MODE_PRIVATE)
-            val isLocked = lockPrefs.getBoolean("isLocked", false)
+        if (!isLocked) return
 
-            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
-            Log.d(TAG, "현재 앱: $packageName")
-            Log.d(TAG, "현재 클래스: $className")
-            Log.d(TAG, "잠금 상태: $isLocked")
+        // ⭐ 알람 시간 예외
+        val isAlarmTime = lockPrefs.getBoolean("is_alarm_time", false)
+        if (isAlarmTime) {
+            Log.d(TAG, "⏰ 알람 시간 - 차단 안 함")
+            return
+        }
 
-            // ⭐ 알람 시간일 때는 잠금 해제 (알람 울릴 때 자동 해제됨)
-            val isAlarmTime = lockPrefs.getBoolean("is_alarm_time", false)
-            if (isAlarmTime) {
-                Log.d(TAG, "⏰ 알람 시간 - 차단하지 않음")
-                Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
-                return
+        when (event.eventType) {
+            // 앱/창 전환 감지
+            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
+                handleWindowChange(event)
             }
 
-            if (!isLocked) {
-                Log.d(TAG, "잠금 상태 아님 - 감시 안 함")
-                Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
-                return
-            }
-
-            // ⭐ AlarmActivity는 항상 허용
-            if (className.contains("AlarmActivity")) {
-                Log.d(TAG, "✅ AlarmActivity 감지 - 허용")
-                Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
-                return
-            }
-
-            // 허용되지 않은 앱인 경우
-            if (!isPackageAllowed(packageName)) {
-                Log.w(TAG, "⚠️ 차단된 앱 감지: $packageName")
-                Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
-                showLockScreen()
-            } else {
-                Log.d(TAG, "✅ 허용된 앱")
-                Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            // 시스템 UI 이벤트 감지
+            AccessibilityEvent.TYPE_WINDOWS_CHANGED -> {
+                handleWindowsChanged(event)
             }
         }
     }
 
+    private fun handleWindowChange(event: AccessibilityEvent) {
+        val packageName = event.packageName?.toString() ?: return
+        val className = event.className?.toString() ?: ""
+
+        Log.d(TAG, "앱 전환: $packageName")
+
+        // AlarmActivity는 항상 허용
+        if (className.contains("AlarmActivity")) {
+            Log.d(TAG, "✅ AlarmActivity 허용")
+            return
+        }
+
+        // 허용되지 않은 앱이면 LockScreen으로 복귀
+        if (!isPackageAllowed(packageName)) {
+            Log.w(TAG, "⚠️ 차단: $packageName")
+            showLockScreen()
+        }
+    }
+
+    private fun handleWindowsChanged(event: AccessibilityEvent) {
+        // 최근 앱, 알림창 등이 열리는 것 감지
+        val packageName = event.packageName?.toString() ?: return
+
+        if (!isPackageAllowed(packageName)) {
+            Log.w(TAG, "⚠️ 시스템 UI 차단 시도: $packageName")
+            showLockScreen()
+        }
+    }
+
     private fun isPackageAllowed(packageName: String): Boolean {
-        if (allowedPackages.contains(packageName)) {
-            return true
-        }
-
-        if (packageName.contains("launcher", ignoreCase = true)) {
-            return true
-        }
-
-        return false
+        // 우리 앱과 시스템 UI만 허용
+        return allowedPackages.any { packageName.contains(it) }
     }
 
     private fun showLockScreen() {
@@ -86,76 +103,36 @@ class AccessibilityLockService : AccessibilityService() {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)  // 부드러운 전환
             }
             startActivity(intent)
-            Log.d(TAG, "✅ LockScreenActivity 실행")
+            Log.d(TAG, "✅ LockScreen 복귀")
         } catch (e: Exception) {
-            Log.e(TAG, "❌ LockScreenActivity 실행 실패", e)
+            Log.e(TAG, "❌ LockScreen 복귀 실패", e)
         }
     }
 
     override fun onInterrupt() {
-        Log.d(TAG, "AccessibilityService 중단됨")
+        Log.d(TAG, "서비스 중단됨")
     }
 
-    override fun onServiceConnected() {
-        super.onServiceConnected()
-        Log.d(TAG, "✅ AccessibilityLockService 연결됨")
+    // ⭐ 키 이벤트 가로채기 (홈 버튼 등)
+    override fun onKeyEvent(event: android.view.KeyEvent): Boolean {
+        val lockPrefs = getSharedPreferences("lock_prefs", Context.MODE_PRIVATE)
+        val isLocked = lockPrefs.getBoolean("isLocked", false)
 
-        val prefs = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
-        prefs.edit().putBoolean("accessibility_ever_enabled", true).apply()
-        Log.d(TAG, "✅ Accessibility 서비스 연결 기록 저장")
-    }
+        if (!isLocked) return false
 
-    override fun onDestroy() {
-        super.onDestroy()
-        Log.d(TAG, "AccessibilityLockService 종료됨")
-    }
-
-    companion object {
-        private const val TAG = "AccessibilityLockSvc"
-
-        fun isEnabled(context: Context): Boolean {
-            try {
-                val service = "${context.packageName}/${AccessibilityLockService::class.java.name}"
-
-                var accessibilityEnabled = 0
-                try {
-                    accessibilityEnabled = Settings.Secure.getInt(
-                        context.contentResolver,
-                        Settings.Secure.ACCESSIBILITY_ENABLED
-                    )
-                } catch (e: Settings.SettingNotFoundException) {
-                    Log.e(TAG, "접근성 설정을 찾을 수 없음")
-                }
-
-                if (accessibilityEnabled == 1) {
-                    val settingValue = Settings.Secure.getString(
-                        context.contentResolver,
-                        Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-                    )
-
-                    if (!settingValue.isNullOrEmpty()) {
-                        val colonSplitter = TextUtils.SimpleStringSplitter(':')
-                        colonSplitter.setString(settingValue)
-
-                        while (colonSplitter.hasNext()) {
-                            val accessibilityService = colonSplitter.next()
-                            if (accessibilityService.equals(service, ignoreCase = true)) {
-                                Log.d(TAG, "✅ Accessibility 서비스 활성화 확인됨")
-                                return true
-                            }
-                        }
-                    }
-                }
-
-                Log.d(TAG, "❌ Accessibility 서비스 비활성화됨")
-                return false
-
-            } catch (e: Exception) {
-                Log.e(TAG, "Accessibility 체크 중 오류", e)
-                return false
+        when (event.keyCode) {
+            android.view.KeyEvent.KEYCODE_HOME,           // 홈 버튼
+            android.view.KeyEvent.KEYCODE_APP_SWITCH,     // 최근 앱 버튼
+            android.view.KeyEvent.KEYCODE_BACK -> {       // 뒤로가기
+                Log.w(TAG, "⚠️ 시스템 버튼 차단: ${event.keyCode}")
+                showLockScreen()
+                return true  // 이벤트 소비 (차단)
             }
         }
+
+        return false  // 다른 키는 허용
     }
 }

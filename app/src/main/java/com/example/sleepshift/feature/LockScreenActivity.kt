@@ -58,12 +58,13 @@ class LockScreenActivity : AppCompatActivity() {
         val userName = prefs.getString("user_name", "사용자") ?: "사용자"
         val coinCount = prefs.getInt("paw_coin_count", 0)
 
-        val alarmHour = prefs.getInt("alarm_hour", 7)
-        val alarmMinute = prefs.getInt("alarm_minute", 0)
-        val formattedTime = String.format("%02d:%02d", alarmHour, alarmMinute)
+        // ⭐ 알람 시간 가져오기 (today_alarm_time 우선, 없으면 target_wake_time)
+        val alarmTime = prefs.getString("today_alarm_time", null)
+            ?: prefs.getString("target_wake_time", "07:00")
+            ?: "07:00"
 
         tvGoodNightMessage.text = "${userName}님 잘자요!"
-        tvWakeTimeMessage.text = "${formattedTime}에 깨워드릴게요"
+        tvWakeTimeMessage.text = "${alarmTime}에 깨워드릴게요"  // ⭐ 그대로 사용
         tvCoinCount.text = coinCount.toString()
         tvUnlockHint.text = "해제를 원하시면 3초간 누르세요 (코인 ${UNLOCK_COST}개 소모)"
     }
@@ -118,13 +119,17 @@ class LockScreenActivity : AppCompatActivity() {
                 putInt("paw_coin_count", currentCoins - UNLOCK_COST)
                 apply()
             }
+
+            // ⭐⭐⭐ 핵심: isLocked를 false로 설정!
+            val lockPrefs = getSharedPreferences("lock_prefs", Context.MODE_PRIVATE)
+            lockPrefs.edit().putBoolean("isLocked", false).apply()
+
             Toast.makeText(this, "잠금 해제 완료! 코인 -$UNLOCK_COST", Toast.LENGTH_SHORT).show()
 
-            // 홈 화면으로 이동
-            val homeIntent = Intent(Intent.ACTION_MAIN)
-            homeIntent.addCategory(Intent.CATEGORY_HOME)
-            homeIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            startActivity(homeIntent)
+            // ⭐ HomeActivity로 직접 이동 (더 나은 방법)
+            val intent = Intent(this, com.example.sleepshift.feature.home.HomeActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+            startActivity(intent)
 
             finish() // 락스크린 종료
         } else {

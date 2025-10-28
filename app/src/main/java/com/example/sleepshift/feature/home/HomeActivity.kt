@@ -60,9 +60,6 @@ class HomeActivity : AppCompatActivity() {
         requestUsageStatsPermission()
         permissionManager.requestAllPermissions(notificationPermissionLauncher)
         viewModel.checkDailyProgress()
-
-        // ✅ 잠금 상태 확인 후 필요시에만 LockScreenActivity 실행
-        checkAndShowLockScreen()
     }
 
     /** 잠금 상태 확인 */
@@ -294,8 +291,9 @@ class HomeActivity : AppCompatActivity() {
         viewModel.updateAllData()
         startFloatingAnimation()
 
-        // ✅ 잠금 상태 재확인
-        checkAndShowLockScreen()
+        if (!isTaskRoot) {
+            checkAndShowLockScreen()
+        }
     }
 
     override fun onPause() {

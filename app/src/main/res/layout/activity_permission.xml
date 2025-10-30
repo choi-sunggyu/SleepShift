@@ -96,62 +96,7 @@
                 android:layout_marginTop="12dp" />
         </LinearLayout>
 
-        <!-- 권한 2: 접근성 서비스 (필수로 변경) -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@drawable/card_background"
-            android:padding="20dp"
-            android:layout_marginBottom="16dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="🔒 접근성 서비스"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/white" />
-
-                    <TextView
-                        android:id="@+id/tvAccessibilityStatus"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="❌ 필요"
-                        android:textSize="14sp"
-                        android:layout_marginTop="4dp" />
-                </LinearLayout>
-
-                <Button
-                    android:id="@+id/btnAccessibility"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="설정"
-                    android:textSize="14sp" />
-            </LinearLayout>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="다른 앱 실행을 감지하여\n강력한 잠금 기능을 제공합니다"
-                android:textSize="13sp"
-                android:textColor="@color/text_secondary"
-                android:layout_marginTop="12dp" />
-        </LinearLayout>
-
-        <!-- 권한 3: 정확한 알람 -->
+        <!-- 권한 2: 정확한 알람 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

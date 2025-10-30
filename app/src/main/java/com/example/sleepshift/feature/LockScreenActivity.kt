@@ -429,14 +429,20 @@ class LockScreenActivity : AppCompatActivity() {
         super.onPause()
         isOnLockScreen = false
 
-        // ⭐ LockScreen을 벗어나면 알람음 시작!
-        startAlarmSound()
-        startVibration()
-        showAlarmNotification()
-        startWarningMessages()
+        val lockPrefs = getSharedPreferences("lock_prefs", Context.MODE_PRIVATE)
+        val isLocked = lockPrefs.getBoolean("isLocked", false)
+        val isAlarmTime = lockPrefs.getBoolean("is_alarm_time", false)
 
-        Log.d(TAG, "⚠️ LockScreen 벗어남 - 알람음 + 진동 + 경고 시작!")
-        Toast.makeText(this, "LockScreen으로 돌아오세요! 🔊", Toast.LENGTH_SHORT).show()
+        // 잠금 상태이고 알람 시간이 아닐 때만 알람 시작
+        if (isLocked && !isAlarmTime) {
+            startAlarmSound()
+            startVibration()
+            showAlarmNotification()
+            startWarningMessages()
+            Log.d(TAG, "⚠️ 잠금 모드에서 LockScreen 벗어남 - 알람음 + 진동 + 경고 시작!")
+        } else {
+            Log.d(TAG, "일반 모드 또는 알람 시간 - 알람 울리지 않음 (isLocked=$isLocked, isAlarmTime=$isAlarmTime)")
+        }
     }
 
     /**
@@ -446,14 +452,24 @@ class LockScreenActivity : AppCompatActivity() {
         super.onResume()
         isOnLockScreen = true
 
-        // ⭐ LockScreen으로 돌아오면 알람음 중지!
-        stopAlarmSound()
-        stopVibration()
-        dismissAlarmNotification()
-        stopWarningMessages()
+        // 실제 잠금 모드일 때만 알람 중지
+        val lockPrefs = getSharedPreferences("lock_prefs", Context.MODE_PRIVATE)
+        val isLocked = lockPrefs.getBoolean("isLocked", false)
+        val isAlarmTime = lockPrefs.getBoolean("is_alarm_time", false)
+
+        // 잠금 모드이고 알람 시간이 아닐 때만 알람 중지
+        if (isLocked && !isAlarmTime) {
+            stopAlarmSound()
+            stopVibration()
+            dismissAlarmNotification()
+            stopWarningMessages()
+
+            Log.d(TAG, "✅ 잠금 모드에서 LockScreen 복귀 - 알람음 + 진동 + 경고 중지")
+        } else {
+            Log.d(TAG, "일반 모드 또는 알람 시간 - 알람 제어 안 함")
+        }
 
         updateDisplays()
-        Log.d(TAG, "✅ LockScreen 복귀 - 알람음 + 진동 + 경고 중지")
     }
 
     /**

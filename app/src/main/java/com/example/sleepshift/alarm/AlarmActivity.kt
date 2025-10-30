@@ -22,6 +22,9 @@ import com.example.sleepshift.feature.home.HomeActivity
 import com.example.sleepshift.service.LockOverlayService
 import com.example.sleepshift.util.DailyAlarmManager
 import com.example.sleepshift.util.ConsecutiveSuccessManager
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class AlarmActivity : AppCompatActivity() {
 
@@ -243,20 +246,40 @@ class AlarmActivity : AppCompatActivity() {
             apply()
         }
 
-        // ⭐ 오버레이 서비스 중지
+        // 오버레이 서비스 중지
         LockOverlayService.stop(this)
 
-        // ⭐⭐⭐ 알람 해제 시 코인 지급 없음 (문제 2 해결)
-        // 코인은 모닝 루틴 완료 시에만 지급
+        // ⭐⭐⭐ 기상 성공 기록
+        recordWakeSuccess()
 
-        // ⭐ Day 카운트 증가 및 다음 날 알람 설정
+        // Day 카운트 증가 및 다음 날 알람 설정
         incrementDayAndScheduleNextAlarm()
 
-        // ⭐ 알람 플래그 해제
+        // 알람 플래그 해제
         clearAlarmFlags()
 
         // 모닝 루틴으로 이동
         goToMorningRoutine()
+    }
+
+    /**
+     * ⭐⭐⭐ 기상 성공 기록
+     */
+    private fun recordWakeSuccess() {
+        try {
+            val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+            val currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+
+            sharedPreferences.edit().apply {
+                putBoolean("wake_success_$today", true)
+                putString("actual_waketime_$today", currentTime)
+                apply()
+            }
+
+            Log.d("AlarmActivity", "✅ 기상 성공 기록: $today $currentTime")
+        } catch (e: Exception) {
+            Log.e("AlarmActivity", "❌ 기상 성공 기록 실패", e)
+        }
     }
 
     private fun stopAlarmSounds() {

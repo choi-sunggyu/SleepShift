@@ -1,5 +1,6 @@
 package com.example.sleepshift.feature
 
+import android.util.Log
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
@@ -125,7 +126,10 @@ class LockScreenActivity : AppCompatActivity() {
             val lockPrefs = getSharedPreferences("lock_prefs", Context.MODE_PRIVATE)
             lockPrefs.edit().putBoolean("isLocked", false).apply()
 
-            // ⭐⭐⭐ 오버레이 서비스 중지
+            // ⭐⭐⭐ 모니터링 서비스 중지
+            stopLockMonitoringService()
+
+            // ⭐ 오버레이 서비스 중지
             LockOverlayService.stop(this)
 
             Toast.makeText(this, "잠금 해제 완료! 코인 -$UNLOCK_COST", Toast.LENGTH_SHORT).show()
@@ -142,6 +146,19 @@ class LockScreenActivity : AppCompatActivity() {
         countdownSection.visibility = View.GONE
         isUnlocking = false
         updateDisplays()
+    }
+
+    /**
+     * ⭐⭐⭐ LockMonitoringService 중지
+     */
+    private fun stopLockMonitoringService() {
+        try {
+            val serviceIntent = Intent(this, com.example.sleepshift.service.LockMonitoringService::class.java)
+            stopService(serviceIntent)
+            Log.d(TAG, "✅ LockMonitoringService 중지")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ LockMonitoringService 중지 실패", e)
+        }
     }
 
     override fun onResume() {

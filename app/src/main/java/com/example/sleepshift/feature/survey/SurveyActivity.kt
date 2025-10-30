@@ -90,6 +90,7 @@ class SurveyActivity : AppCompatActivity() {
                 // ⭐ 키 수정 (survey_ 접두사 제거)
                 putString("avg_bedtime", avgBedTime.format(hhmm))  // "02:00"
                 putString("target_wake_time", goalWakeTime.format(hhmm))  // "06:30"
+                putString("avg_wake_time", avgWakeTime.format(hhmm))
                 putInt("min_sleep_minutes", goalSleepDuration)  // 420
 
                 // 앱 시작 날짜

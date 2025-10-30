@@ -49,9 +49,6 @@ class DailyAlarmManager(private val context: Context) {
 
     /**
      * ⭐⭐⭐ 핵심 메서드: 알람 설정
-     * 일회성 알람 처리 로직 추가
-     * @param currentDay 현재 Day
-     * @return Boolean - 성공 여부
      */
     fun updateDailyAlarm(currentDay: Int): Boolean {
 
@@ -77,17 +74,17 @@ class DailyAlarmManager(private val context: Context) {
                 Log.d("DailyAlarmManager", "🔔 일회성 알람 감지")
                 Log.d("DailyAlarmManager", "일회성 알람 시간: $oneTimeAlarmTime")
 
-                // ⭐⭐⭐ 1. 일회성 알람 시간으로 설정
+                // 1. 일회성 알람 시간으로 설정
                 val alarmTime = parseTime(oneTimeAlarmTime)
                 setSystemAlarm(alarmTime)
 
-                // ⭐⭐⭐ 2. SharedPreferences에 오늘의 알람 시간 저장
+                // 2. SharedPreferences에 오늘의 알람 시간 저장
                 sharedPreferences.edit()
                     .putInt("current_day", currentDay)
                     .putString("today_alarm_time", oneTimeAlarmTime)
                     .apply()
 
-                // ⭐⭐⭐ 3. 일회성 알람 플래그 제거 (다음날부터는 일반 알람으로)
+                // 3. 일회성 알람 플래그 제거
                 sharedPreferences.edit()
                     .putBoolean("is_one_time_alarm", false)
                     .remove("one_time_alarm_time")
@@ -95,16 +92,16 @@ class DailyAlarmManager(private val context: Context) {
 
                 Log.d("DailyAlarmManager", "✅ 일회성 알람 설정 완료: $oneTimeAlarmTime")
                 Log.d("DailyAlarmManager", "✅ 일회성 알람 플래그 제거됨")
-                Log.d("DailyAlarmManager", "Day $currentDay 유지")
                 Log.d("DailyAlarmManager", "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
                 return true
             }
         }
 
-        // ⭐ 3단계: 일반 알람 처리 (일회성 알람이 아닌 경우)
+        // ⭐ 3단계: 일반 알람 처리
         Log.d("DailyAlarmManager", "📅 일반 알람 모드 - 점진적 조정 계산")
 
         val currentBedtime = sharedPreferences.getString("avg_bedtime", "04:00") ?: "04:00"
+        val currentWakeTime = sharedPreferences.getString("avg_wake_time", "13:00") ?: "13:00"
         val targetWakeTime = sharedPreferences.getString("target_wake_time", "06:30") ?: "06:30"
         val targetSleepMinutes = sharedPreferences.getInt("min_sleep_minutes", 420)
         val isCustomMode = sharedPreferences.getBoolean("alarm_mode_custom", true)
@@ -112,26 +109,28 @@ class DailyAlarmManager(private val context: Context) {
         Log.d("DailyAlarmManager", """
             === 읽은 설정값 ===
             avg_bedtime: $currentBedtime
+            avg_wake_time: $currentWakeTime
             target_wake_time: $targetWakeTime
             min_sleep_minutes: $targetSleepMinutes
             alarm_mode_custom: $isCustomMode
         """.trimIndent())
 
-        val wakeTime = parseTime(targetWakeTime)
-
-        val todayBedtime = if (isCustomMode) {
-            calculateGradualBedtime(
+        val (todayBedtime, todayWakeTime) = if (isCustomMode) {
+            calculateGradualSchedule(
                 currentDay = currentDay,
                 currentBedtime = parseTime(currentBedtime),
-                targetWakeTime = wakeTime,
+                currentWakeTime = parseTime(currentWakeTime),
+                targetWakeTime = parseTime(targetWakeTime),
                 targetSleepMinutes = targetSleepMinutes
             )
         } else {
-            wakeTime.minusMinutes(targetSleepMinutes.toLong())
+            val wakeTime = parseTime(targetWakeTime)
+            val bedtime = wakeTime.minusMinutes(targetSleepMinutes.toLong())
+            Pair(bedtime, wakeTime)
         }
 
         val bedtimeString = todayBedtime.format(DateTimeFormatter.ofPattern("HH:mm"))
-        val wakeTimeString = wakeTime.format(DateTimeFormatter.ofPattern("HH:mm"))
+        val wakeTimeString = todayWakeTime.format(DateTimeFormatter.ofPattern("HH:mm"))
 
         sharedPreferences.edit()
             .putString("today_bedtime", bedtimeString)
@@ -139,7 +138,7 @@ class DailyAlarmManager(private val context: Context) {
             .putInt("current_day", currentDay)
             .apply()
 
-        setSystemAlarm(wakeTime)
+        setSystemAlarm(todayWakeTime)
         setBedtimeNotification(todayBedtime)
 
         Log.d("DailyAlarmManager", """
@@ -153,8 +152,165 @@ class DailyAlarmManager(private val context: Context) {
     }
 
     /**
-     * ⭐ 권한 다이얼로그
+     * ⭐⭐⭐ 새로운 점진적 스케줄 계산 로직
+     *
+     * 로직:
+     * 1. 먼저 취침 + 기상 둘 다 20분씩 당김
+     * 2. 먼저 목표에 도달한 쪽을 고정
+     * 3. 나머지 하나만 계속 20분씩 당김
+     * 4. 둘 다 목표 도달 → 완전 고정
      */
+    private fun calculateGradualSchedule(
+        currentDay: Int,
+        currentBedtime: LocalTime,
+        currentWakeTime: LocalTime,
+        targetWakeTime: LocalTime,
+        targetSleepMinutes: Int
+    ): Pair<LocalTime, LocalTime> {
+
+        // 목표 취침 시간 계산
+        val targetBedtime = targetWakeTime.minusMinutes(targetSleepMinutes.toLong())
+
+        Log.d("DailyAlarmManager", """
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            📊 새로운 알람 로직 계산 (Day $currentDay)
+            현재 취침: ${currentBedtime.format(DateTimeFormatter.ofPattern("HH:mm"))}
+            현재 기상: ${currentWakeTime.format(DateTimeFormatter.ofPattern("HH:mm"))}
+            목표 취침: ${targetBedtime.format(DateTimeFormatter.ofPattern("HH:mm"))}
+            목표 기상: ${targetWakeTime.format(DateTimeFormatter.ofPattern("HH:mm"))}
+            목표 수면: ${targetSleepMinutes}분 (${targetSleepMinutes / 60}시간 ${targetSleepMinutes % 60}분)
+        """.trimIndent())
+
+        // 분 단위로 변환 (자정 기준)
+        val currentBedMinutes = toMinutesFromMidnight(currentBedtime)
+        val currentWakeMinutes = toMinutesFromMidnight(currentWakeTime)
+        val targetBedMinutes = toMinutesFromMidnight(targetBedtime)
+        val targetWakeMinutes = toMinutesFromMidnight(targetWakeTime)
+
+        // 취침/기상 시간 차이 계산 (절대값)
+        val bedtimeDiff = calculateTimeDifference(currentBedMinutes, targetBedMinutes)
+        val waketimeDiff = calculateTimeDifference(currentWakeMinutes, targetWakeMinutes)
+
+        Log.d("DailyAlarmManager", """
+            취침 시간 차이: ${bedtimeDiff}분
+            기상 시간 차이: ${waketimeDiff}분
+        """.trimIndent())
+
+        // 각각 목표 도달까지 필요한 일수 계산
+        val daysToReachBedtime = (bedtimeDiff + ADJUSTMENT_INTERVAL_MINUTES - 1) / ADJUSTMENT_INTERVAL_MINUTES
+        val daysToReachWaketime = (waketimeDiff + ADJUSTMENT_INTERVAL_MINUTES - 1) / ADJUSTMENT_INTERVAL_MINUTES
+
+        Log.d("DailyAlarmManager", """
+            취침 목표까지: ${daysToReachBedtime}일 필요
+            기상 목표까지: ${daysToReachWaketime}일 필요
+        """.trimIndent())
+
+        // 먼저 도달하는 시점 결정
+        val firstReachDay = min(daysToReachBedtime, daysToReachWaketime)
+
+        var todayBedMinutes: Int
+        var todayWakeMinutes: Int
+
+        when {
+            // 케이스 1: 둘 다 아직 목표 미달 → 둘 다 당김
+            currentDay < firstReachDay -> {
+                Log.d("DailyAlarmManager", "📍 단계 1: 둘 다 20분씩 당김")
+                val adjustment = currentDay * ADJUSTMENT_INTERVAL_MINUTES
+                todayBedMinutes = adjustTime(currentBedMinutes, -adjustment)
+                todayWakeMinutes = adjustTime(currentWakeMinutes, -adjustment)
+            }
+
+            // 케이스 2: 한쪽이 목표 도달, 다른쪽만 당김
+            currentDay < daysToReachBedtime + daysToReachWaketime -> {
+                if (daysToReachBedtime < daysToReachWaketime) {
+                    // 취침이 먼저 도달 → 취침 고정, 기상만 당김
+                    Log.d("DailyAlarmManager", "📍 단계 2: 취침 고정, 기상만 당김")
+                    todayBedMinutes = targetBedMinutes
+                    val additionalDays = currentDay - daysToReachBedtime
+                    val additionalAdjustment = additionalDays * ADJUSTMENT_INTERVAL_MINUTES
+                    todayWakeMinutes = adjustTime(
+                        adjustTime(currentWakeMinutes, -daysToReachBedtime * ADJUSTMENT_INTERVAL_MINUTES),
+                        -additionalAdjustment
+                    )
+                    // 목표를 넘지 않도록 제한
+                    if (calculateTimeDifference(todayWakeMinutes, targetWakeMinutes) < ADJUSTMENT_INTERVAL_MINUTES) {
+                        todayWakeMinutes = targetWakeMinutes
+                    }
+                } else {
+                    // 기상이 먼저 도달 → 기상 고정, 취침만 당김
+                    Log.d("DailyAlarmManager", "📍 단계 2: 기상 고정, 취침만 당김")
+                    todayWakeMinutes = targetWakeMinutes
+                    val additionalDays = currentDay - daysToReachWaketime
+                    val additionalAdjustment = additionalDays * ADJUSTMENT_INTERVAL_MINUTES
+                    todayBedMinutes = adjustTime(
+                        adjustTime(currentBedMinutes, -daysToReachWaketime * ADJUSTMENT_INTERVAL_MINUTES),
+                        -additionalAdjustment
+                    )
+                    // 목표를 넘지 않도록 제한
+                    if (calculateTimeDifference(todayBedMinutes, targetBedMinutes) < ADJUSTMENT_INTERVAL_MINUTES) {
+                        todayBedMinutes = targetBedMinutes
+                    }
+                }
+            }
+
+            // 케이스 3: 둘 다 목표 도달 → 완전 고정
+            else -> {
+                Log.d("DailyAlarmManager", "📍 단계 3: 목표 도달! 완전 고정")
+                todayBedMinutes = targetBedMinutes
+                todayWakeMinutes = targetWakeMinutes
+            }
+        }
+
+        val todayBedtime = minutesToLocalTime(todayBedMinutes)
+        val todayWakeTime = minutesToLocalTime(todayWakeMinutes)
+
+        Log.d("DailyAlarmManager", """
+            ✅ 계산 결과:
+            오늘 취침: ${todayBedtime.format(DateTimeFormatter.ofPattern("HH:mm"))}
+            오늘 기상: ${todayWakeTime.format(DateTimeFormatter.ofPattern("HH:mm"))}
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        """.trimIndent())
+
+        return Pair(todayBedtime, todayWakeTime)
+    }
+
+    /**
+     * LocalTime을 자정 이후 분으로 변환
+     */
+    private fun toMinutesFromMidnight(time: LocalTime): Int {
+        return time.hour * 60 + time.minute
+    }
+
+    /**
+     * 분을 LocalTime으로 변환
+     */
+    private fun minutesToLocalTime(minutes: Int): LocalTime {
+        val normalizedMinutes = (minutes % 1440 + 1440) % 1440
+        return LocalTime.of(normalizedMinutes / 60, normalizedMinutes % 60)
+    }
+
+    /**
+     * 시간 차이 계산 (절대값, 자정 넘김 고려)
+     */
+    private fun calculateTimeDifference(from: Int, to: Int): Int {
+        return if (from > to) {
+            from - to
+        } else {
+            from + (1440 - to)
+        }
+    }
+
+    /**
+     * 시간 조정 (자정 넘김 처리)
+     */
+    private fun adjustTime(minutes: Int, adjustment: Int): Int {
+        var result = minutes + adjustment
+        // 자정 넘김 처리
+        while (result < 0) result += 1440
+        while (result >= 1440) result -= 1440
+        return result
+    }
+
     private fun showAlarmPermissionDialog() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
@@ -171,63 +327,6 @@ class DailyAlarmManager(private val context: Context) {
         }
     }
 
-    /**
-     * 점진적 취침 시간 계산
-     */
-    private fun calculateGradualBedtime(
-        currentDay: Int,
-        currentBedtime: LocalTime,
-        targetWakeTime: LocalTime,
-        targetSleepMinutes: Int
-    ): LocalTime {
-        val targetBedtime = targetWakeTime.minusMinutes(targetSleepMinutes.toLong())
-
-        val currentMinutes = currentBedtime.hour * 60 + currentBedtime.minute
-        val targetMinutes = targetBedtime.hour * 60 + targetBedtime.minute
-
-        // 자정 넘김 계산
-        val diffMinutes = if (currentMinutes >= targetMinutes) {
-            currentMinutes - targetMinutes
-        } else {
-            currentMinutes + (1440 - targetMinutes)
-        }
-
-        Log.d("DailyAlarmManager", """
-        현재 취침: ${currentBedtime.format(DateTimeFormatter.ofPattern("HH:mm"))} (${currentMinutes}분)
-        목표 취침: ${targetBedtime.format(DateTimeFormatter.ofPattern("HH:mm"))} (${targetMinutes}분)
-        차이: ${diffMinutes}분
-    """.trimIndent())
-
-        if (diffMinutes <= 0) {
-            Log.d("DailyAlarmManager", "이미 목표 도달")
-            return targetBedtime
-        }
-
-        val totalSteps = (diffMinutes.toDouble() / ADJUSTMENT_INTERVAL_MINUTES).toInt()
-        val currentStep = currentDay
-        val actualStep = min(currentStep, totalSteps)
-        val adjustment = actualStep * ADJUSTMENT_INTERVAL_MINUTES
-
-        var newMinutes = currentMinutes - adjustment
-        if (newMinutes < 0) {
-            newMinutes += 1440
-        }
-
-        val todayBedtime = LocalTime.of(newMinutes / 60, newMinutes % 60)
-
-        Log.d("DailyAlarmManager", """
-        총 ${totalSteps}단계 필요
-        Day ${currentDay} = ${actualStep}단계
-        조정량: ${adjustment}분 (첫날부터 ${ADJUSTMENT_INTERVAL_MINUTES}분씩 당김)
-        결과 취침: ${todayBedtime.format(DateTimeFormatter.ofPattern("HH:mm"))}
-    """.trimIndent())
-
-        return todayBedtime
-    }
-
-    /**
-     * 취침 알림 설정
-     */
     private fun setBedtimeNotification(bedtime: LocalTime) {
         val enabled = sharedPreferences.getBoolean("bedtime_notification_enabled", true)
         if (!enabled) {
@@ -266,9 +365,6 @@ class DailyAlarmManager(private val context: Context) {
         Log.d("DailyAlarmManager", "📢 취침 알림 설정: ${calendar.time}")
     }
 
-    /**
-     * 취침 알림 취소
-     */
     private fun cancelBedtimeNotification() {
         val intent = Intent(context, AlarmReceiver::class.java).apply {
             action = "com.example.sleepshift.BEDTIME_NOTIFICATION"
@@ -281,9 +377,6 @@ class DailyAlarmManager(private val context: Context) {
         Log.d("DailyAlarmManager", "취침 알림 취소됨")
     }
 
-    /**
-     * ⭐ 시스템 알람 설정
-     */
     private fun setSystemAlarm(alarmTime: LocalTime) {
         val intent = Intent(context, AlarmReceiver::class.java).apply {
             action = "com.example.sleepshift.ALARM_TRIGGER"
@@ -300,7 +393,6 @@ class DailyAlarmManager(private val context: Context) {
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
 
-            // 현재 시간보다 과거면 다음날로
             if (timeInMillis <= System.currentTimeMillis()) {
                 add(Calendar.DAY_OF_MONTH, 1)
                 Log.d("DailyAlarmManager", "⏰ 설정 시간이 지나서 내일로 설정")
@@ -318,8 +410,6 @@ class DailyAlarmManager(private val context: Context) {
             ========== 알람 설정 완료 ==========
             📅 설정 시간: ${calendar.time}
             🕐 현재 시간: ${Date()}
-            🌍 타임존: ${calendar.timeZone.displayName}
-            📌 ${if (calendar.get(Calendar.DAY_OF_MONTH) > Calendar.getInstance().get(Calendar.DAY_OF_MONTH)) "내일" else "오늘"}
             =====================================
         """.trimIndent())
         } catch (e: Exception) {
@@ -328,9 +418,6 @@ class DailyAlarmManager(private val context: Context) {
         }
     }
 
-    /**
-     * 시간 파싱
-     */
     private fun parseTime(timeString: String): LocalTime {
         return try {
             LocalTime.parse(timeString, DateTimeFormatter.ofPattern("HH:mm"))
@@ -340,9 +427,6 @@ class DailyAlarmManager(private val context: Context) {
         }
     }
 
-    /**
-     * ⭐ 알람 취소
-     */
     fun cancelAlarm() {
         val intent = Intent(context, AlarmReceiver::class.java).apply {
             action = "com.example.sleepshift.ALARM_TRIGGER"

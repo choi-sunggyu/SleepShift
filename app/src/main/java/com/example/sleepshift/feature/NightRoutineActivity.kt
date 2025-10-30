@@ -389,15 +389,15 @@ class NightRoutineActivity : AppCompatActivity() {
             val currentMood = moodAdapter.getMoodAt(selectedMoodPosition)
             viewModel.processSleepCheckIn(currentMood.moodName, selectedMoodPosition)
 
-            // ✅ Accessibility 체크 완전 제거 - 무조건 진행
-            Log.d(TAG, "Accessibility 체크 건너뜀 - 바로 잠금 화면으로 이동")
-
             // ✅ 잠금 상태 저장
             val lockPrefs = getSharedPreferences("lock_prefs", MODE_PRIVATE)
             lockPrefs.edit {
                 putBoolean("isLocked", true)
             }
             Log.d(TAG, "✅ 잠금 상태 저장 완료")
+
+            // ⭐⭐⭐ LockMonitoringService 시작
+            startLockMonitoringService()
 
             // ✅ 잠금 화면으로 이동
             val intent = Intent(this, LockScreenActivity::class.java)
@@ -407,11 +407,31 @@ class NightRoutineActivity : AppCompatActivity() {
 
             Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
-            finish() // 나이트 루틴 화면 종료
+            finish()
 
         } catch (e: Exception) {
             Log.e(TAG, "❌ 수면 체크인 중 오류 발생", e)
             Toast.makeText(this, "오류가 발생했습니다: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    /**
+     * ⭐⭐⭐ LockMonitoringService 시작
+     */
+    private fun startLockMonitoringService() {
+        try {
+            val serviceIntent = Intent(this, com.example.sleepshift.service.LockMonitoringService::class.java)
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent)
+                Log.d(TAG, "✅ LockMonitoringService (Foreground) 시작")
+            } else {
+                startService(serviceIntent)
+                Log.d(TAG, "✅ LockMonitoringService 시작")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ LockMonitoringService 시작 실패", e)
+            Toast.makeText(this, "모니터링 서비스 시작 실패", Toast.LENGTH_SHORT).show()
         }
     }
 

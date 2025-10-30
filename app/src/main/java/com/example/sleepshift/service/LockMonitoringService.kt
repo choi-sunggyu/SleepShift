@@ -14,9 +14,13 @@ class LockMonitoringService : Service() {
 
     private val serviceScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private var monitoringJob: Job? = null
-    private val allowedPackages = setOf(
-        "com.example.sleepshift", // 자신의 앱
-        "com.android.systemui"    // 시스템 UI
+    private val allowedPackages = setOf( //허용앱 목록
+        "com.example.sleepshift",           // 자신의 앱
+        "com.android.systemui",             // 시스템 UI
+        "com.android.launcher",             // 기본 런처
+        "com.google.android.apps.nexuslauncher", // Pixel 런처
+        "com.sec.android.app.launcher",     // 삼성 런처
+        "com.android.settings"              // 설정 앱
     )
 
     override fun onCreate() {
@@ -53,6 +57,13 @@ class LockMonitoringService : Service() {
                     val isLocked = lockPrefs.getBoolean("isLocked", false)
 
                     if (isLocked) {
+                        val isAlarmTime = lockPrefs.getBoolean("is_alarm_time", false)
+                        if (isAlarmTime) {
+                            android.util.Log.d(TAG, "⏰ 알람 시간 - 모니터링 중지")
+                            stopSelf()
+                            break
+                        }
+
                         val currentApp = getCurrentForegroundApp()
 
                         if (currentApp != null) {

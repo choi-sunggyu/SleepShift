@@ -77,17 +77,24 @@ class DailyAlarmManager(private val context: Context) {
                 Log.d("DailyAlarmManager", "🔔 일회성 알람 감지")
                 Log.d("DailyAlarmManager", "일회성 알람 시간: $oneTimeAlarmTime")
 
-                // ⭐ 일회성 알람 시간으로 설정
+                // ⭐⭐⭐ 1. 일회성 알람 시간으로 설정
                 val alarmTime = parseTime(oneTimeAlarmTime)
                 setSystemAlarm(alarmTime)
 
-                // ⭐ Day는 증가시키되, 취침 시간은 재계산하지 않음
+                // ⭐⭐⭐ 2. SharedPreferences에 오늘의 알람 시간 저장
                 sharedPreferences.edit()
                     .putInt("current_day", currentDay)
                     .putString("today_alarm_time", oneTimeAlarmTime)
                     .apply()
 
+                // ⭐⭐⭐ 3. 일회성 알람 플래그 제거 (다음날부터는 일반 알람으로)
+                sharedPreferences.edit()
+                    .putBoolean("is_one_time_alarm", false)
+                    .remove("one_time_alarm_time")
+                    .apply()
+
                 Log.d("DailyAlarmManager", "✅ 일회성 알람 설정 완료: $oneTimeAlarmTime")
+                Log.d("DailyAlarmManager", "✅ 일회성 알람 플래그 제거됨")
                 Log.d("DailyAlarmManager", "Day $currentDay 유지")
                 Log.d("DailyAlarmManager", "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
                 return true

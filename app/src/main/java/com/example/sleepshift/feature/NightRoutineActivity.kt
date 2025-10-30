@@ -4,6 +4,7 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -389,17 +390,20 @@ class NightRoutineActivity : AppCompatActivity() {
             val currentMood = moodAdapter.getMoodAt(selectedMoodPosition)
             viewModel.processSleepCheckIn(currentMood.moodName, selectedMoodPosition)
 
-            // ✅ 잠금 상태 저장
+            // ⭐⭐⭐ 알람 볼륨 최대로 설정
+            setAlarmVolumeToMax()
+
+            // 잠금 상태 저장
             val lockPrefs = getSharedPreferences("lock_prefs", MODE_PRIVATE)
             lockPrefs.edit {
                 putBoolean("isLocked", true)
             }
             Log.d(TAG, "✅ 잠금 상태 저장 완료")
 
-            // ⭐⭐⭐ LockMonitoringService 시작
+            // LockMonitoringService 시작
             startLockMonitoringService()
 
-            // ✅ 잠금 화면으로 이동
+            // 잠금 화면으로 이동
             val intent = Intent(this, LockScreenActivity::class.java)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             startActivity(intent)
@@ -412,6 +416,35 @@ class NightRoutineActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Log.e(TAG, "❌ 수면 체크인 중 오류 발생", e)
             Toast.makeText(this, "오류가 발생했습니다: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    /**
+     * ⭐⭐⭐ 알람 볼륨 최대로 설정
+     */
+    private fun setAlarmVolumeToMax() {
+        try {
+            val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+            // 현재 볼륨 저장 (나중에 복원용)
+            val currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_ALARM)
+            val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+
+            // SharedPreferences에 원래 볼륨 저장
+            val prefs = getSharedPreferences("SleepShiftPrefs", MODE_PRIVATE)
+            prefs.edit().putInt("original_alarm_volume", currentVolume).apply()
+
+            // 알람 볼륨 최대로
+            audioManager.setStreamVolume(
+                AudioManager.STREAM_ALARM,
+                maxVolume,
+                0  // FLAG 없음 (조용히 변경)
+            )
+
+            Log.d(TAG, "🔊 알람 볼륨: $currentVolume → $maxVolume (최대)")
+            Toast.makeText(this, "알람 볼륨이 최대로 설정되었습니다", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ 알람 볼륨 설정 실패", e)
         }
     }
 

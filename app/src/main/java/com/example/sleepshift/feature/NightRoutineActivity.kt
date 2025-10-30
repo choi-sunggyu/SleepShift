@@ -4,6 +4,7 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
@@ -34,6 +35,7 @@ import java.util.*
 class NightRoutineActivity : AppCompatActivity() {
 
     private lateinit var viewModel: NightRoutineViewModel
+    private lateinit var sharedPreferences: SharedPreferences
 
     // Views
     private lateinit var tvPawCoinCount: TextView
@@ -52,6 +54,8 @@ class NightRoutineActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_night_routine)
+
+        sharedPreferences = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
 
         viewModel = ViewModelProvider(this)[NightRoutineViewModel::class.java]
 
@@ -389,6 +393,15 @@ class NightRoutineActivity : AppCompatActivity() {
 
             val currentMood = moodAdapter.getMoodAt(selectedMoodPosition)
             viewModel.processSleepCheckIn(currentMood.moodName, selectedMoodPosition)
+
+            val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+            val currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+
+            sharedPreferences.edit().apply {
+                putBoolean("bedtime_success_$today", true)
+                putString("actual_bedtime_$today", currentTime)
+                apply()
+            }
 
             // ⭐⭐⭐ 알람 볼륨 최대로 설정
             setAlarmVolumeToMax()

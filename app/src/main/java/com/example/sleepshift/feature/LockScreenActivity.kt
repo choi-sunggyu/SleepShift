@@ -23,11 +23,9 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
-import androidx.core.os.postDelayed
 import com.example.sleepshift.R
 import com.example.sleepshift.service.LockOverlayService
 import com.google.android.material.snackbar.Snackbar
-import java.util.logging.Handler
 
 class LockScreenActivity : AppCompatActivity() {
 
@@ -43,16 +41,19 @@ class LockScreenActivity : AppCompatActivity() {
     private var isUnlocking = false
     private var countDownTimer: CountDownTimer? = null
 
-    // ⭐⭐⭐ 알람음 재생기
+    // 알람음 재생기
     private var alarmPlayer: MediaPlayer? = null
-    private var isOnLockScreen = true  // LockScreen에 있는지 여부
+    private var isOnLockScreen = true
 
-    //노티피케이션
+    // 노티피케이션
     private lateinit var notificationManager: NotificationManager
     private var vibrator: Vibrator? = null
     private val warningHandler = android.os.Handler(Looper.getMainLooper())
     private var warningRunnable: Runnable? = null
     private var currentSnackbar: Snackbar? = null
+
+    // ⭐⭐⭐ 사용자가 의도적으로 떠났는지 플래그
+    private var userLeftApp = false
 
     companion object {
         private const val TAG = "LockScreenActivity"
@@ -74,147 +75,18 @@ class LockScreenActivity : AppCompatActivity() {
         initVibrator()
     }
 
-    //진동 초기화
-    private fun showAlarmNotification() {
-        try {
-            // LockScreenActivity로 돌아가는 Intent
-            val intent = Intent(this, LockScreenActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            }
-
-            val pendingIntent = PendingIntent.getActivity(
-                this,
-                0,
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-
-            val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("🔊 알람이 울리고 있습니다!")
-                .setContentText("앱을 열어서 알람을 중지하세요")
-                .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)  // 시스템 기본 아이콘
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setCategory(NotificationCompat.CATEGORY_ALARM)
-                .setOngoing(true)  // 사용자가 직접 닫을 수 없음
-                .setAutoCancel(false)
-                .setContentIntent(pendingIntent)
-                .setVibrate(longArrayOf(0, 500, 500, 500))  // 진동
-                .build()
-
-            notificationManager.notify(NOTIFICATION_ID, notification)
-            Log.d(TAG, "✅ 알림 표시 완료")
-        } catch (e: Exception) {
-            Log.e(TAG, "❌ 알림 표시 실패", e)
-        }
-    }
-
-    //진동 반복
-    private fun startVibration() {
-        try {
-            vibrator?.let {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    // 패턴: 0.5초 대기 → 1초 진동 → 0.5초 대기 → 반복
-                    val pattern = longArrayOf(0, 1000, 500)
-                    val effect = VibrationEffect.createWaveform(pattern, 0)  // 0 = 무한 반복
-                    it.vibrate(effect)
-                } else {
-                    // 구버전
-                    @Suppress("DEPRECATION")
-                    val pattern = longArrayOf(0, 1000, 500)
-                    it.vibrate(pattern, 0)  // 0 = 무한 반복
-                }
-                Log.d(TAG, "🔔 진동 시작!")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "❌ 진동 시작 실패", e)
-        }
-    }
-
-    //진동 중지
-    private fun stopVibration() {
-        try {
-            vibrator?.cancel()
-            Log.d(TAG, "🔕 진동 중지")
-        } catch (e: Exception) {
-            Log.e(TAG, "❌ 진동 중지 실패", e)
-        }
-    }
-
-    private fun initVibrator() {
-        vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val vibratorManager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as android.os.VibratorManager
-            vibratorManager.defaultVibrator
-        } else {
-            @Suppress("DEPRECATION")
-            getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-        }
-        Log.d(TAG, "✅ 진동 초기화 완료")
-    }
-
     /**
-     * ⭐⭐⭐ 반복 경고 메시지 시작
+     * ⭐⭐⭐ 사용자가 의도적으로 앱을 떠날 때만 호출
+     * (홈 버튼, 최근 앱 버튼)
+     * 전원 버튼, 알림 등으로는 호출되지 않음
      */
-    /**
-     * ⭐⭐⭐ 반복 경고 메시지 시작
-     */
-    private fun startWarningMessages() {
-        stopWarningMessages()  // 기존 것 중지
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
 
-        warningRunnable = object : Runnable {
-            override fun run() {
-                try {
-                    // Snackbar 사용 (Toast보다 오래 표시)
-                    currentSnackbar?.dismiss()
+        // 사용자가 의도적으로 앱을 떠남
+        userLeftApp = true
 
-                    val rootView = findViewById<View>(android.R.id.content)
-                    currentSnackbar = Snackbar.make(
-                        rootView,
-                        "🔊 LockScreen으로 돌아오세요!",
-                        Snackbar.LENGTH_LONG
-                    ).apply {
-                        // 상단에 표시
-                        view.translationY = -100f
-
-                        // 배경색 변경
-                        setBackgroundTint(getColor(android.R.color.holo_red_dark))
-                        setTextColor(getColor(android.R.color.white))
-
-                        show()
-                    }
-
-                    // 3초마다 반복
-                    warningRunnable?.run()
-                } catch (e: Exception) {
-                    Log.e(TAG, "경고 메시지 표시 실패", e)
-                }
-            }
-        }
-
-        // ⭐⭐⭐ 수정: Runnable을 직접 전달
-        warningRunnable?.run()
-        Log.d(TAG, "⚠️ 반복 경고 메시지 시작")
-    }
-
-    /**
-     * ⭐⭐⭐ 반복 경고 메시지 중지
-     */
-    private fun stopWarningMessages() {
-        if (warningRunnable != null) {
-            warningHandler.removeCallbacks(warningRunnable!!)
-        }
-        warningRunnable = null
-        currentSnackbar?.dismiss()
-        currentSnackbar = null
-        Log.d(TAG, "✅ 반복 경고 메시지 중지")
-    }
-
-    private fun dismissAlarmNotification() {
-        try {
-            notificationManager.cancel(NOTIFICATION_ID)
-            Log.d(TAG, "✅ 알림 제거 완료")
-        } catch (e: Exception) {
-            Log.e(TAG, "❌ 알림 제거 실패", e)
-        }
+        Log.d(TAG, "⚠️ onUserLeaveHint - 사용자가 앱을 떠남")
     }
 
     private fun initViews() {
@@ -225,6 +97,20 @@ class LockScreenActivity : AppCompatActivity() {
         btnUnlock = findViewById(R.id.btnUnlock)
         countdownSection = findViewById(R.id.countdownSection)
         tvCountdown = findViewById(R.id.tvCountdown)
+    }
+
+    /**
+     * ⭐⭐⭐ 진동 초기화
+     */
+    private fun initVibrator() {
+        vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vibratorManager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as android.os.VibratorManager
+            vibratorManager.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        }
+        Log.d(TAG, "✅ 진동 초기화 완료")
     }
 
     /**
@@ -275,6 +161,45 @@ class LockScreenActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * ⭐⭐⭐ 진동 시작 (계속 반복)
+     */
+    private fun startVibration() {
+        try {
+            vibrator?.let {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    // 패턴: 0.5초 대기 → 1초 진동 → 0.5초 대기 → 반복
+                    val pattern = longArrayOf(0, 1000, 500)
+                    val effect = VibrationEffect.createWaveform(pattern, 0)  // 0 = 무한 반복
+                    it.vibrate(effect)
+                } else {
+                    // 구버전
+                    @Suppress("DEPRECATION")
+                    val pattern = longArrayOf(0, 1000, 500)
+                    it.vibrate(pattern, 0)  // 0 = 무한 반복
+                }
+                Log.d(TAG, "🔔 진동 시작!")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ 진동 시작 실패", e)
+        }
+    }
+
+    /**
+     * ⭐⭐⭐ 진동 중지
+     */
+    private fun stopVibration() {
+        try {
+            vibrator?.cancel()
+            Log.d(TAG, "🔕 진동 중지")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ 진동 중지 실패", e)
+        }
+    }
+
+    /**
+     * ⭐⭐⭐ 알림 채널 생성
+     */
     private fun createNotificationChannel() {
         notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -292,6 +217,109 @@ class LockScreenActivity : AppCompatActivity() {
             notificationManager.createNotificationChannel(channel)
             Log.d(TAG, "✅ 알림 채널 생성 완료")
         }
+    }
+
+    /**
+     * ⭐⭐⭐ 알림 표시
+     */
+    private fun showAlarmNotification() {
+        try {
+            // LockScreenActivity로 돌아가는 Intent
+            val intent = Intent(this, LockScreenActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+
+            val pendingIntent = PendingIntent.getActivity(
+                this,
+                0,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("🔊 알람이 울리고 있습니다!")
+                .setContentText("앱을 열어서 알람을 중지하세요")
+                .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setOngoing(true)  // 사용자가 직접 닫을 수 없음
+                .setAutoCancel(false)
+                .setContentIntent(pendingIntent)
+                .setVibrate(longArrayOf(0, 500, 500, 500))
+                .build()
+
+            notificationManager.notify(NOTIFICATION_ID, notification)
+            Log.d(TAG, "✅ 알림 표시 완료")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ 알림 표시 실패", e)
+        }
+    }
+
+    /**
+     * ⭐⭐⭐ 알림 제거
+     */
+    private fun dismissAlarmNotification() {
+        try {
+            notificationManager.cancel(NOTIFICATION_ID)
+            Log.d(TAG, "✅ 알림 제거 완료")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ 알림 제거 실패", e)
+        }
+    }
+
+    /**
+     * ⭐⭐⭐ 반복 경고 메시지 시작
+     */
+    private fun startWarningMessages() {
+        stopWarningMessages()  // 기존 것 중지
+
+        warningRunnable = object : Runnable {
+            override fun run() {
+                try {
+                    // Snackbar 사용 (Toast보다 오래 표시)
+                    currentSnackbar?.dismiss()
+
+                    val rootView = findViewById<View>(android.R.id.content)
+                    currentSnackbar = Snackbar.make(
+                        rootView,
+                        "🔊 LockScreen으로 돌아오세요!",
+                        Snackbar.LENGTH_LONG
+                    ).apply {
+                        // 상단에 표시
+                        view.translationY = -100f
+
+                        // 배경색 변경
+                        setBackgroundTint(getColor(android.R.color.holo_red_dark))
+                        setTextColor(getColor(android.R.color.white))
+
+                        show()
+                    }
+
+                    // 3초마다 반복
+                    warningHandler.postDelayed(this, 3000)
+                } catch (e: Exception) {
+                    Log.e(TAG, "경고 메시지 표시 실패", e)
+                }
+            }
+        }
+
+        // ⭐⭐⭐ 즉시 실행
+        warningRunnable?.run()
+
+        Log.d(TAG, "⚠️ 반복 경고 메시지 시작")
+    }
+
+    /**
+     * ⭐⭐⭐ 반복 경고 메시지 중지
+     */
+    private fun stopWarningMessages() {
+        if (warningRunnable != null) {
+            warningHandler.removeCallbacks(warningRunnable!!)
+        }
+        warningRunnable = null
+        currentSnackbar?.dismiss()
+        currentSnackbar = null
+        Log.d(TAG, "✅ 반복 경고 메시지 중지")
     }
 
     @SuppressLint("SetTextI18n")
@@ -369,13 +397,13 @@ class LockScreenActivity : AppCompatActivity() {
             stopLockMonitoringService()
             LockOverlayService.stop(this)
 
-            //알람음 완전히 해제
+            // 알람음 완전히 해제
             stopAlarmSound()
             stopVibration()
-            restoreOriginalVolume()
             dismissAlarmNotification()
             stopWarningMessages()
             releaseAlarmSound()
+            restoreOriginalVolume()
 
             Toast.makeText(this, "잠금 해제 완료! 코인 -$UNLOCK_COST", Toast.LENGTH_SHORT).show()
 
@@ -393,6 +421,19 @@ class LockScreenActivity : AppCompatActivity() {
         updateDisplays()
     }
 
+    private fun stopLockMonitoringService() {
+        try {
+            val serviceIntent = Intent(this, com.example.sleepshift.service.LockMonitoringService::class.java)
+            stopService(serviceIntent)
+            Log.d(TAG, "✅ LockMonitoringService 중지")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ LockMonitoringService 중지 실패", e)
+        }
+    }
+
+    /**
+     * ⭐⭐⭐ 원래 알람 볼륨으로 복원
+     */
     private fun restoreOriginalVolume() {
         try {
             val prefs = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
@@ -412,16 +453,6 @@ class LockScreenActivity : AppCompatActivity() {
         }
     }
 
-    private fun stopLockMonitoringService() {
-        try {
-            val serviceIntent = Intent(this, com.example.sleepshift.service.LockMonitoringService::class.java)
-            stopService(serviceIntent)
-            Log.d(TAG, "✅ LockMonitoringService 중지")
-        } catch (e: Exception) {
-            Log.e(TAG, "❌ LockMonitoringService 중지 실패", e)
-        }
-    }
-
     /**
      * ⭐⭐⭐ LockScreen에서 벗어날 때 (홈 버튼, 다른 앱 등)
      */
@@ -429,6 +460,13 @@ class LockScreenActivity : AppCompatActivity() {
         super.onPause()
         isOnLockScreen = false
 
+        // ⭐⭐⭐ 사용자가 의도적으로 떠났을 때만 알람 시작
+        if (!userLeftApp) {
+            Log.d(TAG, "전원 버튼 등으로 화면만 꺼짐 - 알람 안 울림")
+            return
+        }
+
+        // 실제 잠금 모드일 때만 알람 울리기
         val lockPrefs = getSharedPreferences("lock_prefs", Context.MODE_PRIVATE)
         val isLocked = lockPrefs.getBoolean("isLocked", false)
         val isAlarmTime = lockPrefs.getBoolean("is_alarm_time", false)
@@ -439,6 +477,7 @@ class LockScreenActivity : AppCompatActivity() {
             startVibration()
             showAlarmNotification()
             startWarningMessages()
+
             Log.d(TAG, "⚠️ 잠금 모드에서 LockScreen 벗어남 - 알람음 + 진동 + 경고 시작!")
         } else {
             Log.d(TAG, "일반 모드 또는 알람 시간 - 알람 울리지 않음 (isLocked=$isLocked, isAlarmTime=$isAlarmTime)")
@@ -451,6 +490,9 @@ class LockScreenActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         isOnLockScreen = true
+
+        // ⭐⭐⭐ 플래그 초기화
+        userLeftApp = false
 
         // 실제 잠금 모드일 때만 알람 중지
         val lockPrefs = getSharedPreferences("lock_prefs", Context.MODE_PRIVATE)

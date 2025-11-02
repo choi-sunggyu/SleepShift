@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.CountDownTimer
@@ -41,6 +42,8 @@ class AlarmActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         sharedPreferences = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
+
+        setAlarmVolumeToMax()
 
         // 알람 시작하면 바로 플래그 설정
         setAlarmFlags()
@@ -82,6 +85,36 @@ class AlarmActivity : AppCompatActivity() {
             putBoolean("is_alarm_ringing", false)
         }
         Log.d("AlarmActivity", "알람 플래그 off")
+    }
+
+    /**
+     * ⭐⭐⭐ 알람 볼륨 최대로 설정
+     */
+    private fun setAlarmVolumeToMax() {
+        try {
+            val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+            // 현재 볼륨 저장 (나중에 복원용)
+            val currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_ALARM)
+            val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+
+            // 이미 저장된 볼륨이 없으면 현재 볼륨 저장
+            if (!sharedPreferences.contains("original_alarm_volume")) {
+                sharedPreferences.edit().putInt("original_alarm_volume", currentVolume).apply()
+                Log.d("AlarmActivity", "원래 볼륨 저장: $currentVolume")
+            }
+
+            // 알람 볼륨 최대로
+            audioManager.setStreamVolume(
+                AudioManager.STREAM_ALARM,
+                maxVolume,
+                0  // FLAG 없음 (조용히 변경)
+            )
+
+            Log.d("AlarmActivity", "알람 볼륨: $currentVolume -> $maxVolume (최대)")
+        } catch (e: Exception) {
+            Log.e("AlarmActivity", "알람 볼륨 설정 실패", e)
+        }
     }
 
     private fun setupFullScreenAlarm() {

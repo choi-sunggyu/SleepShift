@@ -18,13 +18,11 @@ import androidx.core.content.edit
 import com.example.sleepshift.R
 import com.example.sleepshift.databinding.ActivityAlarmBinding
 import com.example.sleepshift.feature.MorningRoutineActivity
-import com.example.sleepshift.feature.home.HomeActivity
 import com.example.sleepshift.service.LockOverlayService
 import com.example.sleepshift.util.DailyAlarmManager
 import com.example.sleepshift.util.ConsecutiveSuccessManager
 import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.util.*
 
 class AlarmActivity : AppCompatActivity() {
 
@@ -42,57 +40,48 @@ class AlarmActivity : AppCompatActivity() {
         binding = ActivityAlarmBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // SharedPreferences 초기화
         sharedPreferences = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
 
-        // ⭐⭐⭐ 알람 시작 플래그 설정 (가장 먼저!)
+        // 알람 시작하면 바로 플래그 설정
         setAlarmFlags()
 
         setupFullScreenAlarm()
         initializeComponents()
 
-        // 연속 성공 매니저 초기화
         consecutiveSuccessManager = ConsecutiveSuccessManager(this)
 
         setupUI()
         setupLongPressListener()
         startAlarmSounds()
 
-        Log.d("AlarmActivity", "✅ 알람 액티비티 시작 - 잠금 해제됨")
+        Log.d("AlarmActivity", "알람 시작!")
     }
 
-    /**
-     * ⭐ onResume에서 코인 동기화 (문제 5 해결)
-     */
     override fun onResume() {
         super.onResume()
 
-        // ⭐⭐⭐ 코인 업데이트
+        // 코인 업데이트
         val currentCoins = sharedPreferences.getInt("paw_coin_count", 0)
         binding.tvCoinCount.text = currentCoins.toString()
 
-        Log.d("AlarmActivity", "onResume - 코인 업데이트: $currentCoins")
+        Log.d("AlarmActivity", "코인: $currentCoins")
     }
 
-    /**
-     * ⭐⭐⭐ 알람 플래그 설정 (LockScreen 무한 복귀 방지)
-     */
+    // 알람 플래그 설정
     private fun setAlarmFlags() {
         sharedPreferences.edit {
-            putBoolean("is_alarm_ringing", true)      // 알람 울리는 중
-            putBoolean("lock_screen_active", false)   // 잠금 해제
+            putBoolean("is_alarm_ringing", true)
+            putBoolean("lock_screen_active", false)
         }
-        Log.d("AlarmActivity", "✅ 알람 플래그 설정 완료")
+        Log.d("AlarmActivity", "알람 플래그 on")
     }
 
-    /**
-     * ⭐⭐⭐ 알람 플래그 해제
-     */
+    // 알람 플래그 해제
     private fun clearAlarmFlags() {
         sharedPreferences.edit {
             putBoolean("is_alarm_ringing", false)
         }
-        Log.d("AlarmActivity", "✅ 알람 플래그 해제 완료")
+        Log.d("AlarmActivity", "알람 플래그 off")
     }
 
     private fun setupFullScreenAlarm() {
@@ -123,7 +112,6 @@ class AlarmActivity : AppCompatActivity() {
         val userName = sharedPreferences.getString("user_name", "사용자") ?: "사용자"
         binding.tvGoodMorningMessage.text = "${userName}님\n좋은 아침 입니다 !"
 
-        // ⭐⭐⭐ 알람 해제 시 보상 없음 (문제 2 해결)
         val currentCoins = sharedPreferences.getInt("paw_coin_count", 0)
         binding.tvCoinCount.text = currentCoins.toString()
 
@@ -197,7 +185,6 @@ class AlarmActivity : AppCompatActivity() {
 
     private fun startAlarmSounds() {
         try {
-            // 시스템 기본 알람음 사용
             val alarmUri = android.provider.Settings.System.DEFAULT_ALARM_ALERT_URI
             mediaPlayer = MediaPlayer().apply {
                 setDataSource(this@AlarmActivity, alarmUri)
@@ -205,11 +192,11 @@ class AlarmActivity : AppCompatActivity() {
                 prepare()
                 start()
             }
-            Log.d("AlarmActivity", "시스템 알람음 재생 시작")
+            Log.d("AlarmActivity", "알람음 시작")
         } catch (e: Exception) {
-            Log.e("AlarmActivity", "알람음 재생 실패: ${e.message}")
+            Log.e("AlarmActivity", "알람음 실패: ${e.message}")
 
-            // 백업: 기본 알림음 사용
+            // 백업으로 알림음 사용
             try {
                 val notificationUri = android.provider.Settings.System.DEFAULT_NOTIFICATION_URI
                 mediaPlayer = MediaPlayer().apply {
@@ -219,20 +206,9 @@ class AlarmActivity : AppCompatActivity() {
                     start()
                 }
             } catch (e2: Exception) {
-                Log.e("AlarmActivity", "백업 알람음도 재생 실패: ${e2.message}")
+                Log.e("AlarmActivity", "백업 알람음도 실패: ${e2.message}")
             }
         }
-    }
-
-    private fun calculateCoinReward(): Int {
-        val currentDay = getCurrentDay()
-        val dayBonus = currentDay / 5
-        val baseReward = 3
-        return baseReward + dayBonus
-    }
-
-    private fun getCurrentDay(): Int {
-        return sharedPreferences.getInt("current_day", 1)
     }
 
     private fun dismissAlarm() {
@@ -246,40 +222,37 @@ class AlarmActivity : AppCompatActivity() {
             apply()
         }
 
-        // 오버레이 서비스 중지
         LockOverlayService.stop(this)
 
-        // ⭐⭐⭐ 기상 성공 기록
+        // 기상 성공 기록
         recordWakeSuccess()
 
-        // Day 카운트 증가 및 다음 날 알람 설정
+        // 첫 알람인지 확인 (재알람 구분)
+        val alarmId = intent.getLongExtra("alarm_id", 0L)
+        val savedAlarmId = sharedPreferences.getLong("current_alarm_id", 0L)
+        val isFirstAlarm = (alarmId == savedAlarmId)
+
+        Log.d("AlarmActivity", "알람 ID 체크 - 받은거: $alarmId, 저장된거: $savedAlarmId")
+        Log.d("AlarmActivity", "첫 알람? $isFirstAlarm")
+
+        // 첫 알람일때만 플래그 설정
+        if (isFirstAlarm) {
+            sharedPreferences.edit {
+                putBoolean("is_first_alarm_try", true)
+                putLong("morning_routine_start_time", System.currentTimeMillis())
+            }
+            Log.d("AlarmActivity", "첫 시도 플래그 설정함")
+        } else {
+            Log.d("AlarmActivity", "재알람이라 플래그 안 설정")
+        }
+
+        // Day 증가하고 다음 알람 설정
         incrementDayAndScheduleNextAlarm()
 
-        // 알람 플래그 해제
         clearAlarmFlags()
 
-        // 모닝 루틴으로 이동
+        // 모닝루틴으로 이동
         goToMorningRoutine()
-    }
-
-    /**
-     * ⭐⭐⭐ 기상 성공 기록
-     */
-    private fun recordWakeSuccess() {
-        try {
-            val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-            val currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
-
-            sharedPreferences.edit().apply {
-                putBoolean("wake_success_$today", true)
-                putString("actual_waketime_$today", currentTime)
-                apply()
-            }
-
-            Log.d("AlarmActivity", "✅ 기상 성공 기록: $today $currentTime")
-        } catch (e: Exception) {
-            Log.e("AlarmActivity", "❌ 기상 성공 기록 실패", e)
-        }
     }
 
     private fun stopAlarmSounds() {
@@ -293,61 +266,65 @@ class AlarmActivity : AppCompatActivity() {
     }
 
     /**
-     * 코인 지급
+     * 기상 성공 기록
      */
-    private fun addPawCoins(amount: Int) {
-        val currentCoins = sharedPreferences.getInt("paw_coin_count", 0)
-        val newCount = currentCoins + amount
+    private fun recordWakeSuccess() {
+        try {
+            val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+            val currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
 
-        sharedPreferences.edit {
-            putInt("paw_coin_count", newCount)
+            sharedPreferences.edit().apply {
+                putBoolean("wake_success_$today", true)
+                putString("actual_waketime_$today", currentTime)
+                apply()
+            }
+
+            Log.d("AlarmActivity", "기상 성공 기록: $today $currentTime")
+        } catch (e: Exception) {
+            Log.e("AlarmActivity", "기상 기록 실패", e)
         }
-
-        Log.d("AlarmActivity", "발바닥 코인 $amount 개 획득! 총: $newCount")
     }
 
-    /**
-     * Day 증가 및 다음 날 알람 설정 (LockScreen과 동일한 패턴)
-     */
+    private fun getCurrentDay(): Int {
+        return sharedPreferences.getInt("current_day", 1)
+    }
+
+    // Day 증가 및 다음 알람 설정
     private fun incrementDayAndScheduleNextAlarm() {
         val currentDay = sharedPreferences.getInt("current_day", 1)
         val nextDay = currentDay + 1
 
-        // Day 카운트 증가
         sharedPreferences.edit {
             putInt("current_day", nextDay)
         }
 
-        Log.d("AlarmActivity", "Day $currentDay → Day $nextDay 증가")
+        Log.d("AlarmActivity", "Day $currentDay -> Day $nextDay")
 
-        // ⭐ 일회성 알람 플래그 제거 (알람이 울렸으므로)
+        // 일회성 알람이었으면 플래그 제거
         if (sharedPreferences.getBoolean("is_one_time_alarm", false)) {
             sharedPreferences.edit {
                 putBoolean("is_one_time_alarm", false)
                 remove("one_time_alarm_time")
             }
-
             Log.d("AlarmActivity", "일회성 알람 플래그 제거")
         }
 
-        // 다음 날 알람 설정
+        // 다음날 알람 설정
         val alarmManager = DailyAlarmManager(this)
         alarmManager.updateDailyAlarm(nextDay)
 
-        Log.d("AlarmActivity", "Day $nextDay 알람 설정 완료")
+        Log.d("AlarmActivity", "Day $nextDay 알람 설정됨")
     }
 
-    /**
-     * 모닝 루틴으로 이동
-     */
+    // 모닝루틴으로 이동
     private fun goToMorningRoutine() {
-        // ⭐⭐⭐ 모닝 루틴 진입 플래그 설정 (알람 재울림 방지)
+        // 모닝루틴 진입 플래그 설정
         sharedPreferences.edit {
             putBoolean("is_in_morning_routine", true)
             putLong("morning_routine_start_time", System.currentTimeMillis())
         }
 
-        Log.d("AlarmActivity", "✅ 모닝 루틴 진입 플래그 설정")
+        Log.d("AlarmActivity", "모닝루틴 진입 플래그 설정")
 
         Handler(Looper.getMainLooper()).postDelayed({
             val intent = Intent(this, MorningRoutineActivity::class.java)
@@ -357,30 +334,17 @@ class AlarmActivity : AppCompatActivity() {
         }, 1000)
     }
 
-    /**
-     * ⭐ 뒤로가기 완전 차단
-     */
+    // 뒤로가기 차단
     @SuppressLint("MissingSuperCall")
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
-        // 의도적으로 super를 호출하지 않아 뒤로가기를 완전히 차단
-        Log.d("AlarmActivity", "뒤로가기 버튼 차단됨 - 알람을 해제해야 합니다")
+        Log.d("AlarmActivity", "뒤로가기 차단")
     }
 
     override fun onDestroy() {
         super.onDestroy()
 
-        // ⭐ 알람 시간 플래그 해제
         val lockPrefs = getSharedPreferences("lock_prefs", MODE_PRIVATE)
         lockPrefs.edit().putBoolean("is_alarm_time", false).apply()
-
-//        clearAlarmFlags()
-//
-//        stopAlarmSounds()
-//        countDownTimer?.cancel()
-//        vibrator?.cancel()
-//        longPressHandler?.removeCallbacksAndMessages(null)
-//
-//        Log.d("AlarmActivity", "✅ 알람 액티비티 종료")
     }
 }

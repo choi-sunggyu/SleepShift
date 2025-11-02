@@ -39,6 +39,9 @@ class MorningRoutineActivity : AppCompatActivity() {
     private val handler = Handler(Looper.getMainLooper())
     private var returnRunnable: Runnable? = null
 
+    // ⭐⭐⭐ 재알람 트리거 플래그
+    private var isGoingToReAlarm = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMorningRoutineBinding.inflate(layoutInflater)
@@ -94,6 +97,13 @@ class MorningRoutineActivity : AppCompatActivity() {
     // 홈버튼 감지하면 바로 복귀
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
+
+        // ⭐⭐⭐ 재알람으로 가는 중이면 복귀 안 함
+        if (isGoingToReAlarm) {
+            Log.d("MorningRoutine", "재알람 이동 중 - 복귀 안 함")
+            return
+        }
+
         Log.d("MorningRoutine", "홈버튼 눌림 - 복귀")
 
         val intent = Intent(this, MorningRoutineActivity::class.java)
@@ -106,6 +116,12 @@ class MorningRoutineActivity : AppCompatActivity() {
     // 비정상 종료 감지
     override fun onPause() {
         super.onPause()
+
+        // ⭐⭐⭐ 재알람으로 가는 중이면 복귀 안 함
+        if (isGoingToReAlarm) {
+            Log.d("MorningRoutine", "재알람 이동 중 - 복귀 안 함")
+            return
+        }
 
         Log.d("MorningRoutine", "onPause - 복귀 대기")
 
@@ -492,9 +508,12 @@ class MorningRoutineActivity : AppCompatActivity() {
         Log.d("MorningRoutine", "코인 $amount 개 득! 총: $newCount")
     }
 
-    // 10분 초과시 재알람
+    // ⭐⭐⭐ 10분 초과시 재알람
     private fun triggerReAlarm() {
         countDownTimer?.cancel()
+
+        // ⭐⭐⭐ 재알람으로 가는 중 플래그 설정
+        isGoingToReAlarm = true
 
         // 재알람 플래그
         sharedPreferences.edit {
@@ -507,6 +526,8 @@ class MorningRoutineActivity : AppCompatActivity() {
             "⏰ 10분이 경과했습니다.\n잠시 후 다시 알람이 울립니다.",
             Toast.LENGTH_LONG
         ).show()
+
+        Log.d("MorningRoutine", "재알람 트리거 - AlarmActivity로 이동")
 
         Handler(Looper.getMainLooper()).postDelayed({
             val intent = Intent(this, com.example.sleepshift.feature.alarm.AlarmActivity::class.java)

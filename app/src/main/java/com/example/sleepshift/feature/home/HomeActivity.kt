@@ -150,7 +150,7 @@ class HomeActivity : AppCompatActivity() {
             progressDots[i].setBackgroundResource(R.drawable.progress_dot_active)
         }
 
-        Log.d("HomeActivity", "연속 성공: $streak일")
+        Log.d("HomeActivity", "연속 성공: ${streak}일")
     }
 
     private fun startFloatingAnimation() {

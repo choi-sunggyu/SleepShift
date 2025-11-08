@@ -249,20 +249,98 @@ class NightRoutineActivity : AppCompatActivity() {
     private fun showAlarmTimePicker(currentTime: String) {
         TimePickerUtil.showAlarmTimePicker(
             context = this,
-            title = "기상 시간 선택",
+            title = "기상 시간 선택 (오늘만)",
             initialTime = currentTime
         ) { hour, minute, timeString ->
             if (timeString != currentTime) {
+                // ⭐ 원래 알람 시간 저장 (최초 1회만)
+                val originalAlarmTime = sharedPreferences.getString("original_alarm_time", null)
+                if (originalAlarmTime == null) {
+                    sharedPreferences.edit().putString("original_alarm_time", currentTime).apply()
+                    Log.d(TAG, "✅ 원래 알람 시간 저장: $currentTime")
+                }
+
                 // 1. ViewModel에서 코인 차감 및 데이터 저장
                 viewModel.changeAlarmTime(timeString, hour, minute)
 
-                // 2. ⭐⭐⭐ 실제 알람 설정
+                // 2. ⭐⭐⭐ 오늘만 변경된 시간으로 알람 설정
                 setOneTimeAlarm(hour, minute, timeString)
 
-                Log.d(TAG, "알람 시간 변경 완료: $timeString")
+                // 3. ⭐⭐⭐ 내일부터는 원래 시간으로 복구되도록 설정
+                scheduleOriginalAlarmForTomorrow()
+
+                Log.d(TAG, "알람 시간 변경 완료 (일회성): $timeString")
             } else {
                 Toast.makeText(this, "알람 시간이 동일합니다", Toast.LENGTH_SHORT).show()
             }
+        }
+    }
+
+    private fun scheduleOriginalAlarmForTomorrow() {
+        try {
+            val originalTime = sharedPreferences.getString("original_alarm_time", null)
+            if (originalTime == null) {
+                Log.w(TAG, "⚠️ 원래 알람 시간이 저장되지 않음")
+                return
+            }
+
+            // 원래 시간 파싱
+            val timeParts = originalTime.split(":")
+            val originalHour = timeParts[0].toInt()
+            val originalMinute = timeParts[1].toInt()
+
+            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+            val intent = Intent(this, com.example.sleepshift.feature.alarm.AlarmReceiver::class.java).apply {
+                action = "com.example.sleepshift.ALARM_TRIGGER"
+            }
+
+            val pendingIntent = PendingIntent.getBroadcast(
+                this,
+                1000,  // 동일한 ID 사용 (덮어쓰기)
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            // ⭐ 내일 원래 시간으로 설정
+            val calendar = Calendar.getInstance().apply {
+                add(Calendar.DAY_OF_MONTH, 1)  // 내일
+                set(Calendar.HOUR_OF_DAY, originalHour)
+                set(Calendar.MINUTE, originalMinute)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            Log.d(TAG, "🔄 내일부터 원래 시간으로 복구 설정")
+            Log.d(TAG, "  - 원래 알람 시간: $originalTime")
+            Log.d(TAG, "  - 복구될 시간: ${dateFormat.format(calendar.time)}")
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (alarmManager.canScheduleExactAlarms()) {
+                    alarmManager.setAlarmClock(
+                        AlarmManager.AlarmClockInfo(calendar.timeInMillis, pendingIntent),
+                        pendingIntent
+                    )
+                    Log.d(TAG, "✅ 원래 시간 복구 알람 설정 완료")
+                }
+            } else {
+                alarmManager.setAlarmClock(
+                    AlarmManager.AlarmClockInfo(calendar.timeInMillis, pendingIntent),
+                    pendingIntent
+                )
+                Log.d(TAG, "✅ 원래 시간 복구 알람 설정 완료")
+            }
+
+            // ⭐ ViewModel에도 원래 시간으로 복구
+            viewModel.changeAlarmTime(originalTime, originalHour, originalMinute)
+
+            Log.d(TAG, "✅ ViewModel 알람 시간도 원래대로 복구: $originalTime")
+            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ 원래 시간 복구 실패", e)
         }
     }
 

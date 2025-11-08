@@ -158,18 +158,17 @@ class DailyAlarmManager(private val context: Context) {
         val targetBedtime = targetWakeTime.minusMinutes(targetSleepMinutes.toLong())
 
         Log.d("DailyAlarmManager", """
-            ==================
-            계산 시작 (Day $currentDay)
-            현재 취침: ${timeToString(currentBedtime)}
-            현재 기상: ${timeToString(currentWakeTime)}
-            목표 취침: ${timeToString(targetBedtime)}
-            목표 기상: ${timeToString(targetWakeTime)}
-            목표 수면: ${targetSleepMinutes}분
-        """.trimIndent())
+        ==================
+        계산 시작 (Day $currentDay)
+        현재 취침: ${timeToString(currentBedtime)}
+        현재 기상: ${timeToString(currentWakeTime)}
+        목표 취침: ${timeToString(targetBedtime)}
+        목표 기상: ${timeToString(targetWakeTime)}
+        목표 수면: ${targetSleepMinutes}분
+    """.trimIndent())
 
         // 분 단위 변환 (자정 기준)
         val currentBedMinutes = toMinutesFromMidnight(currentBedtime)
-        val currentWakeMinutes = toMinutesFromMidnight(currentWakeTime)
         val targetBedMinutes = toMinutesFromMidnight(targetBedtime)
         val targetWakeMinutes = toMinutesFromMidnight(targetWakeTime)
 
@@ -177,77 +176,46 @@ class DailyAlarmManager(private val context: Context) {
         val normalizedCurrentBed = normalizeBedtime(currentBedMinutes)
         val normalizedTargetBed = normalizeBedtime(targetBedMinutes)
 
-        // 차이 계산
+        // ⭐ 취침 시간만 조정 대상으로 계산
         val bedtimeDiff = calculateAdjustmentNeeded(normalizedCurrentBed, normalizedTargetBed)
-        val waketimeDiff = calculateAdjustmentNeeded(currentWakeMinutes, targetWakeMinutes)
 
         Log.d("DailyAlarmManager", """
-            취침 차이: ${bedtimeDiff}분 (${bedtimeDiff/60}시간 ${bedtimeDiff%60}분)
-            기상 차이: ${waketimeDiff}분 (${waketimeDiff/60}시간 ${waketimeDiff%60}분)
-        """.trimIndent())
+        취침 차이: ${bedtimeDiff}분 (${bedtimeDiff/60}시간 ${bedtimeDiff%60}분)
+    """.trimIndent())
 
         // 필요한 일수
         val daysForBedtime = (bedtimeDiff + ADJUSTMENT_INTERVAL_MINUTES - 1) / ADJUSTMENT_INTERVAL_MINUTES
-        val daysForWaketime = (waketimeDiff + ADJUSTMENT_INTERVAL_MINUTES - 1) / ADJUSTMENT_INTERVAL_MINUTES
 
         Log.d("DailyAlarmManager", """
-            취침 목표까지: ${daysForBedtime}일
-            기상 목표까지: ${daysForWaketime}일
-        """.trimIndent())
+        취침 목표까지: ${daysForBedtime}일
+    """.trimIndent())
 
         var todayBedMinutes: Int
-        var todayWakeMinutes: Int
+        val todayWakeMinutes: Int
 
+        // ⭐⭐⭐ 기상시간은 항상 목표 시간으로 고정
+        todayWakeMinutes = targetWakeMinutes
+
+        // ⭐⭐⭐ 취침시간만 점진적으로 조정
         when {
-            // 둘 다 이미 목표 도달
-            bedtimeDiff == 0 && waketimeDiff == 0 -> {
+            // 이미 목표 도달
+            bedtimeDiff == 0 -> {
                 Log.d("DailyAlarmManager", "목표 도달 완료 - 고정")
                 todayBedMinutes = targetBedMinutes
-                todayWakeMinutes = targetWakeMinutes
             }
 
-            // 둘 다 조정 필요
-            currentDay <= daysForBedtime && currentDay <= daysForWaketime -> {
-                Log.d("DailyAlarmManager", "단계 1: 둘 다 조정 중")
-
-                // 취침 조정
-                if (bedtimeDiff > 0) {
-                    val adjustment = min(currentDay * ADJUSTMENT_INTERVAL_MINUTES, bedtimeDiff)
-                    todayBedMinutes = adjustTimeBackward(normalizedCurrentBed, adjustment)
-                    todayBedMinutes = denormalizeBedtime(todayBedMinutes)
-                } else {
-                    todayBedMinutes = targetBedMinutes
-                }
-
-                // 기상 조정
-                if (waketimeDiff > 0) {
-                    val adjustment = min(currentDay * ADJUSTMENT_INTERVAL_MINUTES, waketimeDiff)
-                    todayWakeMinutes = adjustTimeBackward(currentWakeMinutes, adjustment)
-                } else {
-                    todayWakeMinutes = targetWakeMinutes
-                }
+            // 취침 조정 중
+            currentDay <= daysForBedtime && bedtimeDiff > 0 -> {
+                Log.d("DailyAlarmManager", "취침시간 조정 중 (Day $currentDay/$daysForBedtime)")
+                val adjustment = min(currentDay * ADJUSTMENT_INTERVAL_MINUTES, bedtimeDiff)
+                todayBedMinutes = adjustTimeBackward(normalizedCurrentBed, adjustment)
+                todayBedMinutes = denormalizeBedtime(todayBedMinutes)
             }
 
-            // 한쪽만 조정 필요
+            // 목표 도달 완료
             else -> {
-                Log.d("DailyAlarmManager", "단계 2: 한쪽만 조정 중")
-
-                // 취침
-                if (currentDay <= daysForBedtime && bedtimeDiff > 0) {
-                    val adjustment = min(currentDay * ADJUSTMENT_INTERVAL_MINUTES, bedtimeDiff)
-                    todayBedMinutes = adjustTimeBackward(normalizedCurrentBed, adjustment)
-                    todayBedMinutes = denormalizeBedtime(todayBedMinutes)
-                } else {
-                    todayBedMinutes = targetBedMinutes
-                }
-
-                // 기상
-                if (currentDay <= daysForWaketime && waketimeDiff > 0) {
-                    val adjustment = min(currentDay * ADJUSTMENT_INTERVAL_MINUTES, waketimeDiff)
-                    todayWakeMinutes = adjustTimeBackward(currentWakeMinutes, adjustment)
-                } else {
-                    todayWakeMinutes = targetWakeMinutes
-                }
+                Log.d("DailyAlarmManager", "목표 도달 완료")
+                todayBedMinutes = targetBedMinutes
             }
         }
 
@@ -255,11 +223,11 @@ class DailyAlarmManager(private val context: Context) {
         val todayWakeTime = minutesToLocalTime(todayWakeMinutes)
 
         Log.d("DailyAlarmManager", """
-            결과:
-            취침: ${timeToString(todayBedtime)}
-            기상: ${timeToString(todayWakeTime)}
-            ==================
-        """.trimIndent())
+        결과:
+        취침: ${timeToString(todayBedtime)}
+        기상: ${timeToString(todayWakeTime)} ⭐ 고정됨
+        ==================
+    """.trimIndent())
 
         return Pair(todayBedtime, todayWakeTime)
     }

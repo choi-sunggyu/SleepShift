@@ -74,7 +74,7 @@
 
         <!-- 서브 텍스트 -->
         <TextView
-            android:text="개인 성향과 목표에 맞춰 수면 습관을 설계합니다"
+            android:text="매일 20분씩 당겨지는 취침시간을 통해\n부담없이 사용해요."
             android:textSize="16sp"
             android:textColor="@color/text_secondary"
             android:fontFamily="@font/maplestory_light"

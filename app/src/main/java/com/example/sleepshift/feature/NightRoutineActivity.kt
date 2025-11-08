@@ -345,10 +345,19 @@ class NightRoutineActivity : AppCompatActivity() {
     }
 
     /**
-     * ⭐⭐⭐ 일회성 알람 설정
+     * ⭐⭐⭐ 일회성 알람 설정 (체크인 완료 시에만)
      */
     private fun setOneTimeAlarm(hour: Int, minute: Int, timeString: String) {
         try {
+            // ⭐⭐⭐ 체크인 플래그 설정 (오늘 날짜와 함께)
+            val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+            sharedPreferences.edit().apply {
+                putBoolean("alarm_authorized", true)  // 알람 허가
+                putString("alarm_authorized_date", today)  // 허가 날짜
+                apply()
+            }
+            Log.d(TAG, "✅ 알람 허가 설정: $today")
+
             val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
             // AlarmReceiver Intent
@@ -363,7 +372,7 @@ class NightRoutineActivity : AppCompatActivity() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            // ⭐⭐⭐ 알람 시간 계산 (수정)
+            // ⭐⭐⭐ 알람 시간 계산
             val calendar = Calendar.getInstance().apply {
                 set(Calendar.HOUR_OF_DAY, hour)
                 set(Calendar.MINUTE, minute)
@@ -437,30 +446,6 @@ class NightRoutineActivity : AppCompatActivity() {
         }
     }
 
-    private fun showInsufficientCoinsDialog(shortage: Int) {
-        val currentCoins = viewModel.getCoinCount()
-
-        AlertDialog.Builder(this)
-            .setTitle("곰젤리 부족")
-            .setMessage(
-                "알람 시간을 변경하려면\n곰젤리 ${NightRoutineConstants.ALARM_CHANGE_COST}개가 필요합니다.\n\n" +
-                        "현재 보유: ${currentCoins}개\n" +
-                        "부족: ${shortage}개"
-            )
-            .setPositiveButton("확인", null)
-            .show()
-    }
-
-    private fun showAlarmChangeSuccess(coins: Int, time: String) {
-        Toast.makeText(
-            this,
-            "✅ 알람 시간 변경 완료!\n곰젤리 -${NightRoutineConstants.ALARM_CHANGE_COST}개 (잔여: ${coins}개)",
-            Toast.LENGTH_LONG
-        ).show()
-
-        Log.d(TAG, "알람 변경 완료: $time, 잔여 코인: $coins")
-    }
-
     /**
      * ⭐⭐⭐ 수면 체크인 (잠금 화면으로 이동)
      */
@@ -475,11 +460,16 @@ class NightRoutineActivity : AppCompatActivity() {
             val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
             val currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
 
+            // ⭐⭐⭐ 체크인 플래그 저장
             sharedPreferences.edit().apply {
                 putBoolean("bedtime_success_$today", true)
                 putString("actual_bedtime_$today", currentTime)
+                putString("last_sleep_checkin_date", today)
+                putBoolean("has_checked_in_today", true)
                 apply()
             }
+
+            Log.d(TAG, "✅ 수면 체크인 기록: $today $currentTime")
 
             // ⭐⭐⭐ 알람 볼륨 최대로 설정
             setAlarmVolumeToMax()
@@ -508,6 +498,30 @@ class NightRoutineActivity : AppCompatActivity() {
             Log.e(TAG, "❌ 수면 체크인 중 오류 발생", e)
             Toast.makeText(this, "오류가 발생했습니다: ${e.message}", Toast.LENGTH_LONG).show()
         }
+    }
+
+    private fun showInsufficientCoinsDialog(shortage: Int) {
+        val currentCoins = viewModel.getCoinCount()
+
+        AlertDialog.Builder(this)
+            .setTitle("곰젤리 부족")
+            .setMessage(
+                "알람 시간을 변경하려면\n곰젤리 ${NightRoutineConstants.ALARM_CHANGE_COST}개가 필요합니다.\n\n" +
+                        "현재 보유: ${currentCoins}개\n" +
+                        "부족: ${shortage}개"
+            )
+            .setPositiveButton("확인", null)
+            .show()
+    }
+
+    private fun showAlarmChangeSuccess(coins: Int, time: String) {
+        Toast.makeText(
+            this,
+            "✅ 알람 시간 변경 완료!\n곰젤리 -${NightRoutineConstants.ALARM_CHANGE_COST}개 (잔여: ${coins}개)",
+            Toast.LENGTH_LONG
+        ).show()
+
+        Log.d(TAG, "알람 변경 완료: $time, 잔여 코인: $coins")
     }
 
     /**

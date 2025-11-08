@@ -89,7 +89,8 @@
                                     android:layout_height="50dp"
                                     android:layout_gravity="center"
                                     android:src="@drawable/ic_paw_coin"
-                                    android:contentDescription="@string/desc_paw_coin" />
+                                    android:contentDescription="@string/desc_paw_coin"
+                                    />
                             </androidx.cardview.widget.CardView>
 
                             <TextView
@@ -273,7 +274,7 @@
                 app:cardBackgroundColor="#FFFFFF">
 
                 <LinearLayout
-                    android:id="@+id/btnSleepCheckin"
+                    android:id="@+id/btnSleepCheckIn"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:background="?android:attr/selectableItemBackground"

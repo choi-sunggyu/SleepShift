@@ -1,534 +1,170 @@
 package com.example.sleepshift.feature
 
-import android.app.AlarmManager
-import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.media.AudioManager
-import android.net.Uri
-import android.os.Build
 import android.os.Bundle
-import android.provider.Settings
 import android.util.Log
-import android.view.View
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.RelativeLayout
-import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
-import androidx.core.content.edit
-import androidx.lifecycle.ViewModelProvider
-import androidx.viewpager2.widget.ViewPager2
-import com.example.sleepshift.R
-import com.example.sleepshift.feature.adapter.MoodPagerAdapter
-import com.example.sleepshift.feature.night.NightRoutineViewModel
-import com.example.sleepshift.feature.survey.TimePickerUtil
-import com.example.sleepshift.service.LockOverlayService
-import com.example.sleepshift.util.NightRoutineConstants
+import com.example.sleepshift.databinding.ActivityNightRoutineBinding
+import com.example.sleepshift.util.DailyAlarmManager
 import java.text.SimpleDateFormat
 import java.util.*
 
 class NightRoutineActivity : AppCompatActivity() {
 
-    private lateinit var viewModel: NightRoutineViewModel
-    private lateinit var sharedPreferences: SharedPreferences
-
-    // Views
-    private lateinit var tvPawCoinCount: TextView
-    private lateinit var btnSettings: ImageView
-    private lateinit var viewPagerMood: ViewPager2
-    private lateinit var tvSelectedMood: TextView
-    private lateinit var indicatorLayout: LinearLayout
-    private lateinit var alarmTimeSection: RelativeLayout
-    private lateinit var tvAlarmTime: TextView
-    private lateinit var btnSleepCheckIn: LinearLayout
-
-    // Adapter
-    private lateinit var moodAdapter: MoodPagerAdapter
-    private var selectedMoodPosition = NightRoutineConstants.DEFAULT_MOOD_POSITION
+    private lateinit var binding: ActivityNightRoutineBinding
+    private lateinit var sharedPreferences: android.content.SharedPreferences
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_night_routine)
+        binding = ActivityNightRoutineBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         sharedPreferences = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
 
-        viewModel = ViewModelProvider(this)[NightRoutineViewModel::class.java]
+        setupUI()
 
-        initViews()
-        setupMoodViewPager()
-        setupClickListeners()
-        observeViewModel()
+        Log.d("NightRoutine", "나이트 루틴 시작")
     }
 
-    private fun initViews() {
-        tvPawCoinCount = findViewById(R.id.tvPawCoinCount)
-        btnSettings = findViewById(R.id.btnSettings)
-        viewPagerMood = findViewById(R.id.viewPagerMood)
-        tvSelectedMood = findViewById(R.id.tvSelectedMood)
-        indicatorLayout = findViewById(R.id.indicatorLayout)
-        alarmTimeSection = findViewById(R.id.alarmTimeSection)
-        tvAlarmTime = findViewById(R.id.tvAlarmTime)
-        btnSleepCheckIn = findViewById(R.id.btnSleepCheckIn)
-    }
+    private fun setupUI() {
+        // 목표 취침 시간 표시
+        val targetBedtime = sharedPreferences.getString("today_bedtime", "23:00") ?: "23:00"
+        binding.tvTargetBedtime?.text = "목표 취침 시간: $targetBedtime"
 
-    private fun setupMoodViewPager() {
-        moodAdapter = MoodPagerAdapter()
-        viewPagerMood.adapter = moodAdapter
-
-        // 페이지 트랜스포머
-        viewPagerMood.setPageTransformer { page, position ->
-            val scale = NightRoutineConstants.PAGE_SCALE_MIN +
-                    (1 - kotlin.math.abs(position)) *
-                    (NightRoutineConstants.PAGE_SCALE_MAX - NightRoutineConstants.PAGE_SCALE_MIN)
-            page.scaleY = scale
-        }
-
-        viewPagerMood.setCurrentItem(selectedMoodPosition, false)
-
-        createIndicators()
-
-        viewPagerMood.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
-            override fun onPageSelected(position: Int) {
-                super.onPageSelected(position)
-                selectedMoodPosition = position
-                updateMoodDisplay()
-                updateIndicators()
-            }
-        })
-
-        updateMoodDisplay()
-        updateIndicators()
-    }
-
-    private fun createIndicators() {
-        indicatorLayout.removeAllViews()
-
-        for (i in 0 until NightRoutineConstants.MOOD_COUNT) {
-            val indicator = View(this)
-            val size = dpToPx(NightRoutineConstants.INDICATOR_SIZE_DP)
-            val margin = dpToPx(NightRoutineConstants.INDICATOR_MARGIN_DP)
-
-            val layoutParams = LinearLayout.LayoutParams(size, size)
-            layoutParams.setMargins(margin, 0, margin, 0)
-
-            indicator.layoutParams = layoutParams
-            indicator.background = ContextCompat.getDrawable(this, R.drawable.indicator_inactive)
-
-            indicatorLayout.addView(indicator)
+        // 수면 체크인 버튼
+        binding.btnSleepCheckin.setOnClickListener {
+            performSleepCheckin()
         }
     }
 
-    private fun updateIndicators() {
-        for (i in 0 until indicatorLayout.childCount) {
-            val indicator = indicatorLayout.getChildAt(i)
-            val drawable = if (i == selectedMoodPosition) {
-                R.drawable.indicator_active
-            } else {
-                R.drawable.indicator_inactive
-            }
-            indicator.background = ContextCompat.getDrawable(this, drawable)
-        }
-    }
+    // 수면 체크인 수행
+    private fun performSleepCheckin() {
+        Log.d("NightRoutine", "==================")
+        Log.d("NightRoutine", "수면 체크인 시작")
 
-    private fun updateMoodDisplay() {
-        val currentMood = moodAdapter.getMoodAt(selectedMoodPosition)
-        tvSelectedMood.text = currentMood.moodName
-    }
+        val currentTime = System.currentTimeMillis()
+        val today = getTodayDateString()
+        val timeString = getCurrentTimeString()
 
-    private fun setupClickListeners() {
-        btnSettings.setOnClickListener {
-            startActivity(Intent(this, SettingsActivity::class.java))
-        }
+        Log.d("NightRoutine", "체크인 시간: $timeString")
 
-        alarmTimeSection.setOnClickListener {
-            handleAlarmTimeChange()
-        }
+        // 취침 성공 여부 판정
+        val bedtimeSuccess = checkBedtimeSuccess(timeString)
 
-        btnSleepCheckIn.setOnClickListener {
-            handleSleepCheckIn()
-        }
-    }
-
-    private fun observeViewModel() {
-        viewModel.coinCount.observe(this) { count ->
-            tvPawCoinCount.text = count.toString()
-        }
-
-        viewModel.alarmTime.observe(this) { time ->
-            tvAlarmTime.text = time
-        }
-
-        viewModel.showInsufficientCoinsDialog.observe(this) { shortage ->
-            showInsufficientCoinsDialog(shortage)
-        }
-
-        viewModel.showAlarmChangeSuccess.observe(this) { (coins, time) ->
-            showAlarmChangeSuccess(coins, time)
-        }
-
-        viewModel.showRewardMessage.observe(this) { message ->
-            Toast.makeText(this, message, Toast.LENGTH_LONG).show()
-        }
-    }
-
-    private fun startLockMode() {
-        // 1. 잠금 플래그 설정
-        val lockPrefs = getSharedPreferences("lock_prefs", MODE_PRIVATE)
-        lockPrefs.edit().putBoolean("isLocked", true).apply()
-
-        // 2. 오버레이 권한 확인
-        if (!checkOverlayPermission(this)) {
-            requestOverlayPermission(this)
-            return
-        }
-
-        // 3. 오버레이 서비스 시작
-        LockOverlayService.start(this)
-
-        // 4. LockScreenActivity 시작
-        val intent = Intent(this, LockScreenActivity::class.java)
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        startActivity(intent)
-
-        finish()
-    }
-
-    // 권한 체크 메서드
-    private fun checkOverlayPermission(context: Context): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            Settings.canDrawOverlays(context)
+        if (bedtimeSuccess) {
+            Log.d("NightRoutine", "✅ 목표 시간 내 체크인 - 취침 성공!")
         } else {
-            true
-        }
-    }
-
-    private fun requestOverlayPermission(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val intent = Intent(
-                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                Uri.parse("package:${context.packageName}")
-            )
-            startActivity(intent)
-            Toast.makeText(this, "다른 앱 위에 표시 권한을 허용해주세요", Toast.LENGTH_LONG).show()
-        }
-    }
-
-    /**
-     * ⭐ 알람 시간 변경
-     */
-    private fun handleAlarmTimeChange() {
-        if (!viewModel.canChangeAlarm()) {
-            return
+            Log.d("NightRoutine", "⚠️ 목표 시간 초과 - 취침 늦음")
         }
 
-        val currentTime = viewModel.alarmTime.value ?: "07:00"
-        val currentCoins = viewModel.getCoinCount()
+        // 취침 기록 저장
+        sharedPreferences.edit().apply {
+            putBoolean("bedtime_success_$today", bedtimeSuccess)
+            putString("actual_bedtime_$today", timeString)
+            putLong("bedtime_checkin_time", currentTime)
+            apply()
+        }
 
-        AlertDialog.Builder(this)
-            .setTitle("알람 시간 변경")
-            .setMessage(
-                "알람 시간을 변경하시겠습니까?\n\n" +
-                        "💰 곰젤리 ${NightRoutineConstants.ALARM_CHANGE_COST}개 즉시 차감\n" +
-                        "현재 보유: ${currentCoins}개 → ${currentCoins - NightRoutineConstants.ALARM_CHANGE_COST}개"
-            )
-            .setPositiveButton("변경") { _, _ ->
-                showAlarmTimePicker(currentTime)
-            }
-            .setNegativeButton("취소", null)
-            .show()
+        // 알람 설정
+        setupAlarm()
+
+        // 알람 볼륨 최대로
+        setMaxAlarmVolume()
+
+        // 락스크린으로 이동
+        goToLockScreen()
     }
 
-    /**
-     * ⭐⭐⭐ 알람 시간 선택 및 설정
-     */
-    private fun showAlarmTimePicker(currentTime: String) {
-        TimePickerUtil.showAlarmTimePicker(
-            context = this,
-            title = "기상 시간 선택",
-            initialTime = currentTime
-        ) { hour, minute, timeString ->
-            if (timeString != currentTime) {
-                // 1. ViewModel에서 코인 차감 및 데이터 저장
-                viewModel.changeAlarmTime(timeString, hour, minute)
+    // 취침 성공 판정 (목표 시간보다 일찍 체크인했는지)
+    private fun checkBedtimeSuccess(currentTimeString: String): Boolean {
+        val targetBedtime = sharedPreferences.getString("today_bedtime", "23:00") ?: "23:00"
 
-                // 2. ⭐⭐⭐ 실제 알람 설정
-                setOneTimeAlarm(hour, minute, timeString)
+        return try {
+            val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+            val currentTime = sdf.parse(currentTimeString)
+            val targetTime = sdf.parse(targetBedtime)
 
-                Log.d(TAG, "알람 시간 변경 완료: $timeString")
+            if (currentTime != null && targetTime != null) {
+                // 목표 시간 이전이거나 같으면 성공
+                val success = currentTime.time <= targetTime.time
+                Log.d("NightRoutine", "목표: $targetBedtime vs 실제: $currentTimeString = $success")
+                success
             } else {
-                Toast.makeText(this, "알람 시간이 동일합니다", Toast.LENGTH_SHORT).show()
+                false
             }
-        }
-    }
-
-    /**
-     * ⭐⭐⭐ 일회성 알람 설정
-     */
-    private fun setOneTimeAlarm(hour: Int, minute: Int, timeString: String) {
-        try {
-            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-
-            // AlarmReceiver Intent
-            val intent = Intent(this, com.example.sleepshift.feature.alarm.AlarmReceiver::class.java).apply {
-                action = "com.example.sleepshift.ALARM_TRIGGER"
-            }
-
-            val pendingIntent = PendingIntent.getBroadcast(
-                this,
-                1000,  // 일회성 알람용 고유 ID
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-
-            // ⭐⭐⭐ 알람 시간 계산 (수정)
-            val calendar = Calendar.getInstance().apply {
-                set(Calendar.HOUR_OF_DAY, hour)
-                set(Calendar.MINUTE, minute)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }
-
-            val now = Calendar.getInstance()
-
-            // ⭐ 현재 시간과 비교하여 다음날로 설정할지 결정
-            if (calendar.timeInMillis <= now.timeInMillis) {
-                // 설정한 시간이 현재 시간보다 이전이면 다음날로
-                calendar.add(Calendar.DAY_OF_MONTH, 1)
-                Log.d(TAG, "⚠️ 설정 시간이 과거이므로 다음날로 설정")
-            }
-
-            val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
-            Log.d(TAG, "⏰ 일회성 알람 설정 시작")
-            Log.d(TAG, "  - 설정 시간: $timeString")
-            Log.d(TAG, "  - 현재 시간: ${dateFormat.format(now.time)}")
-            Log.d(TAG, "  - 알람 울릴 시간: ${dateFormat.format(calendar.time)}")
-
-            val timeDiff = (calendar.timeInMillis - now.timeInMillis) / 1000 / 60
-            Log.d(TAG, "  - 알람까지 남은 시간: ${timeDiff}분")
-
-            // ⭐ 알람 시간이 너무 가까우면 경고
-            if (timeDiff < 5) {
-                Log.w(TAG, "⚠️ 알람 시간이 너무 가깝습니다! (${timeDiff}분 후)")
-                Toast.makeText(
-                    this,
-                    "알람이 ${timeDiff}분 후에 울립니다. 시간을 확인해주세요!",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-
-            // 정확한 알람 설정
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                if (alarmManager.canScheduleExactAlarms()) {
-                    alarmManager.setAlarmClock(
-                        AlarmManager.AlarmClockInfo(calendar.timeInMillis, pendingIntent),
-                        pendingIntent
-                    )
-                    Log.d(TAG, "✅ setAlarmClock 호출 완료 (Android 12+)")
-                } else {
-                    Log.w(TAG, "⚠️ 정확한 알람 권한 없음 - 권한 요청")
-                    startActivity(Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM))
-                    Toast.makeText(this, "정확한 알람 권한을 허용해주세요", Toast.LENGTH_LONG).show()
-                    return
-                }
-            } else {
-                alarmManager.setAlarmClock(
-                    AlarmManager.AlarmClockInfo(calendar.timeInMillis, pendingIntent),
-                    pendingIntent
-                )
-                Log.d(TAG, "✅ setAlarmClock 호출 완료 (Android 11 이하)")
-            }
-
-            Log.d(TAG, "✅ 일회성 알람 설정 완료")
-            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
-
-            Toast.makeText(
-                this,
-                "알람이 ${timeString}에 설정되었습니다\n(약 ${timeDiff}분 후)",
-                Toast.LENGTH_LONG
-            ).show()
-
         } catch (e: Exception) {
-            Log.e(TAG, "❌ 알람 설정 실패", e)
-            Toast.makeText(this, "알람 설정에 실패했습니다: ${e.message}", Toast.LENGTH_SHORT).show()
+            Log.e("NightRoutine", "시간 비교 실패", e)
+            false
         }
     }
 
-    private fun showInsufficientCoinsDialog(shortage: Int) {
-        val currentCoins = viewModel.getCoinCount()
+    // 알람 설정
+    private fun setupAlarm() {
+        val currentDay = sharedPreferences.getInt("current_day", 1)
+        val alarmManager = DailyAlarmManager(this)
 
-        AlertDialog.Builder(this)
-            .setTitle("곰젤리 부족")
-            .setMessage(
-                "알람 시간을 변경하려면\n곰젤리 ${NightRoutineConstants.ALARM_CHANGE_COST}개가 필요합니다.\n\n" +
-                        "현재 보유: ${currentCoins}개\n" +
-                        "부족: ${shortage}개"
-            )
-            .setPositiveButton("확인", null)
-            .show()
-    }
+        val success = alarmManager.updateDailyAlarm(currentDay)
 
-    private fun showAlarmChangeSuccess(coins: Int, time: String) {
-        Toast.makeText(
-            this,
-            "✅ 알람 시간 변경 완료!\n곰젤리 -${NightRoutineConstants.ALARM_CHANGE_COST}개 (잔여: ${coins}개)",
-            Toast.LENGTH_LONG
-        ).show()
-
-        Log.d(TAG, "알람 변경 완료: $time, 잔여 코인: $coins")
-    }
-
-    /**
-     * ⭐⭐⭐ 수면 체크인 (잠금 화면으로 이동)
-     */
-    private fun handleSleepCheckIn() {
-        try {
-            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
-            Log.d(TAG, "✅ 수면 체크인 시작")
-
-            val currentMood = moodAdapter.getMoodAt(selectedMoodPosition)
-            viewModel.processSleepCheckIn(currentMood.moodName, selectedMoodPosition)
-
-            val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-            val currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
-
-            sharedPreferences.edit().apply {
-                putBoolean("bedtime_success_$today", true)
-                putString("actual_bedtime_$today", currentTime)
-                apply()
-            }
-
-            // ⭐⭐⭐ 알람 볼륨 최대로 설정
-            setAlarmVolumeToMax()
-
-            // 잠금 상태 저장
-            val lockPrefs = getSharedPreferences("lock_prefs", MODE_PRIVATE)
-            lockPrefs.edit {
-                putBoolean("isLocked", true)
-            }
-            Log.d(TAG, "✅ 잠금 상태 저장 완료")
-
-            // LockMonitoringService 시작
-            startLockMonitoringService()
-
-            // 잠금 화면으로 이동
-            val intent = Intent(this, LockScreenActivity::class.java)
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            startActivity(intent)
-            Log.d(TAG, "✅ LockScreenActivity 시작")
-
-            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
-
-            finish()
-
-        } catch (e: Exception) {
-            Log.e(TAG, "❌ 수면 체크인 중 오류 발생", e)
-            Toast.makeText(this, "오류가 발생했습니다: ${e.message}", Toast.LENGTH_LONG).show()
+        if (success) {
+            Log.d("NightRoutine", "알람 설정 완료 (Day $currentDay)")
+            Toast.makeText(this, "알람이 설정되었습니다", Toast.LENGTH_SHORT).show()
+        } else {
+            Log.e("NightRoutine", "알람 설정 실패 - 권한 확인 필요")
+            Toast.makeText(this, "알람 설정 실패\n권한을 확인해주세요", Toast.LENGTH_LONG).show()
         }
     }
 
-    /**
-     * ⭐⭐⭐ 알람 볼륨 최대로 설정
-     */
-    private fun setAlarmVolumeToMax() {
+    // 알람 볼륨 최대로 설정
+    private fun setMaxAlarmVolume() {
         try {
             val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-
-            // 현재 볼륨 저장 (나중에 복원용)
             val currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_ALARM)
             val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
 
-            // SharedPreferences에 원래 볼륨 저장
-            val prefs = getSharedPreferences("SleepShiftPrefs", MODE_PRIVATE)
-            prefs.edit().putInt("original_alarm_volume", currentVolume).apply()
+            // 원래 볼륨 저장 (한번만)
+            if (!sharedPreferences.contains("original_alarm_volume")) {
+                sharedPreferences.edit().putInt("original_alarm_volume", currentVolume).apply()
+                Log.d("NightRoutine", "원래 볼륨 저장: $currentVolume")
+            }
 
-            // 알람 볼륨 최대로
-            audioManager.setStreamVolume(
-                AudioManager.STREAM_ALARM,
-                maxVolume,
-                0  // FLAG 없음 (조용히 변경)
-            )
-
-            Log.d(TAG, "🔊 알람 볼륨: $currentVolume → $maxVolume (최대)")
-            Toast.makeText(this, "알람 볼륨이 최대로 설정되었습니다", Toast.LENGTH_SHORT).show()
+            // 볼륨을 최대로
+            audioManager.setStreamVolume(AudioManager.STREAM_ALARM, maxVolume, 0)
+            Log.d("NightRoutine", "알람 볼륨 최대로 설정: $currentVolume -> $maxVolume")
         } catch (e: Exception) {
-            Log.e(TAG, "❌ 알람 볼륨 설정 실패", e)
+            Log.e("NightRoutine", "볼륨 설정 실패", e)
         }
     }
 
-    /**
-     * ⭐⭐⭐ LockMonitoringService 시작
-     */
-    private fun startLockMonitoringService() {
-        try {
-            val serviceIntent = Intent(this, com.example.sleepshift.service.LockMonitoringService::class.java)
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(serviceIntent)
-                Log.d(TAG, "✅ LockMonitoringService (Foreground) 시작")
-            } else {
-                startService(serviceIntent)
-                Log.d(TAG, "✅ LockMonitoringService 시작")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "❌ LockMonitoringService 시작 실패", e)
-            Toast.makeText(this, "모니터링 서비스 시작 실패", Toast.LENGTH_SHORT).show()
+    // 락스크린으로 이동
+    private fun goToLockScreen() {
+        // 잠금 플래그 설정
+        val lockPrefs = getSharedPreferences("lock_prefs", MODE_PRIVATE)
+        lockPrefs.edit().apply {
+            putBoolean("isLocked", true)
+            putBoolean("is_sleep_mode", true)
+            apply()
         }
+
+        Log.d("NightRoutine", "락스크린으로 이동 (수면 모드)")
+
+        val intent = Intent(this, LockScreenActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        finish()
     }
 
-
-    /**
-     * Accessibility 권한 요청 다이얼로그
-     */
-    private fun showAccessibilityPermissionDialog() {
-        AlertDialog.Builder(this)
-            .setTitle("접근성 권한 필요")
-            .setMessage("다른 앱 차단 기능을 사용하려면 접근성 서비스를 활성화해야 합니다.\n\n" +
-                    "📱 설정 방법:\n" +
-                    "1. 설정 앱 열기\n" +
-                    "2. 접근성 메뉴 진입\n" +
-                    "3. '다운로드한 앱' 또는 '설치된 서비스' 찾기\n" +
-                    "4. 'Dozeo 수면 잠금' 또는 'SleepShift' 찾아서 활성화\n\n" +
-                    "활성화 후 앱으로 돌아와 다시 시도해주세요.")
-            .setPositiveButton("설정으로 이동") { _, _ ->
-                try {
-                    val intent = Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)
-                    startActivity(intent)
-                    Toast.makeText(this, "접근성 설정에서 'Dozeo 수면 잠금'을 활성화해주세요", Toast.LENGTH_LONG).show()
-                } catch (e: Exception) {
-                    Log.e(TAG, "설정 화면 열기 실패", e)
-                    Toast.makeText(this, "설정 화면을 열 수 없습니다", Toast.LENGTH_SHORT).show()
-                }
-            }
-            .setNegativeButton("나중에") { dialog, _ ->
-                dialog.dismiss()
-                Toast.makeText(this, "접근성 권한 없이는 다른 앱 차단 기능을 사용할 수 없습니다", Toast.LENGTH_LONG).show()
-            }
-            .setCancelable(false)
-            .show()
+    // 오늘 날짜 (yyyy-MM-dd)
+    private fun getTodayDateString(): String {
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        return sdf.format(Date())
     }
 
-
-    private fun dpToPx(dp: Int): Int {
-        return (dp * resources.displayMetrics.density).toInt()
-    }
-
-    override fun onResume() {
-        super.onResume()
-        // ⭐ 코인 업데이트 (알람 변경 후 돌아왔을 때 반영)
-        val sharedPreferences = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
-        val currentCoins = sharedPreferences.getInt("paw_coin_count", 0)
-        tvPawCoinCount.text = currentCoins.toString()
-
-        Log.d(TAG, "onResume - 코인 업데이트: $currentCoins")
-    }
-
-    companion object {
-        private const val TAG = "NightRoutineActivity"
+    // 현재 시간 (HH:mm)
+    private fun getCurrentTimeString(): String {
+        val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+        return sdf.format(Date())
     }
 }

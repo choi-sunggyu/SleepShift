@@ -25,14 +25,11 @@ import com.example.sleepshift.feature.SettingsActivity
 import com.example.sleepshift.feature.LockScreenActivity
 import com.example.sleepshift.permission.PermissionManager
 import com.example.sleepshift.util.Constants
-import com.example.sleepshift.util.DailyAlarmManager
-import java.util.*
 
 class HomeActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityHomeBinding
     private val viewModel: HomeViewModel by viewModels()
-    private lateinit var alarmManager: DailyAlarmManager
     private lateinit var permissionManager: PermissionManager
     private var floatingAnimator: ObjectAnimator? = null
     private val progressDots = mutableListOf<android.view.View>()
@@ -71,9 +68,8 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun initializeManagers() {
-        alarmManager = DailyAlarmManager(this)
         permissionManager = PermissionManager(this) {
-            setupDailyAlarmIfNeeded()
+            // 권한 승인 콜백 (비어있음 - 알람은 나이트루틴에서 설정)
         }
     }
 
@@ -130,7 +126,7 @@ class HomeActivity : AppCompatActivity() {
             val intent = Intent(this, NightRoutineActivity::class.java)
             startActivity(intent)
 
-            Log.d("HomeActivity", "나이트 루틴 시작")
+            Log.d("HomeActivity", "나이트 루틴 이동")
         }
 
         binding.btnCalendar.setOnClickListener {
@@ -154,7 +150,7 @@ class HomeActivity : AppCompatActivity() {
             progressDots[i].setBackgroundResource(R.drawable.progress_dot_active)
         }
 
-        Log.d("HomeActivity", "연속 성공: ${streak}일")
+        Log.d("HomeActivity", "연속 성공: $streak일")
     }
 
     private fun startFloatingAnimation() {
@@ -223,7 +219,7 @@ class HomeActivity : AppCompatActivity() {
             .setCancelable(false)
             .show()
 
-        Log.d("HomeActivity", "3일 연속 달성! (총 ${totalCompletions}회)")
+        Log.d("HomeActivity", "3일 연속 달성 (총 ${totalCompletions}회)")
     }
 
     // 잠금 상태 확인
@@ -237,25 +233,6 @@ class HomeActivity : AppCompatActivity() {
             val intent = Intent(this, LockScreenActivity::class.java)
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             startActivity(intent)
-        }
-    }
-
-    // 알람 설정 (필요시)
-    private fun setupDailyAlarmIfNeeded() {
-        if (!viewModel.isSurveyCompleted()) {
-            Log.d("HomeActivity", "설문 미완료 - 알람 설정 스킵")
-            return
-        }
-
-        if (viewModel.shouldSetupAlarm()) {
-            val currentDay = viewModel.currentDay.value ?: 1
-            val success = alarmManager.updateDailyAlarm(currentDay)
-
-            if (success) {
-                Log.d("HomeActivity", "알람 설정 성공")
-            } else {
-                Log.e("HomeActivity", "알람 설정 실패 - 권한 확인 필요")
-            }
         }
     }
 
@@ -277,7 +254,7 @@ class HomeActivity : AppCompatActivity() {
             val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(channel)
 
-            Log.d("HomeActivity", "알람 채널 생성됨")
+            Log.d("HomeActivity", "알람 채널 생성")
         }
     }
 
@@ -362,7 +339,7 @@ class HomeActivity : AppCompatActivity() {
         viewModel.updateAllData()
         startFloatingAnimation()
 
-        // 잠금 상태 체크 (백그라운드에서 돌아왔을 때)
+        // 잠금 상태 체크
         if (!isTaskRoot) {
             checkAndShowLockScreen()
         }

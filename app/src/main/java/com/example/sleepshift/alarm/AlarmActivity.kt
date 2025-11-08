@@ -43,9 +43,10 @@ class AlarmActivity : AppCompatActivity() {
 
         sharedPreferences = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
 
-        setAlarmVolumeToMax()
+        // 알람 볼륨 최대로 (혹시 모를 상황 대비)
+        setMaxAlarmVolume()
 
-        // 알람 시작하면 바로 플래그 설정
+        // 알람 플래그 설정
         setAlarmFlags()
 
         setupFullScreenAlarm()
@@ -66,8 +67,6 @@ class AlarmActivity : AppCompatActivity() {
         // 코인 업데이트
         val currentCoins = sharedPreferences.getInt("paw_coin_count", 0)
         binding.tvCoinCount.text = currentCoins.toString()
-
-        Log.d("AlarmActivity", "코인: $currentCoins")
     }
 
     // 알람 플래그 설정
@@ -85,36 +84,6 @@ class AlarmActivity : AppCompatActivity() {
             putBoolean("is_alarm_ringing", false)
         }
         Log.d("AlarmActivity", "알람 플래그 off")
-    }
-
-    /**
-     * ⭐⭐⭐ 알람 볼륨 최대로 설정
-     */
-    private fun setAlarmVolumeToMax() {
-        try {
-            val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-
-            // 현재 볼륨 저장 (나중에 복원용)
-            val currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_ALARM)
-            val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
-
-            // 이미 저장된 볼륨이 없으면 현재 볼륨 저장
-            if (!sharedPreferences.contains("original_alarm_volume")) {
-                sharedPreferences.edit().putInt("original_alarm_volume", currentVolume).apply()
-                Log.d("AlarmActivity", "원래 볼륨 저장: $currentVolume")
-            }
-
-            // 알람 볼륨 최대로
-            audioManager.setStreamVolume(
-                AudioManager.STREAM_ALARM,
-                maxVolume,
-                0  // FLAG 없음 (조용히 변경)
-            )
-
-            Log.d("AlarmActivity", "알람 볼륨: $currentVolume -> $maxVolume (최대)")
-        } catch (e: Exception) {
-            Log.e("AlarmActivity", "알람 볼륨 설정 실패", e)
-        }
     }
 
     private fun setupFullScreenAlarm() {
@@ -143,25 +112,13 @@ class AlarmActivity : AppCompatActivity() {
 
     private fun setupUI() {
         val userName = sharedPreferences.getString("user_name", "사용자") ?: "사용자"
-        binding.tvGoodMorningMessage.text = "${userName}님\n좋은 아침 입니다 !"
+        binding.tvGoodMorningMessage.text = "${userName}님\n좋은 아침 입니다!"
 
         val currentCoins = sharedPreferences.getInt("paw_coin_count", 0)
         binding.tvCoinCount.text = currentCoins.toString()
 
         binding.tvUnlockText.text = "알람해제"
         binding.tvUnlockHint.text = "해제를 원하시면 3초간 누르세요"
-
-        // 카운트다운 텍스트 변경
-        binding.countdownSection.findViewById<android.widget.TextView>(R.id.tvCountdown)?.let {
-            val parent = binding.countdownSection
-            for (i in 0 until parent.childCount) {
-                val child = parent.getChildAt(i)
-                if (child is android.widget.TextView && child.text == "길게 눌러서 잠금 해제") {
-                    child.text = "길게 눌러서 알람 해제"
-                    break
-                }
-            }
-        }
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -227,7 +184,7 @@ class AlarmActivity : AppCompatActivity() {
             }
             Log.d("AlarmActivity", "알람음 시작")
         } catch (e: Exception) {
-            Log.e("AlarmActivity", "알람음 실패: ${e.message}")
+            Log.e("AlarmActivity", "알람음 실패", e)
 
             // 백업으로 알림음 사용
             try {
@@ -239,7 +196,7 @@ class AlarmActivity : AppCompatActivity() {
                     start()
                 }
             } catch (e2: Exception) {
-                Log.e("AlarmActivity", "백업 알람음도 실패: ${e2.message}")
+                Log.e("AlarmActivity", "백업 알람음도 실패", e2)
             }
         }
     }
@@ -260,13 +217,16 @@ class AlarmActivity : AppCompatActivity() {
         // 기상 성공 기록
         recordWakeSuccess()
 
-        // 첫 알람인지 확인 (재알람 구분)
+        // 원래 볼륨으로 복원
+        restoreOriginalVolume()
+
+        // 첫 알람인지 확인
         val alarmId = intent.getLongExtra("alarm_id", 0L)
         val savedAlarmId = sharedPreferences.getLong("current_alarm_id", 0L)
         val isFirstAlarm = (alarmId == savedAlarmId)
 
-        Log.d("AlarmActivity", "알람 ID 체크 - 받은거: $alarmId, 저장된거: $savedAlarmId")
-        Log.d("AlarmActivity", "첫 알람? $isFirstAlarm")
+        Log.d("AlarmActivity", "알람 ID: $alarmId vs 저장: $savedAlarmId")
+        Log.d("AlarmActivity", "첫 알람: $isFirstAlarm")
 
         // 첫 알람일때만 플래그 설정
         if (isFirstAlarm) {
@@ -274,12 +234,12 @@ class AlarmActivity : AppCompatActivity() {
                 putBoolean("is_first_alarm_try", true)
                 putLong("morning_routine_start_time", System.currentTimeMillis())
             }
-            Log.d("AlarmActivity", "첫 시도 플래그 설정함")
+            Log.d("AlarmActivity", "첫 시도 플래그 설정")
         } else {
-            Log.d("AlarmActivity", "재알람이라 플래그 안 설정")
+            Log.d("AlarmActivity", "재알람 - 플래그 안 설정")
         }
 
-        // Day 증가하고 다음 알람 설정
+        // Day 증가 및 다음 알람 설정
         incrementDayAndScheduleNextAlarm()
 
         clearAlarmFlags()
@@ -298,28 +258,70 @@ class AlarmActivity : AppCompatActivity() {
         mediaPlayer = null
     }
 
-    /**
-     * 기상 성공 기록
-     */
+    // 알람 볼륨 최대로 설정
+    private fun setMaxAlarmVolume() {
+        try {
+            val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            val currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_ALARM)
+            val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+
+            // 원래 볼륨 저장 (한번만)
+            if (!sharedPreferences.contains("original_alarm_volume")) {
+                sharedPreferences.edit().putInt("original_alarm_volume", currentVolume).apply()
+                Log.d("AlarmActivity", "원래 볼륨 저장: $currentVolume")
+            }
+
+            // 볼륨 최대로
+            audioManager.setStreamVolume(AudioManager.STREAM_ALARM, maxVolume, 0)
+            Log.d("AlarmActivity", "알람 볼륨 최대: $currentVolume -> $maxVolume")
+        } catch (e: Exception) {
+            Log.e("AlarmActivity", "볼륨 설정 실패", e)
+        }
+    }
+
+    // 원래 볼륨으로 복원
+    private fun restoreOriginalVolume() {
+        try {
+            val originalVolume = sharedPreferences.getInt("original_alarm_volume", -1)
+
+            if (originalVolume != -1) {
+                val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                audioManager.setStreamVolume(AudioManager.STREAM_ALARM, originalVolume, 0)
+                Log.d("AlarmActivity", "볼륨 복원: $originalVolume")
+            }
+        } catch (e: Exception) {
+            Log.e("AlarmActivity", "볼륨 복원 실패", e)
+        }
+    }
+
+    // 기상 성공 기록
     private fun recordWakeSuccess() {
         try {
             val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
             val currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
 
+            // 첫 시도인지 확인
+            val alarmId = intent.getLongExtra("alarm_id", 0L)
+            val savedAlarmId = sharedPreferences.getLong("current_alarm_id", 0L)
+            val isFirstAlarm = (alarmId == savedAlarmId)
+
+            // 첫 시도만 기상 성공
+            val wakeSuccess = isFirstAlarm
+
             sharedPreferences.edit().apply {
-                putBoolean("wake_success_$today", true)
+                putBoolean("wake_success_$today", wakeSuccess)
                 putString("actual_waketime_$today", currentTime)
                 apply()
             }
 
-            Log.d("AlarmActivity", "기상 성공 기록: $today $currentTime")
+            if (wakeSuccess) {
+                Log.d("AlarmActivity", "✅ 기상 성공: $today $currentTime")
+            } else {
+                Log.d("AlarmActivity", "❌ 재알람 - 기상 실패: $today $currentTime")
+            }
         } catch (e: Exception) {
             Log.e("AlarmActivity", "기상 기록 실패", e)
         }
-    }
-
-    private fun getCurrentDay(): Int {
-        return sharedPreferences.getInt("current_day", 1)
     }
 
     // Day 증가 및 다음 알람 설정
@@ -339,25 +341,24 @@ class AlarmActivity : AppCompatActivity() {
                 putBoolean("is_one_time_alarm", false)
                 remove("one_time_alarm_time")
             }
-            Log.d("AlarmActivity", "일회성 알람 플래그 제거")
+            Log.d("AlarmActivity", "일회성 알람 제거")
         }
 
         // 다음날 알람 설정
         val alarmManager = DailyAlarmManager(this)
         alarmManager.updateDailyAlarm(nextDay)
 
-        Log.d("AlarmActivity", "Day $nextDay 알람 설정됨")
+        Log.d("AlarmActivity", "Day $nextDay 알람 설정")
     }
 
     // 모닝루틴으로 이동
     private fun goToMorningRoutine() {
-        // 모닝루틴 진입 플래그 설정
         sharedPreferences.edit {
             putBoolean("is_in_morning_routine", true)
             putLong("morning_routine_start_time", System.currentTimeMillis())
         }
 
-        Log.d("AlarmActivity", "모닝루틴 진입 플래그 설정")
+        Log.d("AlarmActivity", "모닝루틴 진입")
 
         Handler(Looper.getMainLooper()).postDelayed({
             val intent = Intent(this, MorningRoutineActivity::class.java)

@@ -1,9 +1,12 @@
 package com.example.sleepshift.feature
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.Gravity
 import android.widget.*
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.example.sleepshift.R
@@ -24,10 +27,12 @@ class ReportActivity : AppCompatActivity() {
     private val calendar = Calendar.getInstance()
     private val today = Calendar.getInstance()
 
-    // ⭐⭐⭐ 수면 성공 데이터
+    // 수면 기록 데이터
     data class DailySleepRecord(
-        val bedtimeSuccess: Boolean,  // 취침 성공 여부
-        val wakeSuccess: Boolean       // 기상 성공 여부
+        val bedtimeSuccess: Boolean,
+        val wakeSuccess: Boolean,
+        val actualBedtime: String?,
+        val actualWaketime: String?
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,6 +46,8 @@ class ReportActivity : AppCompatActivity() {
         updateCalendar()
         updateDayCount()
         updateCoinCount()
+
+        Log.d("ReportActivity", "리포트 화면 시작")
     }
 
     private fun initViews() {
@@ -56,7 +63,7 @@ class ReportActivity : AppCompatActivity() {
     private fun updateDayCount() {
         val currentDay = getCurrentDay()
         tvDayCount.text = "Day $currentDay"
-        android.util.Log.d("ReportActivity", "현재 Day: $currentDay")
+        Log.d("ReportActivity", "Day: $currentDay")
     }
 
     private fun getCurrentDay(): Int {
@@ -73,7 +80,7 @@ class ReportActivity : AppCompatActivity() {
     private fun updateCoinCount() {
         val coinCount = sharedPreferences.getInt("paw_coin_count", 10)
         tvPawCoinCount.text = coinCount.toString()
-        android.util.Log.d("ReportActivity", "코인 개수: $coinCount")
+        Log.d("ReportActivity", "코인: $coinCount")
     }
 
     private fun setupClickListeners() {
@@ -82,12 +89,12 @@ class ReportActivity : AppCompatActivity() {
         }
 
         btnGoToBed.setOnClickListener {
-            val intent = android.content.Intent(this, NightRoutineActivity::class.java)
+            val intent = Intent(this, NightRoutineActivity::class.java)
             startActivity(intent)
         }
 
         btnSettings.setOnClickListener {
-            val intent = android.content.Intent(this, SettingsActivity::class.java)
+            val intent = Intent(this, SettingsActivity::class.java)
             startActivity(intent)
         }
     }
@@ -104,10 +111,12 @@ class ReportActivity : AppCompatActivity() {
         val firstDayOfWeek = firstDayOfMonth.get(Calendar.DAY_OF_WEEK) - 1
         val lastDayOfMonth = firstDayOfMonth.getActualMaximum(Calendar.DAY_OF_MONTH)
 
+        // 빈 칸 추가
         for (i in 0 until firstDayOfWeek) {
             addEmptyDayView()
         }
 
+        // 날짜 추가
         for (day in 1..lastDayOfMonth) {
             addDayView(day)
         }
@@ -117,7 +126,7 @@ class ReportActivity : AppCompatActivity() {
         val emptyView = android.view.View(this)
         val layoutParams = GridLayout.LayoutParams()
         layoutParams.width = 0
-        layoutParams.height = dpToPx(60)  // ⭐ 높이 증가
+        layoutParams.height = dpToPx(60)
         layoutParams.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
         emptyView.layoutParams = layoutParams
         calendarGrid.addView(emptyView)
@@ -129,7 +138,7 @@ class ReportActivity : AppCompatActivity() {
             gravity = Gravity.CENTER
             val layoutParams = GridLayout.LayoutParams()
             layoutParams.width = 0
-            layoutParams.height = dpToPx(60)  // ⭐ 높이 증가
+            layoutParams.height = dpToPx(60)
             layoutParams.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
             layoutParams.setMargins(dpToPx(2), dpToPx(2), dpToPx(2), dpToPx(2))
             this.layoutParams = layoutParams
@@ -158,7 +167,7 @@ class ReportActivity : AppCompatActivity() {
 
         dayContainer.addView(dayText)
 
-        // ⭐⭐⭐ 수면 성공 기록 표시
+        // 수면 성공 기록 표시
         val dateKey = getDateKey(day)
         val sleepRecord = getSleepRecord(dateKey)
         addSleepSuccessIndicators(dayContainer, sleepRecord)
@@ -166,23 +175,20 @@ class ReportActivity : AppCompatActivity() {
         calendarGrid.addView(dayContainer)
     }
 
-    /**
-     * ⭐⭐⭐ 수면 성공 기록 가져오기
-     */
+    // 수면 기록 가져오기
     private fun getSleepRecord(dateKey: String): DailySleepRecord {
-        // SharedPreferences에서 실제 데이터 읽기
         val bedtimeSuccess = sharedPreferences.getBoolean("bedtime_success_$dateKey", false)
         val wakeSuccess = sharedPreferences.getBoolean("wake_success_$dateKey", false)
+        val actualBedtime = sharedPreferences.getString("actual_bedtime_$dateKey", null)
+        val actualWaketime = sharedPreferences.getString("actual_waketime_$dateKey", null)
 
-        return DailySleepRecord(bedtimeSuccess, wakeSuccess)
+        return DailySleepRecord(bedtimeSuccess, wakeSuccess, actualBedtime, actualWaketime)
     }
 
-    /**
-     * ⭐⭐⭐ 취침/기상 성공 아이콘 표시
-     */
+    // 취침/기상 성공 아이콘 표시
     private fun addSleepSuccessIndicators(container: LinearLayout, record: DailySleepRecord) {
         if (!record.bedtimeSuccess && !record.wakeSuccess) {
-            // 기록 없음 - 아무것도 표시 안 함
+            // 기록 없음
             return
         }
 
@@ -220,9 +226,7 @@ class ReportActivity : AppCompatActivity() {
         container.addView(indicatorContainer)
     }
 
-    /**
-     * ⭐⭐⭐ 날짜 클릭 시 상세 정보 표시
-     */
+    // 날짜 클릭 시 상세 정보
     private fun onDayClicked(day: Int) {
         val dateKey = getDateKey(day)
         val record = getSleepRecord(dateKey)
@@ -237,10 +241,8 @@ class ReportActivity : AppCompatActivity() {
 
             if (record.bedtimeSuccess) {
                 append("✅ 취침 성공 🌙\n")
-                // 실제 취침 시간 표시 (있다면)
-                val bedtime = sharedPreferences.getString("actual_bedtime_$dateKey", null)
-                if (bedtime != null) {
-                    append("   취침 시간: $bedtime\n")
+                if (record.actualBedtime != null) {
+                    append("   취침 시간: ${record.actualBedtime}\n")
                 }
             } else {
                 append("❌ 취침 미완료\n")
@@ -250,17 +252,15 @@ class ReportActivity : AppCompatActivity() {
 
             if (record.wakeSuccess) {
                 append("✅ 기상 성공 ☀️\n")
-                // 실제 기상 시간 표시 (있다면)
-                val waketime = sharedPreferences.getString("actual_waketime_$dateKey", null)
-                if (waketime != null) {
-                    append("   기상 시간: $waketime\n")
+                if (record.actualWaketime != null) {
+                    append("   기상 시간: ${record.actualWaketime}\n")
                 }
             } else {
-                append("❌ 기상 미완료\n")
+                append("❌ 기상 미완료 (재알람)\n")
             }
         }
 
-        androidx.appcompat.app.AlertDialog.Builder(this)
+        AlertDialog.Builder(this)
             .setTitle("📊 수면 리포트")
             .setMessage(message)
             .setPositiveButton("확인", null)
@@ -288,6 +288,6 @@ class ReportActivity : AppCompatActivity() {
         super.onResume()
         updateDayCount()
         updateCoinCount()
-        updateCalendar()  // ⭐ 추가: 최신 데이터 반영
+        updateCalendar()
     }
 }

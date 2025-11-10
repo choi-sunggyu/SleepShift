@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.CountDownTimer
@@ -45,6 +46,9 @@ class AlarmActivity : AppCompatActivity() {
         // ⭐⭐⭐ 알람 시작 플래그 설정 (가장 먼저!)
         setAlarmFlags()
 
+        // ⭐⭐⭐ 알람 볼륨 최대로 설정
+        setAlarmVolumeToMax()
+
         setupFullScreenAlarm()
         initializeComponents()
 
@@ -56,6 +60,60 @@ class AlarmActivity : AppCompatActivity() {
         startAlarmSounds()
 
         Log.d("AlarmActivity", "✅ 알람 액티비티 시작 - 잠금 해제됨")
+    }
+
+    /**
+     * ⭐⭐⭐ 알람 볼륨 최대로 설정
+     */
+    private fun setAlarmVolumeToMax() {
+        try {
+            val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+            // 현재 볼륨 저장 (나중에 복원용)
+            val currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_ALARM)
+            val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+
+            // SharedPreferences에 원래 볼륨 저장 (아직 저장되지 않은 경우에만)
+            if (!sharedPreferences.contains("original_alarm_volume")) {
+                sharedPreferences.edit().putInt("original_alarm_volume", currentVolume).apply()
+                Log.d("AlarmActivity", "🔊 원래 알람 볼륨 저장: $currentVolume")
+            }
+
+            // 알람 볼륨 최대로
+            audioManager.setStreamVolume(
+                AudioManager.STREAM_ALARM,
+                maxVolume,
+                0  // FLAG 없음 (조용히 변경)
+            )
+
+            Log.d("AlarmActivity", "🔊 알람 볼륨: $currentVolume → $maxVolume (최대)")
+        } catch (e: Exception) {
+            Log.e("AlarmActivity", "❌ 알람 볼륨 설정 실패", e)
+        }
+    }
+
+    /**
+     * ⭐ 알람 볼륨 복원 (선택적)
+     */
+    private fun restoreOriginalVolume() {
+        try {
+            val originalVolume = sharedPreferences.getInt("original_alarm_volume", -1)
+
+            if (originalVolume != -1) {
+                val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                audioManager.setStreamVolume(
+                    AudioManager.STREAM_ALARM,
+                    originalVolume,
+                    0
+                )
+                Log.d("AlarmActivity", "🔊 알람 볼륨 복원: $originalVolume")
+
+                // 복원 후 저장된 값 제거
+                sharedPreferences.edit().remove("original_alarm_volume").apply()
+            }
+        } catch (e: Exception) {
+            Log.e("AlarmActivity", "❌ 볼륨 복원 실패", e)
+        }
     }
 
     /**
@@ -254,6 +312,9 @@ class AlarmActivity : AppCompatActivity() {
 
         // ⭐ 알람 플래그 해제
         clearAlarmFlags()
+
+        // ⭐ 볼륨 복원 (선택적 - 필요한 경우 주석 해제)
+        // restoreOriginalVolume()
 
         // 모닝 루틴으로 이동
         goToMorningRoutine()

@@ -52,6 +52,9 @@ class LockScreenActivity : AppCompatActivity() {
     private var warningRunnable: Runnable? = null
     private var currentSnackbar: Snackbar? = null
 
+    // ⭐⭐⭐ 사용자가 의도적으로 Activity를 떠났는지 여부
+    private var userLeftActivity = false
+
     companion object {
         private const val TAG = "LockScreenActivity"
         private const val UNLOCK_DURATION_MS = 3000L
@@ -418,20 +421,36 @@ class LockScreenActivity : AppCompatActivity() {
     }
 
     /**
+     * ⭐⭐⭐ 사용자가 홈 버튼을 누르거나 다른 앱으로 전환할 때 호출
+     * (전원 버튼으로 화면만 끄는 경우는 호출되지 않음)
+     */
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        userLeftActivity = true
+        Log.d(TAG, "⚠️ 사용자가 의도적으로 Activity를 떠남 (홈 버튼 또는 앱 전환)")
+    }
+
+    /**
      * ⭐⭐⭐ LockScreen에서 벗어날 때 (홈 버튼, 다른 앱 등)
+     * - 전원 버튼으로 화면만 끄는 경우: 알람 울리지 않음
+     * - 홈 버튼/앱 전환: 알람 울림
      */
     override fun onPause() {
         super.onPause()
         isOnLockScreen = false
 
-        // ⭐ LockScreen을 벗어나면 알람음 시작!
-        startAlarmSound()
-        startVibration()
-        showAlarmNotification()
-        startWarningMessages()
+        // ⭐⭐⭐ 사용자가 의도적으로 떠난 경우에만 알람 시작
+        if (userLeftActivity) {
+            startAlarmSound()
+            startVibration()
+            showAlarmNotification()
+            startWarningMessages()
 
-        Log.d(TAG, "⚠️ LockScreen 벗어남 - 알람음 + 진동 + 경고 시작!")
-        Toast.makeText(this, "LockScreen으로 돌아오세요! 🔊", Toast.LENGTH_SHORT).show()
+            Log.d(TAG, "⚠️ LockScreen 벗어남 (홈/앱전환) - 알람음 + 진동 + 경고 시작!")
+            Toast.makeText(this, "LockScreen으로 돌아오세요! 🔊", Toast.LENGTH_SHORT).show()
+        } else {
+            Log.d(TAG, "💤 화면만 꺼짐 (전원버튼) - 알람 없음")
+        }
     }
 
     /**
@@ -440,6 +459,7 @@ class LockScreenActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         isOnLockScreen = true
+        userLeftActivity = false  // 플래그 리셋
 
         // ⭐ LockScreen으로 돌아오면 알람음 중지!
         stopAlarmSound()

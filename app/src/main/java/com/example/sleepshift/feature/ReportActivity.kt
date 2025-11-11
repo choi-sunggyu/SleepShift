@@ -1,9 +1,12 @@
 package com.example.sleepshift.feature
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.Gravity
 import android.widget.*
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.example.sleepshift.R
@@ -18,23 +21,19 @@ class ReportActivity : AppCompatActivity() {
     private lateinit var btnGoToBed: LinearLayout
     private lateinit var btnSettings: ImageView
     private lateinit var tvPawCoinCount: TextView
-    private lateinit var tvDayCount: TextView  // ⭐ 추가
+    private lateinit var tvDayCount: TextView
     private lateinit var sharedPreferences: android.content.SharedPreferences
 
     private val calendar = Calendar.getInstance()
     private val today = Calendar.getInstance()
 
-    private val sleepData = mutableMapOf<String, SleepInfo>()
-
-    data class SleepInfo(
-        val bedTime: String,
-        val wakeTime: String,
-        val quality: SleepQuality
+    // 수면 기록 데이터
+    data class DailySleepRecord(
+        val bedtimeSuccess: Boolean,
+        val wakeSuccess: Boolean,
+        val actualBedtime: String?,
+        val actualWaketime: String?
     )
-
-    enum class SleepQuality {
-        GOOD, AVERAGE, POOR
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,12 +43,11 @@ class ReportActivity : AppCompatActivity() {
 
         initViews()
         setupClickListeners()
-        initSampleData()
         updateCalendar()
-
-        // ⭐ UI 업데이트
         updateDayCount()
         updateCoinCount()
+
+        Log.d("ReportActivity", "리포트 화면 시작")
     }
 
     private fun initViews() {
@@ -59,22 +57,15 @@ class ReportActivity : AppCompatActivity() {
         btnGoToBed = findViewById(R.id.btnGoToBed)
         btnSettings = findViewById(R.id.btnSettings)
         tvPawCoinCount = findViewById(R.id.tvPawCoinCount)
-        tvDayCount = findViewById(R.id.tvDayCount)  // ⭐ 추가
+        tvDayCount = findViewById(R.id.tvDayCount)
     }
 
-    /**
-     * ⭐ Day 카운트 업데이트 (HomeActivity와 동일)
-     */
     private fun updateDayCount() {
         val currentDay = getCurrentDay()
         tvDayCount.text = "Day $currentDay"
-
-        android.util.Log.d("ReportActivity", "현재 Day: $currentDay")
+        Log.d("ReportActivity", "Day: $currentDay")
     }
 
-    /**
-     * ⭐ 현재 Day 계산 (HomeActivity와 동일한 로직)
-     */
     private fun getCurrentDay(): Int {
         val installDate = sharedPreferences.getLong("app_install_date", System.currentTimeMillis())
         val currentDate = System.currentTimeMillis()
@@ -89,8 +80,7 @@ class ReportActivity : AppCompatActivity() {
     private fun updateCoinCount() {
         val coinCount = sharedPreferences.getInt("paw_coin_count", 10)
         tvPawCoinCount.text = coinCount.toString()
-
-        android.util.Log.d("ReportActivity", "코인 개수: $coinCount")
+        Log.d("ReportActivity", "코인: $coinCount")
     }
 
     private fun setupClickListeners() {
@@ -99,29 +89,13 @@ class ReportActivity : AppCompatActivity() {
         }
 
         btnGoToBed.setOnClickListener {
-            val intent = android.content.Intent(this, NightRoutineActivity::class.java)
+            val intent = Intent(this, NightRoutineActivity::class.java)
             startActivity(intent)
         }
 
         btnSettings.setOnClickListener {
-            val intent = android.content.Intent(this, SettingsActivity::class.java)
+            val intent = Intent(this, SettingsActivity::class.java)
             startActivity(intent)
-        }
-    }
-
-    private fun initSampleData() {
-        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        val cal = Calendar.getInstance()
-
-        for (i in 1..31) {
-            cal.set(Calendar.DAY_OF_MONTH, i)
-            val dateKey = sdf.format(cal.time)
-
-            when (i % 3) {
-                0 -> sleepData[dateKey] = SleepInfo("23:30", "07:30", SleepQuality.GOOD)
-                1 -> sleepData[dateKey] = SleepInfo("00:15", "08:00", SleepQuality.AVERAGE)
-                2 -> sleepData[dateKey] = SleepInfo("01:30", "09:00", SleepQuality.POOR)
-            }
         }
     }
 
@@ -137,10 +111,12 @@ class ReportActivity : AppCompatActivity() {
         val firstDayOfWeek = firstDayOfMonth.get(Calendar.DAY_OF_WEEK) - 1
         val lastDayOfMonth = firstDayOfMonth.getActualMaximum(Calendar.DAY_OF_MONTH)
 
+        // 빈 칸 추가
         for (i in 0 until firstDayOfWeek) {
             addEmptyDayView()
         }
 
+        // 날짜 추가
         for (day in 1..lastDayOfMonth) {
             addDayView(day)
         }
@@ -150,7 +126,7 @@ class ReportActivity : AppCompatActivity() {
         val emptyView = android.view.View(this)
         val layoutParams = GridLayout.LayoutParams()
         layoutParams.width = 0
-        layoutParams.height = dpToPx(48)
+        layoutParams.height = dpToPx(60)
         layoutParams.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
         emptyView.layoutParams = layoutParams
         calendarGrid.addView(emptyView)
@@ -162,7 +138,7 @@ class ReportActivity : AppCompatActivity() {
             gravity = Gravity.CENTER
             val layoutParams = GridLayout.LayoutParams()
             layoutParams.width = 0
-            layoutParams.height = dpToPx(48)
+            layoutParams.height = dpToPx(60)
             layoutParams.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
             layoutParams.setMargins(dpToPx(2), dpToPx(2), dpToPx(2), dpToPx(2))
             this.layoutParams = layoutParams
@@ -176,6 +152,7 @@ class ReportActivity : AppCompatActivity() {
             }
         }
 
+        // 날짜 텍스트
         val dayText = TextView(this).apply {
             text = day.toString()
             textSize = 14f
@@ -190,15 +167,31 @@ class ReportActivity : AppCompatActivity() {
 
         dayContainer.addView(dayText)
 
+        // 수면 성공 기록 표시
         val dateKey = getDateKey(day)
-        sleepData[dateKey]?.let { sleepInfo ->
-            addSleepIndicators(dayContainer, sleepInfo)
-        }
+        val sleepRecord = getSleepRecord(dateKey)
+        addSleepSuccessIndicators(dayContainer, sleepRecord)
 
         calendarGrid.addView(dayContainer)
     }
 
-    private fun addSleepIndicators(container: LinearLayout, sleepInfo: SleepInfo) {
+    // 수면 기록 가져오기
+    private fun getSleepRecord(dateKey: String): DailySleepRecord {
+        val bedtimeSuccess = sharedPreferences.getBoolean("bedtime_success_$dateKey", false)
+        val wakeSuccess = sharedPreferences.getBoolean("wake_success_$dateKey", false)
+        val actualBedtime = sharedPreferences.getString("actual_bedtime_$dateKey", null)
+        val actualWaketime = sharedPreferences.getString("actual_waketime_$dateKey", null)
+
+        return DailySleepRecord(bedtimeSuccess, wakeSuccess, actualBedtime, actualWaketime)
+    }
+
+    // 취침/기상 성공 아이콘 표시
+    private fun addSleepSuccessIndicators(container: LinearLayout, record: DailySleepRecord) {
+        if (!record.bedtimeSuccess && !record.wakeSuccess) {
+            // 기록 없음
+            return
+        }
+
         val indicatorContainer = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
@@ -206,54 +199,72 @@ class ReportActivity : AppCompatActivity() {
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
-            layoutParams.topMargin = dpToPx(2)
+            layoutParams.topMargin = dpToPx(4)
             this.layoutParams = layoutParams
         }
 
-        val bedtimeIndicator = android.view.View(this).apply {
-            val layoutParams = LinearLayout.LayoutParams(dpToPx(6), dpToPx(6))
-            layoutParams.marginEnd = dpToPx(2)
-            this.layoutParams = layoutParams
-            background = ContextCompat.getDrawable(this@ReportActivity, R.drawable.sleep_indicator_blue)
-        }
-
-        val waketimeIndicator = android.view.View(this).apply {
-            val layoutParams = LinearLayout.LayoutParams(dpToPx(6), dpToPx(6))
-            this.layoutParams = layoutParams
-            background = when (sleepInfo.quality) {
-                SleepQuality.GOOD -> ContextCompat.getDrawable(this@ReportActivity, R.drawable.sleep_indicator_green)
-                SleepQuality.AVERAGE -> ContextCompat.getDrawable(this@ReportActivity, R.drawable.sleep_indicator_orange)
-                SleepQuality.POOR -> ContextCompat.getDrawable(this@ReportActivity, R.drawable.sleep_indicator_orange)
+        // 취침 성공 아이콘
+        if (record.bedtimeSuccess) {
+            val bedtimeIcon = TextView(this).apply {
+                text = "🌙"
+                textSize = 12f
+                setPadding(dpToPx(2), 0, dpToPx(2), 0)
             }
+            indicatorContainer.addView(bedtimeIcon)
         }
 
-        indicatorContainer.addView(bedtimeIndicator)
-        indicatorContainer.addView(waketimeIndicator)
+        // 기상 성공 아이콘
+        if (record.wakeSuccess) {
+            val wakeIcon = TextView(this).apply {
+                text = "☀️"
+                textSize = 12f
+                setPadding(dpToPx(2), 0, dpToPx(2), 0)
+            }
+            indicatorContainer.addView(wakeIcon)
+        }
+
         container.addView(indicatorContainer)
     }
 
+    // 날짜 클릭 시 상세 정보
     private fun onDayClicked(day: Int) {
         val dateKey = getDateKey(day)
-        val sleepInfo = sleepData[dateKey]
+        val record = getSleepRecord(dateKey)
 
-        if (sleepInfo != null) {
-            showSleepDetail(day, sleepInfo)
-        } else {
-            Toast.makeText(this, "${day}일에는 수면 데이터가 없습니다.", Toast.LENGTH_SHORT).show()
+        if (!record.bedtimeSuccess && !record.wakeSuccess) {
+            Toast.makeText(this, "${day}일에는 수면 기록이 없습니다.", Toast.LENGTH_SHORT).show()
+            return
         }
-    }
 
-    private fun showSleepDetail(day: Int, sleepInfo: SleepInfo) {
-        val message = "${day}일 수면 정보\n" +
-                "취침: ${sleepInfo.bedTime}\n" +
-                "기상: ${sleepInfo.wakeTime}\n" +
-                "수면 질: ${when(sleepInfo.quality) {
-                    SleepQuality.GOOD -> "좋음"
-                    SleepQuality.AVERAGE -> "보통"
-                    SleepQuality.POOR -> "나쁨"
-                }}"
+        val message = buildString {
+            append("${day}일 수면 기록\n\n")
 
-        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+            if (record.bedtimeSuccess) {
+                append("✅ 취침 성공 🌙\n")
+                if (record.actualBedtime != null) {
+                    append("   취침 시간: ${record.actualBedtime}\n")
+                }
+            } else {
+                append("❌ 취침 미완료\n")
+            }
+
+            append("\n")
+
+            if (record.wakeSuccess) {
+                append("✅ 기상 성공 ☀️\n")
+                if (record.actualWaketime != null) {
+                    append("   기상 시간: ${record.actualWaketime}\n")
+                }
+            } else {
+                append("❌ 기상 미완료 (재알람)\n")
+            }
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("📊 수면 리포트")
+            .setMessage(message)
+            .setPositiveButton("확인", null)
+            .show()
     }
 
     private fun isToday(day: Int): Boolean {
@@ -275,7 +286,8 @@ class ReportActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        updateDayCount()  // ⭐ 추가
+        updateDayCount()
         updateCoinCount()
+        updateCalendar()
     }
 }

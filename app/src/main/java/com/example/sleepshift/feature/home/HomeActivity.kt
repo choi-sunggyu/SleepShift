@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
+import android.util.Log
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,14 +25,11 @@ import com.example.sleepshift.feature.SettingsActivity
 import com.example.sleepshift.feature.LockScreenActivity
 import com.example.sleepshift.permission.PermissionManager
 import com.example.sleepshift.util.Constants
-import com.example.sleepshift.util.DailyAlarmManager
-import java.util.*
 
 class HomeActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityHomeBinding
     private val viewModel: HomeViewModel by viewModels()
-    private lateinit var alarmManager: DailyAlarmManager
     private lateinit var permissionManager: PermissionManager
     private var floatingAnimator: ObjectAnimator? = null
     private val progressDots = mutableListOf<android.view.View>()
@@ -57,99 +55,21 @@ class HomeActivity : AppCompatActivity() {
         setupUI()
         observeViewModel()
 
+        // 권한 체크
         requestIgnoreBatteryOptimization()
         requestUsageStatsPermission()
+        checkOverlayPermissionIfNeeded()
         permissionManager.requestAllPermissions(notificationPermissionLauncher)
+
+        // 일일 체크
         viewModel.checkDailyProgress()
 
-        // ⭐ 오버레이 권한 체크 (한 번만)
-        checkOverlayPermissionIfNeeded()
-    }
-
-    private fun checkOverlayPermissionIfNeeded() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (!Settings.canDrawOverlays(this)) {
-                AlertDialog.Builder(this)
-                    .setTitle("권한 필요")
-                    .setMessage("수면 잠금 기능을 위해 '다른 앱 위에 표시' 권한이 필요합니다.")
-                    .setPositiveButton("설정하기") { _, _ ->
-                        val intent = Intent(
-                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                            Uri.parse("package:$packageName")
-                        )
-                        startActivity(intent)
-                    }
-                    .setNegativeButton("나중에", null)
-                    .show()
-            }
-        }
-    }
-
-    /** 잠금 상태 확인 */
-    private fun checkAndShowLockScreen() {
-        val prefs = getSharedPreferences("lock_prefs", MODE_PRIVATE)
-        val isLocked = prefs.getBoolean("isLocked", false)
-
-        if (isLocked) {
-            // 잠금 상태일 경우 LockScreenActivity 실행
-            val intent = Intent(this, LockScreenActivity::class.java)
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            startActivity(intent)
-        }
-    }
-
-    /** 사용 통계 권한 요청 */
-    private fun requestUsageStatsPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            try {
-                val appOps = getSystemService(Context.APP_OPS_SERVICE) as android.app.AppOpsManager
-                val mode = appOps.checkOpNoThrow(
-                    android.app.AppOpsManager.OPSTR_GET_USAGE_STATS,
-                    android.os.Process.myUid(),
-                    packageName
-                )
-
-                if (mode != android.app.AppOpsManager.MODE_ALLOWED) {
-                    AlertDialog.Builder(this)
-                        .setTitle("사용 통계 권한 필요")
-                        .setMessage("다른 앱 차단 기능을 위해 사용 통계 권한이 필요합니다.")
-                        .setPositiveButton("설정하기") { _, _ ->
-                            val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
-                            startActivity(intent)
-                        }
-                        .setNegativeButton("나중에", null)
-                        .show()
-                }
-            } catch (e: Exception) {
-                android.util.Log.e("HomeActivity", "사용 통계 권한 확인 실패: ${e.message}")
-            }
-        }
-    }
-
-    /** 알람 채널 생성 */
-    private fun createAlarmNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                "alarm_channel",
-                "알람",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "알람 알림 채널"
-                enableVibration(true)
-                setShowBadge(true)
-                lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
-                setBypassDnd(true)
-            }
-
-            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            manager.createNotificationChannel(channel)
-        }
+        Log.d("HomeActivity", "HomeActivity 시작")
     }
 
     private fun initializeManagers() {
-        alarmManager = DailyAlarmManager(this)
         permissionManager = PermissionManager(this) {
-            setupDailyAlarmIfNeeded()
+            // 권한 승인 콜백 (비어있음 - 알람은 나이트루틴에서 설정)
         }
     }
 
@@ -163,34 +83,25 @@ class HomeActivity : AppCompatActivity() {
         viewModel.currentDay.observe(this) { day ->
             binding.tvDayCount.text = "Day $day"
         }
+
         viewModel.bedtime.observe(this) { bedtime ->
             binding.tvBedtime.text = bedtime
         }
+
         viewModel.coinCount.observe(this) { count ->
             binding.tvPawCoinCount.text = count.toString()
         }
+
         viewModel.currentStreak.observe(this) { streak ->
             updateProgressDots(streak)
         }
-        viewModel.showStreakCompletion.observe(this) {
-            showStreakCompletionDialog(it)
+
+        viewModel.showStreakCompletion.observe(this) { totalCompletions ->
+            showStreakCompletionDialog(totalCompletions)
         }
+
         viewModel.showStreakBroken.observe(this) {
             Toast.makeText(this, "연속 기록이 끊겼습니다. 다시 도전하세요!", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun setupDailyAlarmIfNeeded() {
-        if (!viewModel.isSurveyCompleted()) return
-
-        if (viewModel.shouldSetupAlarm()) {
-            val currentDay = viewModel.currentDay.value ?: 1
-            val success = alarmManager.updateDailyAlarm(currentDay)
-            if (success) {
-                android.util.Log.d("HomeActivity", "✅ 알람 설정 성공")
-            } else {
-                android.util.Log.e("HomeActivity", "❌ 알람 설정 실패 - 권한 확인 필요")
-            }
         }
     }
 
@@ -209,12 +120,13 @@ class HomeActivity : AppCompatActivity() {
         }
 
         binding.btnGoToBed.setOnClickListener {
-            viewModel.recordBedtime()
             animateButton(binding.btnGoToBed)
 
-            // ✅ 나이트 루틴 화면으로 이동
+            // 나이트 루틴으로 이동
             val intent = Intent(this, NightRoutineActivity::class.java)
             startActivity(intent)
+
+            Log.d("HomeActivity", "나이트 루틴 이동")
         }
 
         binding.btnCalendar.setOnClickListener {
@@ -227,15 +139,23 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun updateProgressDots(streak: Int) {
-        progressDots.forEach { it.setBackgroundResource(R.drawable.progress_dot_inactive) }
+        // 전부 비활성화
+        progressDots.forEach {
+            it.setBackgroundResource(R.drawable.progress_dot_inactive)
+        }
+
+        // 연속일만큼 활성화
         val activeDots = minOf(streak, Constants.STREAK_COMPLETION_DAYS)
         for (i in 0 until activeDots) {
             progressDots[i].setBackgroundResource(R.drawable.progress_dot_active)
         }
+
+        Log.d("HomeActivity", "연속 성공: ${streak}일")
     }
 
     private fun startFloatingAnimation() {
         floatingAnimator?.cancel()
+
         floatingAnimator = ObjectAnimator.ofFloat(
             binding.imgPanda,
             "translationY",
@@ -287,23 +207,126 @@ class HomeActivity : AppCompatActivity() {
     private fun showStreakCompletionDialog(totalCompletions: Int) {
         AlertDialog.Builder(this)
             .setTitle("${Constants.STREAK_COMPLETION_DAYS}일 연속 달성!")
-            .setMessage("축하합니다!\n${Constants.STREAK_COMPLETION_DAYS}일 연속으로 규칙적인 수면을 유지했습니다.\n\n총 ${totalCompletions}회 달성")
-            .setPositiveButton("확인") { d, _ -> d.dismiss(); viewModel.updateAllData() }
+            .setMessage(
+                "축하합니다!\n" +
+                        "${Constants.STREAK_COMPLETION_DAYS}일 연속으로 규칙적인 수면을 유지했습니다.\n\n" +
+                        "총 ${totalCompletions}회 달성"
+            )
+            .setPositiveButton("확인") { dialog, _ ->
+                dialog.dismiss()
+                viewModel.updateAllData()
+            }
             .setCancelable(false)
             .show()
+
+        Log.d("HomeActivity", "3일 연속 달성 (총 ${totalCompletions}회)")
     }
 
+    // 잠금 상태 확인
+    private fun checkAndShowLockScreen() {
+        val prefs = getSharedPreferences("lock_prefs", MODE_PRIVATE)
+        val isLocked = prefs.getBoolean("isLocked", false)
+
+        if (isLocked) {
+            Log.d("HomeActivity", "잠금 상태 감지 - LockScreen으로 이동")
+
+            val intent = Intent(this, LockScreenActivity::class.java)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(intent)
+        }
+    }
+
+    // 알람 채널 생성
+    private fun createAlarmNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                "alarm_channel",
+                "알람",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "알람 알림 채널"
+                enableVibration(true)
+                setShowBadge(true)
+                lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+                setBypassDnd(true)
+            }
+
+            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            manager.createNotificationChannel(channel)
+
+            Log.d("HomeActivity", "알람 채널 생성")
+        }
+    }
+
+    // 오버레이 권한 체크
+    private fun checkOverlayPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (!Settings.canDrawOverlays(this)) {
+                AlertDialog.Builder(this)
+                    .setTitle("권한 필요")
+                    .setMessage("수면 잠금 기능을 위해 '다른 앱 위에 표시' 권한이 필요합니다.")
+                    .setPositiveButton("설정하기") { _, _ ->
+                        val intent = Intent(
+                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                            Uri.parse("package:$packageName")
+                        )
+                        startActivity(intent)
+                    }
+                    .setNegativeButton("나중에", null)
+                    .show()
+            }
+        }
+    }
+
+    // 사용 통계 권한 요청
+    private fun requestUsageStatsPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            try {
+                val appOps = getSystemService(Context.APP_OPS_SERVICE) as android.app.AppOpsManager
+                val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    appOps.unsafeCheckOpNoThrow(
+                        android.app.AppOpsManager.OPSTR_GET_USAGE_STATS,
+                        android.os.Process.myUid(),
+                        packageName
+                    )
+                } else {
+                    @Suppress("DEPRECATION")
+                    appOps.checkOpNoThrow(
+                        android.app.AppOpsManager.OPSTR_GET_USAGE_STATS,
+                        android.os.Process.myUid(),
+                        packageName
+                    )
+                }
+
+                if (mode != android.app.AppOpsManager.MODE_ALLOWED) {
+                    AlertDialog.Builder(this)
+                        .setTitle("사용 통계 권한 필요")
+                        .setMessage("다른 앱 차단 기능을 위해 사용 통계 권한이 필요합니다.")
+                        .setPositiveButton("설정하기") { _, _ ->
+                            val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+                            startActivity(intent)
+                        }
+                        .setNegativeButton("나중에", null)
+                        .show()
+                }
+            } catch (e: Exception) {
+                Log.e("HomeActivity", "사용 통계 권한 확인 실패", e)
+            }
+        }
+    }
+
+    // 배터리 최적화 해제
     private fun requestIgnoreBatteryOptimization() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val pm = getSystemService(PowerManager::class.java)
             if (!pm.isIgnoringBatteryOptimizations(packageName)) {
                 try {
                     val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
-                        data = android.net.Uri.parse("package:$packageName")
+                        data = Uri.parse("package:$packageName")
                     }
                     startActivity(intent)
                 } catch (e: Exception) {
-                    android.util.Log.e("HomeActivity", "배터리 최적화 해제 실패: ${e.message}")
+                    Log.e("HomeActivity", "배터리 최적화 해제 실패", e)
                 }
             }
         }
@@ -311,12 +334,17 @@ class HomeActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+
+        // 데이터 업데이트
         viewModel.updateAllData()
         startFloatingAnimation()
 
+        // 잠금 상태 체크
         if (!isTaskRoot) {
             checkAndShowLockScreen()
         }
+
+        Log.d("HomeActivity", "onResume")
     }
 
     override fun onPause() {
@@ -328,5 +356,7 @@ class HomeActivity : AppCompatActivity() {
         super.onDestroy()
         floatingAnimator?.cancel()
         floatingAnimator = null
+
+        Log.d("HomeActivity", "onDestroy")
     }
 }

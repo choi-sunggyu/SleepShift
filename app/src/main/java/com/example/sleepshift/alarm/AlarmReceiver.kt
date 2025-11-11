@@ -20,8 +20,42 @@ class AlarmReceiver : BroadcastReceiver() {
 
         when (intent.action) {
             "com.example.sleepshift.ALARM_TRIGGER" -> {
-                val lockPrefs = context.getSharedPreferences("lock_prefs", Context.MODE_PRIVATE)
                 val sleepPrefs = context.getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
+                val lockPrefs = context.getSharedPreferences("lock_prefs", Context.MODE_PRIVATE)
+
+                // ⭐⭐⭐ 체크인 검증
+                val alarmAuthorized = sleepPrefs.getBoolean("alarm_authorized", false)
+                val authorizedDate = sleepPrefs.getString("alarm_authorized_date", "")
+                val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+
+                Log.d(TAG, "체크인 검증:")
+                Log.d(TAG, "  - alarm_authorized: $alarmAuthorized")
+                Log.d(TAG, "  - authorized_date: $authorizedDate")
+                Log.d(TAG, "  - today: $today")
+
+                // ⭐⭐⭐ 체크인을 하지 않았거나, 날짜가 다르면 알람 차단
+                if (!alarmAuthorized || authorizedDate != today) {
+                    Log.w(TAG, "❌ 알람 차단! 수면 체크인을 하지 않았습니다")
+                    Log.w(TAG, "   체크인 없이는 알람이 울리지 않습니다")
+
+                    // 알람 허가 리셋
+                    sleepPrefs.edit().apply {
+                        putBoolean("alarm_authorized", false)
+                        remove("alarm_authorized_date")
+                        apply()
+                    }
+
+                    return  // ⭐⭐⭐ 여기서 종료! 알람 안 울림
+                }
+
+                Log.d(TAG, "✅ 체크인 검증 통과 - 알람 실행")
+
+                // ⭐ 알람 허가 리셋 (일회용)
+                sleepPrefs.edit().apply {
+                    putBoolean("alarm_authorized", false)
+                    remove("alarm_authorized_date")
+                    apply()
+                }
 
                 // ⭐ 1. 알람 시간 플래그 설정
                 lockPrefs.edit().apply {
@@ -52,8 +86,8 @@ class AlarmReceiver : BroadcastReceiver() {
             }
 
             "android.intent.action.BOOT_COMPLETED" -> {
-                Log.d(TAG, "부팅 완료 - 알람 재설정 필요")
-                // TODO: 부팅 후 알람 재설정
+                Log.d(TAG, "부팅 완료 - 알람은 체크인 후에만 설정됩니다")
+                // ⭐ 부팅 후 자동 알람 설정 제거
             }
 
             else -> {

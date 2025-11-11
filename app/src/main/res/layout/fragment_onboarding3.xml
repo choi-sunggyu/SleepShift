@@ -68,13 +68,13 @@
             android:layout_marginBottom="16dp"
             android:fontFamily="@font/maplestory_light"
             android:lineSpacingExtra="4dp"
-            android:text="의지력 없이도 꾸준히 잘드는\n습관을 만들 수 있어요."
+            android:text="조금씩 삶을 바꾸면서\n습관을 만들어요."
             android:textColor="@color/text_primary"
             android:textSize="24sp" />
 
         <!-- 서브 텍스트 -->
         <TextView
-            android:text="Dozeo와 함께라면, 매일 아침이 더 가볍고 상쾌해집니다."
+            android:text="3분동안 아침루틴을 수행 후 개운한 아침을 시작해요."
             android:textSize="16sp"
             android:textColor="@color/text_secondary"
             android:fontFamily="@font/maplestory_light"

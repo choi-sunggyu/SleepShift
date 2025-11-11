@@ -31,14 +31,16 @@ class MorningRoutineActivity : AppCompatActivity() {
         3 to false
     )
 
-    private val TOTAL_TIME_SECONDS = 180  // 3분 (대기 시간)
-    private val MAX_TIME_SECONDS = 600    // 10분 (총 시간: 3분 대기 + 7분 활성화)
+    private val TOTAL_TIME_SECONDS = 180  // 3분 대기
+    private val MAX_TIME_SECONDS = 600    // 10분 전체
     private var elapsedSeconds = 0
     private var isUnlockEnabled = false
 
-    // ⭐ Handler 중복 방지
     private val handler = Handler(Looper.getMainLooper())
     private var returnRunnable: Runnable? = null
+
+    // ⭐⭐⭐ 재알람 트리거 플래그
+    private var isGoingToReAlarm = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,15 +49,14 @@ class MorningRoutineActivity : AppCompatActivity() {
 
         sharedPreferences = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
 
-        // ⭐ 오늘 이미 완료했는지 체크
+        // 오늘 이미 했는지 체크
         val today = getTodayDateString()
         val lastCompleted = sharedPreferences.getString("last_routine_completed", "")
-        val normalizedLastCompleted = normalizeDate(lastCompleted ?: "")
+        val normalizedLast = normalizeDate(lastCompleted ?: "")
 
-        Log.d("MorningRoutine", "오늘: $today")
-        Log.d("MorningRoutine", "마지막 완료: $lastCompleted")
+        Log.d("MorningRoutine", "오늘: $today, 마지막완료: $lastCompleted")
 
-        if (today == normalizedLastCompleted) {
+        if (today == normalizedLast) {
             Toast.makeText(this, "오늘 모닝 루틴은 이미 완료했습니다", Toast.LENGTH_LONG).show()
             val intent = Intent(this, HomeActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -78,13 +79,13 @@ class MorningRoutineActivity : AppCompatActivity() {
         setupUnlockButton()
         startTimer()
 
-        Log.d("MorningRoutine", "✅ 모닝 루틴 시작")
+        Log.d("MorningRoutine", "모닝루틴 시작!")
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         return when (keyCode) {
             KeyEvent.KEYCODE_HOME,
-            KeyEvent.KEYCODE_APP_SWITCH,  // ⭐ 오버뷰 버튼 차단 추가
+            KeyEvent.KEYCODE_APP_SWITCH,
             KeyEvent.KEYCODE_BACK -> {
                 Toast.makeText(this, "모닝 루틴을 완료해주세요!", Toast.LENGTH_SHORT).show()
                 true
@@ -93,14 +94,18 @@ class MorningRoutineActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * ⭐⭐⭐ 홈 버튼 감지 (문제 4 해결)
-     */
+    // 홈버튼 감지하면 바로 복귀
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        Log.d("MorningRoutine", "홈 버튼 감지 - 즉시 복귀")
 
-        // ⭐ 즉시 복귀
+        // ⭐⭐⭐ 재알람으로 가는 중이면 복귀 안 함
+        if (isGoingToReAlarm) {
+            Log.d("MorningRoutine", "재알람 이동 중 - 복귀 안 함")
+            return
+        }
+
+        Log.d("MorningRoutine", "홈버튼 눌림 - 복귀")
+
         val intent = Intent(this, MorningRoutineActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                 Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
@@ -108,21 +113,25 @@ class MorningRoutineActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
-    /**
-     * ⭐⭐⭐ 비정상 종료 감지 (문제 4 해결)
-     */
+    // 비정상 종료 감지
     override fun onPause() {
         super.onPause()
 
-        Log.d("MorningRoutine", "onPause 호출 - 복귀 대기")
-
-        // ⭐ 기존 Runnable 취소
-        returnRunnable?.let {
-            handler.removeCallbacks(it)
-            Log.d("MorningRoutine", "기존 복귀 Runnable 취소됨")
+        // ⭐⭐⭐ 재알람으로 가는 중이면 복귀 안 함
+        if (isGoingToReAlarm) {
+            Log.d("MorningRoutine", "재알람 이동 중 - 복귀 안 함")
+            return
         }
 
-        // ⭐ 새 Runnable 생성
+        Log.d("MorningRoutine", "onPause - 복귀 대기")
+
+        // 기존 복귀 취소
+        returnRunnable?.let {
+            handler.removeCallbacks(it)
+            Log.d("MorningRoutine", "기존 복귀 취소")
+        }
+
+        // 새로 등록
         returnRunnable = Runnable {
             Log.d("MorningRoutine", "복귀 실행")
             val intent = Intent(this, MorningRoutineActivity::class.java)
@@ -133,24 +142,21 @@ class MorningRoutineActivity : AppCompatActivity() {
             returnRunnable = null
         }
 
-        // ⭐ 300ms 후 실행
         handler.postDelayed(returnRunnable!!, 300)
     }
 
     override fun onResume() {
         super.onResume()
 
-        // ⭐ 복귀 Runnable 취소 (정상 복귀)
+        // 정상 복귀면 취소
         returnRunnable?.let {
             handler.removeCallbacks(it)
             returnRunnable = null
-            Log.d("MorningRoutine", "onResume - 복귀 Runnable 취소")
+            Log.d("MorningRoutine", "onResume - 복귀 취소")
         }
     }
 
-    /**
-     * 날짜 형식 정규화
-     */
+    // 날짜 정규화
     private fun normalizeDate(dateString: String): String {
         if (dateString.isEmpty()) return ""
 
@@ -185,7 +191,7 @@ class MorningRoutineActivity : AppCompatActivity() {
             if (routineCompleted[2] == true) updateRoutineUI(2, binding.routineCard2, binding.tvRoutine2Status, true)
             if (routineCompleted[3] == true) updateRoutineUI(3, binding.routineCard3, binding.tvRoutine3Status, true)
 
-            Log.d("MorningRoutine", "미션 상태 불러옴: ${routineCompleted.values.count { it }}/3 완료")
+            Log.d("MorningRoutine", "미션 상태 불러옴: ${routineCompleted.values.count { it }}/3")
         }
     }
 
@@ -269,6 +275,7 @@ class MorningRoutineActivity : AppCompatActivity() {
 
         updateRoutineUI(routineId, card, statusButton, true)
 
+        // 애니메이션
         card.animate()
             .scaleX(1.05f)
             .scaleY(1.05f)
@@ -345,42 +352,34 @@ class MorningRoutineActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * ⭐⭐⭐ 타이머 시작
-     * - 0~3분: 대기 시간 (버튼 비활성화)
-     * - 3~10분: 활성화 시간 (7분간 루틴 완료 가능)
-     * - 10분 초과: 재알람
-     */
+    // 타이머
     private fun startTimer() {
         countDownTimer = object : CountDownTimer(MAX_TIME_SECONDS * 1000L, 1000) {
             override fun onTick(millisUntilFinished: Long) {
                 elapsedSeconds++
 
                 if (elapsedSeconds <= TOTAL_TIME_SECONDS) {
-                    // ⭐ 첫 3분: 카운트다운 (3:00 → 2:59 → ... → 0:00)
+                    // 첫 3분: 카운트다운
                     val remainingSeconds = TOTAL_TIME_SECONDS - elapsedSeconds
                     binding.tvTimer.text = formatTime(remainingSeconds)
                     binding.tvTimer.setTextColor(getColor(R.color.timer_normal))
 
                 } else {
-                    // ⭐ 3분 후: 버튼 활성화
+                    // 3분 후: 버튼 활성화
                     if (!isUnlockEnabled) {
                         enableUnlockButton()
                     }
 
-                    // ⭐ 3분~10분: 남은 시간 카운트다운 (4:00 → 3:59 → ... → 0:00)
+                    // 3~10분: 남은 시간 표시
                     val remainingSeconds = MAX_TIME_SECONDS - elapsedSeconds
 
                     if (remainingSeconds > 60) {
-                        // 1분 이상 남음: 일반 표시
                         binding.tvTimer.text = formatTime(remainingSeconds)
                         binding.tvTimer.setTextColor(getColor(R.color.timer_warning))
                     } else if (remainingSeconds > 0) {
-                        // 1분 미만: 경고 색상
                         binding.tvTimer.text = formatTime(remainingSeconds)
                         binding.tvTimer.setTextColor(getColor(android.R.color.holo_red_light))
                     } else {
-                        // 시간 초과
                         binding.tvTimer.text = "0:00"
                         binding.tvTimer.setTextColor(getColor(android.R.color.holo_red_dark))
                     }
@@ -393,9 +392,7 @@ class MorningRoutineActivity : AppCompatActivity() {
         }.start()
     }
 
-    /**
-     * 초를 분:초 형식으로 변환
-     */
+    // 시간 포맷
     private fun formatTime(totalSeconds: Int): String {
         val minutes = totalSeconds / 60
         val seconds = totalSeconds % 60
@@ -449,41 +446,39 @@ class MorningRoutineActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * ⭐⭐⭐ 모닝 루틴 완료 (문제 2 해결)
-     */
+    // 모닝루틴 완료!
     private fun unlockSuccess() {
         countDownTimer?.cancel()
 
-        consecutiveSuccessManager.recordAlarmDismissed()
+        // 연속 성공 체크
+        consecutiveSuccessManager.checkAndRecordSuccess()
 
-        // ⭐⭐⭐ 한 번에 알람 해제했는지 확인 (재울림 없음)
-        val isFirstTry = sharedPreferences.getBoolean("is_in_morning_routine", false)
+        // 첫 시도인지 확인
+        val isFirstTry = sharedPreferences.getBoolean("is_first_alarm_try", false)
 
-        // ⭐⭐⭐ 보상: 한 번에 해제하면 2개, 재울림 후엔 0개
+        // 보상: 첫 시도 2개, 재알람 0개
         val coinReward = if (isFirstTry) 2 else 0
 
         if (coinReward > 0) {
             addPawCoins(coinReward)
-            Log.d("MorningRoutine", "✅ 한 번에 알람 해제 성공! 곰젤리 +$coinReward")
+            Log.d("MorningRoutine", "첫 시도 성공! 코인 +$coinReward")
         } else {
-            Log.d("MorningRoutine", "⚠️ 재알람 후 완료 - 보상 없음")
+            Log.d("MorningRoutine", "재알람 완료 - 보상 없음")
         }
 
-        // ⭐ 모닝 루틴 플래그 해제
+        // 플래그 초기화
         sharedPreferences.edit {
-            putBoolean("is_in_morning_routine", false)
+            putBoolean("is_first_alarm_try", false)
             remove("morning_routine_start_time")
         }
 
-        // ⭐ 오늘 완료 기록
+        // 오늘 완료 기록
         val today = getTodayDateString()
-        Log.d("MorningRoutine", "완료 날짜 저장: $today")
+        Log.d("MorningRoutine", "완료날짜: $today")
         sharedPreferences.edit {
             putString("last_routine_completed", today)
         }
 
-        // 미션 초기화 (다음 날을 위해)
         resetRoutines()
 
         val message = if (coinReward > 0) {
@@ -510,25 +505,29 @@ class MorningRoutineActivity : AppCompatActivity() {
             putInt("paw_coin_count", newCount)
         }
 
-        Log.d("MorningRoutine", "곰젤리 $amount 개 획득! 총: $newCount")
+        Log.d("MorningRoutine", "코인 $amount 개 득! 총: $newCount")
     }
 
-    /**
-     * ⭐ 7분 초과 시 다시 알람
-     */
+    // ⭐⭐⭐ 10분 초과시 재알람
     private fun triggerReAlarm() {
         countDownTimer?.cancel()
 
-        // ⭐ 재알람 플래그 (다음엔 보상 없음)
+        // ⭐⭐⭐ 재알람으로 가는 중 플래그 설정
+        isGoingToReAlarm = true
+
+        // 재알람 플래그
         sharedPreferences.edit {
-            putBoolean("is_in_morning_routine", false)
+            putBoolean("is_first_alarm_try", false)
+            remove("morning_routine_start_time")
         }
 
         Toast.makeText(
             this,
-            "⏰ 7분이 경과했습니다.\n잠시 후 다시 알람이 울립니다.",
+            "⏰ 10분이 경과했습니다.\n잠시 후 다시 알람이 울립니다.",
             Toast.LENGTH_LONG
         ).show()
+
+        Log.d("MorningRoutine", "재알람 트리거 - AlarmActivity로 이동")
 
         Handler(Looper.getMainLooper()).postDelayed({
             val intent = Intent(this, com.example.sleepshift.feature.alarm.AlarmActivity::class.java)
@@ -542,12 +541,11 @@ class MorningRoutineActivity : AppCompatActivity() {
         super.onDestroy()
         countDownTimer?.cancel()
 
-        // ⭐ 복귀 Runnable 정리
         returnRunnable?.let {
             handler.removeCallbacks(it)
             returnRunnable = null
         }
 
-        Log.d("MorningRoutine", "MorningRoutineActivity 종료")
+        Log.d("MorningRoutine", "모닝루틴 종료")
     }
 }

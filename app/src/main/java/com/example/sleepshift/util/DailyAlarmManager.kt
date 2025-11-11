@@ -144,15 +144,12 @@ class DailyAlarmManager(private val context: Context) {
     }
 
     /**
-     * 점진적 스케줄 계산 - 2단계 페이즈 방식
+     * 점진적 스케줄 계산 - 동시 조정 방식
      *
-     * Case 1: 현재 수면시간 >= 희망 수면시간
-     *   Phase 1: 취침·기상 둘 다 20분씩 당김 (기상시간 목표 도달까지)
-     *   Phase 2: 기상 고정, 취침만 당김 (취침시간 목표 도달까지)
-     *
-     * Case 2: 현재 수면시간 < 희망 수면시간
-     *   Phase 1: 기상 고정, 취침만 당김 (취침시간 목표 도달까지)
-     *   Phase 2: 취침 고정, 기상만 당김 (기상시간 목표 도달까지)
+     * 1. 취침·기상 시간을 동시에 20분씩 당김
+     * 2. 둘 중 하나가 목표에 먼저 도달하면 그쪽을 고정
+     * 3. 나머지 하나만 계속 20분씩 당김
+     * 4. 둘 다 목표에 도달하면 완료
      */
     private fun calculateGradualSchedule(
         currentDay: Int,
@@ -187,33 +184,62 @@ class DailyAlarmManager(private val context: Context) {
         val normalizedTargetBed = normalizeBedtime(targetBedMinutes)
         val normalizedTargetWake = normalizeWakeTime(targetWakeMinutes)
 
-        // 현재 수면시간 계산 (정규화된 값 기준)
-        val currentSleepMinutes = calculateSleepDuration(normalizedCurrentBed, normalizedCurrentWake)
+        // 각각의 차이 계산
+        val bedDiff = calculateAdjustmentNeeded(normalizedCurrentBed, normalizedTargetBed)
+        val wakeDiff = calculateAdjustmentNeeded(normalizedCurrentWake, normalizedTargetWake)
 
         Log.d("DailyAlarmManager", """
-        현재 수면시간: ${currentSleepMinutes}분 (${currentSleepMinutes/60}시간 ${currentSleepMinutes%60}분)
-        비교: 현재(${currentSleepMinutes}분) vs 목표(${targetSleepMinutes}분)
+        차이 계산:
+        취침 차이: ${bedDiff}분 (${bedDiff/60}시간 ${bedDiff%60}분) → ${(bedDiff + ADJUSTMENT_INTERVAL_MINUTES - 1) / ADJUSTMENT_INTERVAL_MINUTES}일 필요
+        기상 차이: ${wakeDiff}분 (${wakeDiff/60}시간 ${wakeDiff%60}분) → ${(wakeDiff + ADJUSTMENT_INTERVAL_MINUTES - 1) / ADJUSTMENT_INTERVAL_MINUTES}일 필요
         """.trimIndent())
 
-        // 시나리오 분기
-        val (todayBedMinutes, todayWakeMinutes) = if (currentSleepMinutes >= targetSleepMinutes) {
-            // Case 1: 현재 수면시간 >= 희망 수면시간
-            calculateReducingSleep(
-                currentDay,
-                normalizedCurrentBed,
-                normalizedCurrentWake,
-                normalizedTargetBed,
-                normalizedTargetWake
-            )
-        } else {
-            // Case 2: 현재 수면시간 < 희망 수면시간
-            calculateIncreasingSleep(
-                currentDay,
-                normalizedCurrentBed,
-                normalizedCurrentWake,
-                normalizedTargetBed,
-                normalizedTargetWake
-            )
+        // 어느 쪽이 먼저 목표에 도달하는지 계산
+        val bedDaysNeeded = (bedDiff + ADJUSTMENT_INTERVAL_MINUTES - 1) / ADJUSTMENT_INTERVAL_MINUTES
+        val wakeDaysNeeded = (wakeDiff + ADJUSTMENT_INTERVAL_MINUTES - 1) / ADJUSTMENT_INTERVAL_MINUTES
+
+        val (todayBedMinutes, todayWakeMinutes) = when {
+            // 둘 다 이미 목표에 도달
+            bedDiff == 0 && wakeDiff == 0 -> {
+                Log.d("DailyAlarmManager", "[완료] 이미 목표에 도달")
+                Pair(normalizedTargetBed, normalizedTargetWake)
+            }
+
+            // 둘 다 아직 조정 중 (동시에 20분씩 당김)
+            currentDay <= bedDaysNeeded && currentDay <= wakeDaysNeeded -> {
+                val bedAdjustment = min(currentDay * ADJUSTMENT_INTERVAL_MINUTES, bedDiff)
+                val wakeAdjustment = min(currentDay * ADJUSTMENT_INTERVAL_MINUTES, wakeDiff)
+
+                val todayBed = adjustTimeBackward(normalizedCurrentBed, bedAdjustment)
+                val todayWake = adjustTimeBackward(normalizedCurrentWake, wakeAdjustment)
+
+                Log.d("DailyAlarmManager", "[동시 조정] Day $currentDay - 취침 ${bedAdjustment}분, 기상 ${wakeAdjustment}분 당김")
+                Pair(todayBed, todayWake)
+            }
+
+            // 취침시간 먼저 도달 → 취침 고정, 기상만 조정
+            currentDay > bedDaysNeeded && currentDay <= wakeDaysNeeded -> {
+                val wakeAdjustment = min(currentDay * ADJUSTMENT_INTERVAL_MINUTES, wakeDiff)
+                val todayWake = adjustTimeBackward(normalizedCurrentWake, wakeAdjustment)
+
+                Log.d("DailyAlarmManager", "[취침 고정] Day $currentDay - 취침 고정 🔒, 기상만 ${wakeAdjustment}분 당김")
+                Pair(normalizedTargetBed, todayWake)
+            }
+
+            // 기상시간 먼저 도달 → 기상 고정, 취침만 조정
+            currentDay > wakeDaysNeeded && currentDay <= bedDaysNeeded -> {
+                val bedAdjustment = min(currentDay * ADJUSTMENT_INTERVAL_MINUTES, bedDiff)
+                val todayBed = adjustTimeBackward(normalizedCurrentBed, bedAdjustment)
+
+                Log.d("DailyAlarmManager", "[기상 고정] Day $currentDay - 취침만 ${bedAdjustment}분 당김, 기상 고정 🔒")
+                Pair(todayBed, normalizedTargetWake)
+            }
+
+            // 둘 다 목표 도달
+            else -> {
+                Log.d("DailyAlarmManager", "[완료] 목표 도달")
+                Pair(normalizedTargetBed, normalizedTargetWake)
+            }
         }
 
         // 역정규화
@@ -223,123 +249,18 @@ class DailyAlarmManager(private val context: Context) {
         val todayBedtime = minutesToLocalTime(finalBedMinutes)
         val todayWakeTime = minutesToLocalTime(finalWakeMinutes)
 
+        val sleepDuration = calculateSleepDuration(todayBedMinutes, todayWakeMinutes)
+
         Log.d("DailyAlarmManager", """
         ==================
         최종 결과 (Day $currentDay):
         취침: ${timeToString(todayBedtime)}
         기상: ${timeToString(todayWakeTime)}
-        수면: ${calculateSleepDuration(todayBedMinutes, todayWakeMinutes)}분
+        수면: ${sleepDuration}분 (${sleepDuration/60}시간 ${sleepDuration%60}분)
         ==================
         """.trimIndent())
 
         return Pair(todayBedtime, todayWakeTime)
-    }
-
-    /**
-     * Case 1: 수면시간 줄이기 (현재 수면 >= 목표 수면)
-     * Phase 1: 취침·기상 둘 다 당김
-     * Phase 2: 기상 고정, 취침만 당김
-     */
-    private fun calculateReducingSleep(
-        currentDay: Int,
-        currentBed: Int,
-        currentWake: Int,
-        targetBed: Int,
-        targetWake: Int
-    ): Pair<Int, Int> {
-
-        // 기상시간 차이 계산
-        val wakeDiff = calculateAdjustmentNeeded(currentWake, targetWake)
-        val phase1Days = (wakeDiff + ADJUSTMENT_INTERVAL_MINUTES - 1) / ADJUSTMENT_INTERVAL_MINUTES
-
-        Log.d("DailyAlarmManager", """
-        [수면 줄이기 모드]
-        기상시간 차이: ${wakeDiff}분
-        Phase 1 소요일: ${phase1Days}일
-        """.trimIndent())
-
-        return when {
-            // Phase 1: 취침·기상 둘 다 당김
-            currentDay <= phase1Days -> {
-                val adjustment = min(currentDay * ADJUSTMENT_INTERVAL_MINUTES, wakeDiff)
-                val todayBed = adjustTimeBackward(currentBed, adjustment)
-                val todayWake = adjustTimeBackward(currentWake, adjustment)
-
-                Log.d("DailyAlarmManager", "[Phase 1] Day $currentDay/$phase1Days - 취침·기상 둘 다 ${adjustment}분 당김")
-                Pair(todayBed, todayWake)
-            }
-
-            // Phase 2: 기상 고정, 취침만 당김
-            else -> {
-                val bedDiff = calculateAdjustmentNeeded(currentBed, targetBed)
-                val phase2Progress = currentDay - phase1Days
-                val phase2Days = (bedDiff + ADJUSTMENT_INTERVAL_MINUTES - 1) / ADJUSTMENT_INTERVAL_MINUTES
-
-                if (phase2Progress <= phase2Days && bedDiff > 0) {
-                    val totalBedAdjustment = wakeDiff + min(phase2Progress * ADJUSTMENT_INTERVAL_MINUTES, bedDiff)
-                    val todayBed = adjustTimeBackward(currentBed, totalBedAdjustment)
-
-                    Log.d("DailyAlarmManager", "[Phase 2] Day $currentDay (${phase2Progress}/${phase2Days}) - 취침만 ${totalBedAdjustment}분 당김, 기상 고정")
-                    Pair(todayBed, targetWake)
-                } else {
-                    Log.d("DailyAlarmManager", "[완료] 목표 도달")
-                    Pair(targetBed, targetWake)
-                }
-            }
-        }
-    }
-
-    /**
-     * Case 2: 수면시간 늘리기 (현재 수면 < 목표 수면)
-     * Phase 1: 기상 고정, 취침만 당김
-     * Phase 2: 취침 고정, 기상만 당김
-     */
-    private fun calculateIncreasingSleep(
-        currentDay: Int,
-        currentBed: Int,
-        currentWake: Int,
-        targetBed: Int,
-        targetWake: Int
-    ): Pair<Int, Int> {
-
-        // 취침시간 차이 계산
-        val bedDiff = calculateAdjustmentNeeded(currentBed, targetBed)
-        val phase1Days = (bedDiff + ADJUSTMENT_INTERVAL_MINUTES - 1) / ADJUSTMENT_INTERVAL_MINUTES
-
-        Log.d("DailyAlarmManager", """
-        [수면 늘리기 모드]
-        취침시간 차이: ${bedDiff}분
-        Phase 1 소요일: ${phase1Days}일
-        """.trimIndent())
-
-        return when {
-            // Phase 1: 기상 고정, 취침만 당김
-            currentDay <= phase1Days -> {
-                val adjustment = min(currentDay * ADJUSTMENT_INTERVAL_MINUTES, bedDiff)
-                val todayBed = adjustTimeBackward(currentBed, adjustment)
-
-                Log.d("DailyAlarmManager", "[Phase 1] Day $currentDay/$phase1Days - 취침만 ${adjustment}분 당김, 기상 고정")
-                Pair(todayBed, currentWake)
-            }
-
-            // Phase 2: 취침 고정, 기상만 당김
-            else -> {
-                val wakeDiff = calculateAdjustmentNeeded(currentWake, targetWake)
-                val phase2Progress = currentDay - phase1Days
-                val phase2Days = (wakeDiff + ADJUSTMENT_INTERVAL_MINUTES - 1) / ADJUSTMENT_INTERVAL_MINUTES
-
-                if (phase2Progress <= phase2Days && wakeDiff > 0) {
-                    val wakeAdjustment = min(phase2Progress * ADJUSTMENT_INTERVAL_MINUTES, wakeDiff)
-                    val todayWake = adjustTimeBackward(currentWake, wakeAdjustment)
-
-                    Log.d("DailyAlarmManager", "[Phase 2] Day $currentDay (${phase2Progress}/${phase2Days}) - 기상만 ${wakeAdjustment}분 당김, 취침 고정")
-                    Pair(targetBed, todayWake)
-                } else {
-                    Log.d("DailyAlarmManager", "[완료] 목표 도달")
-                    Pair(targetBed, targetWake)
-                }
-            }
-        }
     }
 
     /**

@@ -7,6 +7,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.RingtoneManager
@@ -23,6 +24,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.example.sleepshift.R
 import com.example.sleepshift.service.LockOverlayService
 import com.google.android.material.snackbar.Snackbar
@@ -45,15 +47,29 @@ class LockScreenActivity : AppCompatActivity() {
     private var alarmPlayer: MediaPlayer? = null
     private var isOnLockScreen = true  // LockScreen에 있는지 여부
 
+    // ⭐⭐⭐ 알람 시간 브로드캐스트 리시버
+    private val alarmTimeReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            Log.d(TAG, "========== 브로드캐스트 수신 ==========")
+            Log.d(TAG, "Action: ${intent?.action}")
+
+            if (intent?.action == "com.example.sleepshift.ALARM_TIME") {
+                Log.d(TAG, "🚨🚨🚨 알람 시간 브로드캐스트 수신!")
+                transitionToAlarmActivity()
+            } else {
+                Log.w(TAG, "알 수 없는 브로드캐스트: ${intent?.action}")
+            }
+
+            Log.d(TAG, "========== 브로드캐스트 처리 완료 ==========")
+        }
+    }
+
     //노티피케이션
     private lateinit var notificationManager: NotificationManager
     private var vibrator: Vibrator? = null
     private val warningHandler = android.os.Handler(Looper.getMainLooper())
     private var warningRunnable: Runnable? = null
     private var currentSnackbar: Snackbar? = null
-
-    // ⭐⭐⭐ 사용자가 의도적으로 Activity를 떠났는지 여부
-    private var userLeftActivity = false
 
     companion object {
         private const val TAG = "LockScreenActivity"
@@ -65,6 +81,20 @@ class LockScreenActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // ⭐⭐⭐ 화면 켜기 및 잠금 해제
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+        } else {
+            @Suppress("DEPRECATION")
+            window.addFlags(
+                android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                        android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+                        android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+            )
+        }
+
         setContentView(R.layout.activity_lock_screen)
 
         initViews()
@@ -73,6 +103,21 @@ class LockScreenActivity : AppCompatActivity() {
         initAlarmSound()
         createNotificationChannel()
         initVibrator()
+
+        // ⭐⭐⭐ 알람 시간 브로드캐스트 등록
+        Log.d(TAG, "🔔 알람 시간 브로드캐스트 리시버 등록 시작")
+        val filter = IntentFilter("com.example.sleepshift.ALARM_TIME")
+        ContextCompat.registerReceiver(
+            this,
+            alarmTimeReceiver,
+            filter,
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+        Log.d(TAG, "✅ 알람 시간 브로드캐스트 리시버 등록 완료!")
+
+        // ⭐⭐⭐ LockScreen이 처음 시작될 때 (알람에서 넘어올 때)
+        // 알람음과 진동은 시작하지 않음 - 조용히 대기
+        Log.d(TAG, "✅ LockScreenActivity 시작 - 조용히 대기")
     }
 
     //진동 초기화
@@ -421,35 +466,65 @@ class LockScreenActivity : AppCompatActivity() {
     }
 
     /**
-     * ⭐⭐⭐ 사용자가 홈 버튼을 누르거나 다른 앱으로 전환할 때 호출
-     * (전원 버튼으로 화면만 끄는 경우는 호출되지 않음)
+     * ⭐⭐⭐ AlarmActivity로 전환
      */
-    override fun onUserLeaveHint() {
-        super.onUserLeaveHint()
-        userLeftActivity = true
-        Log.d(TAG, "⚠️ 사용자가 의도적으로 Activity를 떠남 (홈 버튼 또는 앱 전환)")
+    private fun transitionToAlarmActivity() {
+        try {
+            Log.d(TAG, "🔄 AlarmActivity로 전환 시작")
+
+            val alarmIntent = Intent(this, com.example.sleepshift.feature.alarm.AlarmActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                val prefs = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
+                val alarmId = prefs.getLong("current_alarm_id", 0)
+                putExtra("alarm_id", alarmId)
+            }
+
+            startActivity(alarmIntent)
+            finish()
+
+            Log.d(TAG, "✅ AlarmActivity 시작 및 LockScreen 종료")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ AlarmActivity 전환 실패", e)
+        }
+    }
+
+    /**
+     * ⭐⭐⭐ 화면이 켜져있는지 확인
+     */
+    private fun isScreenOn(): Boolean {
+        val powerManager = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) {
+            powerManager.isInteractive
+        } else {
+            @Suppress("DEPRECATION")
+            powerManager.isScreenOn
+        }
     }
 
     /**
      * ⭐⭐⭐ LockScreen에서 벗어날 때 (홈 버튼, 다른 앱 등)
-     * - 전원 버튼으로 화면만 끄는 경우: 알람 울리지 않음
-     * - 홈 버튼/앱 전환: 알람 울림
+     * - 화면이 꺼진 상태 (전원 버튼): 알람 울리지 않음
+     * - 화면이 켜진 상태 (홈 버튼/앱 전환): 알람 울림
      */
     override fun onPause() {
         super.onPause()
         isOnLockScreen = false
 
-        // ⭐⭐⭐ 사용자가 의도적으로 떠난 경우에만 알람 시작
-        if (userLeftActivity) {
+        // ⭐⭐⭐ 화면이 켜져있으면 사용자가 의도적으로 떠난 것
+        val screenOn = isScreenOn()
+
+        if (screenOn) {
+            // 화면이 켜져있는데 onPause() = 홈 버튼 또는 앱 전환
             startAlarmSound()
             startVibration()
             showAlarmNotification()
             startWarningMessages()
 
-            Log.d(TAG, "⚠️ LockScreen 벗어남 (홈/앱전환) - 알람음 + 진동 + 경고 시작!")
+            Log.d(TAG, "⚠️ LockScreen 벗어남 (화면 ON) - 알람음 + 진동 + 경고 시작!")
             Toast.makeText(this, "LockScreen으로 돌아오세요! 🔊", Toast.LENGTH_SHORT).show()
         } else {
-            Log.d(TAG, "💤 화면만 꺼짐 (전원버튼) - 알람 없음")
+            // 화면이 꺼진 상태에서 onPause() = 전원 버튼
+            Log.d(TAG, "💤 화면 꺼짐 (전원버튼) - 알람 없음")
         }
     }
 
@@ -459,9 +534,29 @@ class LockScreenActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         isOnLockScreen = true
-        userLeftActivity = false  // 플래그 리셋
 
-        // ⭐ LockScreen으로 돌아오면 알람음 중지!
+        Log.d(TAG, "========== onResume 시작 ==========")
+
+        // ⭐⭐⭐ 알람 시간이 된 경우 AlarmActivity로 전환
+        val lockPrefs = getSharedPreferences("lock_prefs", Context.MODE_PRIVATE)
+        val isAlarmTime = lockPrefs.getBoolean("is_alarm_time", false)
+
+        Log.d(TAG, "is_alarm_time 플래그 체크: $isAlarmTime")
+
+        if (isAlarmTime) {
+            Log.d(TAG, "🚨🚨🚨 알람 시간 감지! AlarmActivity로 전환 시작")
+
+            // 플래그 리셋
+            lockPrefs.edit().putBoolean("is_alarm_time", false).apply()
+            Log.d(TAG, "is_alarm_time 플래그 리셋 완료")
+
+            // AlarmActivity로 전환
+            transitionToAlarmActivity()
+            return
+        }
+
+        // ⭐ 알람 시간이 아닌 경우 정상 처리
+        Log.d(TAG, "정상 onResume 처리 - 알람 중지")
         stopAlarmSound()
         stopVibration()
         dismissAlarmNotification()
@@ -469,6 +564,7 @@ class LockScreenActivity : AppCompatActivity() {
 
         updateDisplays()
         Log.d(TAG, "✅ LockScreen 복귀 - 알람음 + 진동 + 경고 중지")
+        Log.d(TAG, "========== onResume 종료 ==========")
     }
 
     /**
@@ -487,6 +583,15 @@ class LockScreenActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+
+        // ⭐⭐⭐ 브로드캐스트 리시버 해제
+        try {
+            unregisterReceiver(alarmTimeReceiver)
+            Log.d(TAG, "✅ 알람 시간 브로드캐스트 리시버 해제")
+        } catch (e: Exception) {
+            Log.e(TAG, "브로드캐스트 리시버 해제 실패", e)
+        }
+
         stopAlarmSound()
         stopVibration()
         dismissAlarmNotification()

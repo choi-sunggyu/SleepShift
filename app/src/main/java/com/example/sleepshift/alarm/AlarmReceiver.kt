@@ -33,22 +33,13 @@ class AlarmReceiver : BroadcastReceiver() {
                 Log.d(TAG, "  - authorized_date: $authorizedDate")
                 Log.d(TAG, "  - today: $today")
 
-                // ⭐⭐⭐ 체크인을 하지 않았거나, 날짜가 다르면 알람 차단
+                // ⭐⭐⭐ 테스트 모드: 체크인 검증 건너뛰기
                 if (!alarmAuthorized || authorizedDate != today) {
-                    Log.w(TAG, "❌ 알람 차단! 수면 체크인을 하지 않았습니다")
-                    Log.w(TAG, "   체크인 없이는 알람이 울리지 않습니다")
-
-                    // 알람 허가 리셋
-                    sleepPrefs.edit().apply {
-                        putBoolean("alarm_authorized", false)
-                        remove("alarm_authorized_date")
-                        apply()
-                    }
-
-                    return  // ⭐⭐⭐ 여기서 종료! 알람 안 울림
+                    Log.w(TAG, "⚠️ 체크인 미완료 - 하지만 테스트를 위해 계속 진행")
+                    // return 제거 - 계속 실행
+                } else {
+                    Log.d(TAG, "✅ 체크인 검증 통과")
                 }
-
-                Log.d(TAG, "✅ 체크인 검증 통과 - 알람 실행")
 
                 // ⭐ 알람 허가 리셋 (일회용)
                 sleepPrefs.edit().apply {
@@ -64,6 +55,8 @@ class AlarmReceiver : BroadcastReceiver() {
                     commit() // 즉시 반영
                 }
                 Log.d(TAG, "✅ 알람 시간 플래그 설정 및 잠금 해제")
+                Log.d(TAG, "   is_alarm_time = ${lockPrefs.getBoolean("is_alarm_time", false)}")
+                Log.d(TAG, "   isLocked = ${lockPrefs.getBoolean("isLocked", false)}")
 
                 // ⭐ 2. 이 알람에 대한 고유 ID 생성 (타임스탬프)
                 val alarmId = System.currentTimeMillis()
@@ -76,13 +69,30 @@ class AlarmReceiver : BroadcastReceiver() {
                 Log.d(TAG, "✅ 알람 ID 생성: $alarmId")
                 Log.d(TAG, "✅ 모닝루틴 상태 초기화 - 이 알람에 대해 수행 가능")
 
+                // ⭐⭐⭐ 2-1. LockScreenActivity에 브로드캐스트 전송
+                try {
+                    val broadcastIntent = Intent("com.example.sleepshift.ALARM_TIME")
+                    context.sendBroadcast(broadcastIntent)
+                    Log.d(TAG, "📢 알람 시간 브로드캐스트 전송 완료")
+                } catch (e: Exception) {
+                    Log.e(TAG, "❌ 브로드캐스트 전송 실패", e)
+                }
+
                 // ⭐ 3. AlarmActivity 실행
                 val alarmIntent = Intent(context, AlarmActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                     putExtra("alarm_id", alarmId) // 알람 ID 전달
                 }
-                context.startActivity(alarmIntent)
-                Log.d(TAG, "✅ AlarmActivity 시작")
+
+                Log.d(TAG, "🚀 AlarmActivity 시작 시도...")
+                try {
+                    context.startActivity(alarmIntent)
+                    Log.d(TAG, "✅ AlarmActivity 시작 성공!")
+                } catch (e: Exception) {
+                    Log.e(TAG, "❌ AlarmActivity 시작 실패", e)
+                    e.printStackTrace()
+                    // 실패해도 브로드캐스트로 LockScreenActivity가 처리할 것임
+                }
             }
 
             "android.intent.action.BOOT_COMPLETED" -> {

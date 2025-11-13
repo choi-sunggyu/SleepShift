@@ -1,11 +1,14 @@
 package com.example.sleepshift.feature.alarm
 
 import android.annotation.SuppressLint
+import android.app.NotificationManager
+import android.content.ContentValues.TAG
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.media.AudioManager
 import android.media.MediaPlayer
+import android.os.Build
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.os.Handler
@@ -14,6 +17,7 @@ import android.os.Vibrator
 import android.util.Log
 import android.view.MotionEvent
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
 import com.example.sleepshift.R
@@ -63,56 +67,147 @@ class AlarmActivity : AppCompatActivity() {
     }
 
     /**
-     * ⭐⭐⭐ 알람 볼륨 최대로 설정
+     * ⭐⭐⭐ 알람 관련 모든 볼륨을 최대로 설정
      */
     private fun setAlarmVolumeToMax() {
         try {
             val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            val prefs = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
 
-            // 현재 볼륨 저장 (나중에 복원용)
-            val currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_ALARM)
-            val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            Log.d(TAG, "🔊 알람 볼륨 최대 설정 시작")
 
-            // SharedPreferences에 원래 볼륨 저장 (아직 저장되지 않은 경우에만)
-            if (!sharedPreferences.contains("original_alarm_volume")) {
-                sharedPreferences.edit().putInt("original_alarm_volume", currentVolume).apply()
-                Log.d("AlarmActivity", "🔊 원래 알람 볼륨 저장: $currentVolume")
+            // ⭐ 1. STREAM_ALARM (알람 전용)
+            val currentAlarmVolume = audioManager.getStreamVolume(AudioManager.STREAM_ALARM)
+            val maxAlarmVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+
+            if (!prefs.contains("original_alarm_volume")) {
+                prefs.edit().putInt("original_alarm_volume", currentAlarmVolume).apply()
+                Log.d(TAG, "  - 원래 알람 볼륨 저장: $currentAlarmVolume")
             }
 
-            // 알람 볼륨 최대로
             audioManager.setStreamVolume(
                 AudioManager.STREAM_ALARM,
-                maxVolume,
-                0  // FLAG 없음 (조용히 변경)
+                maxAlarmVolume,
+                0
             )
+            Log.d(TAG, "  - STREAM_ALARM: $currentAlarmVolume → $maxAlarmVolume ✅")
 
-            Log.d("AlarmActivity", "🔊 알람 볼륨: $currentVolume → $maxVolume (최대)")
+            // ⭐ 2. STREAM_MUSIC (미디어 재생, 많은 알람 앱이 사용)
+            val currentMusicVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+            val maxMusicVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+
+            if (!prefs.contains("original_music_volume")) {
+                prefs.edit().putInt("original_music_volume", currentMusicVolume).apply()
+                Log.d(TAG, "  - 원래 미디어 볼륨 저장: $currentMusicVolume")
+            }
+
+            audioManager.setStreamVolume(
+                AudioManager.STREAM_MUSIC,
+                maxMusicVolume,
+                0
+            )
+            Log.d(TAG, "  - STREAM_MUSIC: $currentMusicVolume → $maxMusicVolume ✅")
+
+            // ⭐ 3. 음소거/진동 모드 해제 (Android M 이상)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                val currentRingerMode = audioManager.ringerMode
+
+                if (!prefs.contains("original_ringer_mode")) {
+                    prefs.edit().putInt("original_ringer_mode", currentRingerMode).apply()
+                    Log.d(TAG, "  - 원래 벨소리 모드 저장: $currentRingerMode")
+                }
+
+                when (currentRingerMode) {
+                    AudioManager.RINGER_MODE_SILENT -> {
+                        audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
+                        Log.d(TAG, "  - 음소거 모드 → 일반 모드로 변경 ✅")
+                    }
+                    AudioManager.RINGER_MODE_VIBRATE -> {
+                        audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
+                        Log.d(TAG, "  - 진동 모드 → 일반 모드로 변경 ✅")
+                    }
+                    AudioManager.RINGER_MODE_NORMAL -> {
+                        Log.d(TAG, "  - 이미 일반 모드 ✅")
+                    }
+                }
+            }
+
+            // ⭐ 4. 방해 금지 모드 확인 (경고만)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+                if (notificationManager.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL) {
+                    Log.w(TAG, "⚠️ 방해 금지 모드 활성화됨! 알람 소리가 작을 수 있음")
+
+                    // 방해 금지 모드를 해제하려면 권한이 필요하므로 토스트로 알림만
+                    Toast.makeText(
+                        this,
+                        "⚠️ 방해 금지 모드가 켜져 있습니다. 알람이 제대로 울리지 않을 수 있어요.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                } else {
+                    Log.d(TAG, "  - 방해 금지 모드 꺼짐 ✅")
+                }
+            }
+
+            Log.d(TAG, "✅ 알람 볼륨 설정 완료")
+            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
+            Toast.makeText(this, "알람 볼륨이 최대로 설정되었습니다", Toast.LENGTH_SHORT).show()
+
         } catch (e: Exception) {
-            Log.e("AlarmActivity", "❌ 알람 볼륨 설정 실패", e)
+            Log.e(TAG, "❌ 알람 볼륨 설정 실패", e)
+            Toast.makeText(this, "볼륨 설정 중 오류 발생: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 
     /**
-     * ⭐ 알람 볼륨 복원 (선택적)
+     * ⭐⭐⭐ 원래 볼륨으로 복원
      */
     private fun restoreOriginalVolume() {
         try {
-            val originalVolume = sharedPreferences.getInt("original_alarm_volume", -1)
+            val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            val prefs = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
 
-            if (originalVolume != -1) {
-                val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-                audioManager.setStreamVolume(
-                    AudioManager.STREAM_ALARM,
-                    originalVolume,
-                    0
-                )
-                Log.d("AlarmActivity", "🔊 알람 볼륨 복원: $originalVolume")
+            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            Log.d(TAG, "🔊 원래 볼륨 복원 시작")
 
-                // 복원 후 저장된 값 제거
-                sharedPreferences.edit().remove("original_alarm_volume").apply()
+            // 1. STREAM_ALARM 복원
+            if (prefs.contains("original_alarm_volume")) {
+                val originalVolume = prefs.getInt("original_alarm_volume", -1)
+                if (originalVolume >= 0) {
+                    audioManager.setStreamVolume(AudioManager.STREAM_ALARM, originalVolume, 0)
+                    Log.d(TAG, "  - STREAM_ALARM 복원: $originalVolume")
+                }
+                prefs.edit().remove("original_alarm_volume").apply()
             }
+
+            // 2. STREAM_MUSIC 복원
+            if (prefs.contains("original_music_volume")) {
+                val originalVolume = prefs.getInt("original_music_volume", -1)
+                if (originalVolume >= 0) {
+                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, originalVolume, 0)
+                    Log.d(TAG, "  - STREAM_MUSIC 복원: $originalVolume")
+                }
+                prefs.edit().remove("original_music_volume").apply()
+            }
+
+            // 3. 벨소리 모드 복원
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (prefs.contains("original_ringer_mode")) {
+                    val originalMode = prefs.getInt("original_ringer_mode", AudioManager.RINGER_MODE_NORMAL)
+                    audioManager.ringerMode = originalMode
+                    Log.d(TAG, "  - 벨소리 모드 복원: $originalMode")
+                    prefs.edit().remove("original_ringer_mode").apply()
+                }
+            }
+
+            Log.d(TAG, "✅ 볼륨 복원 완료")
+            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
+
         } catch (e: Exception) {
-            Log.e("AlarmActivity", "❌ 볼륨 복원 실패", e)
+            Log.e(TAG, "❌ 볼륨 복원 실패", e)
         }
     }
 
@@ -314,7 +409,7 @@ class AlarmActivity : AppCompatActivity() {
         clearAlarmFlags()
 
         // ⭐ 볼륨 복원 (선택적 - 필요한 경우 주석 해제)
-        // restoreOriginalVolume()
+        restoreOriginalVolume()
 
         // 모닝 루틴으로 이동
         goToMorningRoutine()

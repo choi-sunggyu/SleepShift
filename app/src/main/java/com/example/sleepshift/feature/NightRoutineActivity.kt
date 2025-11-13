@@ -267,6 +267,16 @@ class NightRoutineActivity : AppCompatActivity() {
      */
     private fun setOneTimeAlarm(hour: Int, minute: Int, timeString: String) {
         try {
+            // ⭐⭐⭐ 1. SharedPreferences에 일회성 알람 정보 저`장
+            val sharedPreferences = getSharedPreferences("SleepShiftPrefs", Context.MODE_PRIVATE)
+            sharedPreferences.edit().apply {
+                putBoolean("is_one_time_alarm", true)
+                putString("one_time_alarm_time", timeString)
+                apply()
+            }
+            Log.d(TAG, "✅ 일회성 알람 정보 저장: $timeString")
+
+            // ⭐⭐⭐ 2. AlarmManager로 알람 설정
             val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
             // AlarmReceiver Intent
@@ -281,7 +291,7 @@ class NightRoutineActivity : AppCompatActivity() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            // ⭐⭐⭐ 알람 시간 계산 (수정)
+            // ⭐⭐⭐ 알람 시간 계산
             val calendar = Calendar.getInstance().apply {
                 set(Calendar.HOUR_OF_DAY, hour)
                 set(Calendar.MINUTE, minute)

@@ -78,7 +78,10 @@ class AlarmReceiver : BroadcastReceiver() {
                     Log.e(TAG, "❌ 브로드캐스트 전송 실패", e)
                 }
 
-                // ⭐ 3. AlarmActivity 실행
+                // ⭐⭐⭐ 3. Day 증가 및 다음 알람 설정
+                incrementDayAndScheduleNextAlarm(context, sleepPrefs)
+
+                // ⭐ 4. AlarmActivity 실행
                 val alarmIntent = Intent(context, AlarmActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                     putExtra("alarm_id", alarmId) // 알람 ID 전달
@@ -93,6 +96,11 @@ class AlarmReceiver : BroadcastReceiver() {
                     e.printStackTrace()
                     // 실패해도 브로드캐스트로 LockScreenActivity가 처리할 것임
                 }
+            }
+
+            "com.example.sleepshift.BEDTIME_NOTIFICATION" -> {
+                Log.d(TAG, "취침 알림 트리거")
+                showBedtimeNotification(context)
             }
 
             "android.intent.action.BOOT_COMPLETED" -> {
@@ -111,6 +119,53 @@ class AlarmReceiver : BroadcastReceiver() {
         private const val TAG = "AlarmReceiver"
     }
 
+    /**
+     * ⭐⭐⭐ Day 증가 및 다음 알람 설정 (수정됨)
+     */
+    private fun incrementDayAndScheduleNextAlarm(context: Context, sharedPref: android.content.SharedPreferences) {
+        val currentDay = sharedPref.getInt("current_day", 0)
+        val lastAlarmDate = sharedPref.getString("last_alarm_date", "")
+        val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+
+        Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        Log.d(TAG, "Day 증가 로직:")
+        Log.d(TAG, "  현재 Day: $currentDay")
+        Log.d(TAG, "  마지막 알람 날짜: $lastAlarmDate")
+        Log.d(TAG, "  오늘 날짜: $today")
+
+        // ⭐ 오늘 이미 알람이 울렸으면 Day 증가하지 않음
+        if (lastAlarmDate == today) {
+            Log.d(TAG, "⚠️ 오늘 이미 알람 울림 - Day 증가 생략")
+            Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            return
+        }
+
+        // ⭐ Day 증가 (하루에 최대 1씩만)
+        val newDay = currentDay + 1
+
+        sharedPref.edit().apply {
+            putInt("current_day", newDay)
+            putString("last_alarm_date", today)
+            apply()
+        }
+
+        Log.d(TAG, "✅ Day 증가: $currentDay → $newDay")
+
+        // ⭐ 다음 알람 설정
+        try {
+            val alarmManager = com.example.sleepshift.util.DailyAlarmManager(context)
+            val success = alarmManager.updateDailyAlarm(newDay)
+
+            if (success) {
+                Log.d(TAG, "✅ Day $newDay 알람 설정 완료")
+            } else {
+                Log.e(TAG, "❌ Day $newDay 알람 설정 실패")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ 알람 설정 중 오류", e)
+        }
+        Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    }
 
     /**
      * 취침 알림 표시
@@ -127,11 +182,6 @@ class AlarmReceiver : BroadcastReceiver() {
         // 오늘 이미 수면 체크인을 했는지 확인
         if (hasCheckedInToday(sharedPref)) {
             Log.d("AlarmReceiver", "이미 수면 체크인 완료 - 취침 알림 건너뜀")
-
-            // 다음 날 취침 알림은 재설정
-            val alarmManager = com.example.sleepshift.util.DailyAlarmManager(context)
-            val currentDay = getCurrentDay(sharedPref)
-            alarmManager.updateDailyAlarm(currentDay)
             return
         }
 
@@ -166,11 +216,6 @@ class AlarmReceiver : BroadcastReceiver() {
         notificationManager.notify(2001, notification)
 
         Log.d("AlarmReceiver", "취침 알림 표시됨")
-
-        // 다음 날 취침 알림 재설정
-        val alarmManager = com.example.sleepshift.util.DailyAlarmManager(context)
-        val currentDay = getCurrentDay(sharedPref)
-        alarmManager.updateDailyAlarm(currentDay)
     }
 
     /**
@@ -287,24 +332,13 @@ class AlarmReceiver : BroadcastReceiver() {
             }
 
             val alarmManager = com.example.sleepshift.util.DailyAlarmManager(context)
-            val currentDay = getCurrentDay(sharedPref)
+            val currentDay = sharedPref.getInt("current_day", 1)
 
             alarmManager.updateDailyAlarm(currentDay)
             Log.d("AlarmReceiver", "부팅 후 알람 재설정 완료 - Day $currentDay")
 
         } catch (e: Exception) {
             Log.e("AlarmReceiver", "알람 재설정 중 오류: ${e.message}")
-        }
-    }
-
-    private fun getCurrentDay(sharedPref: android.content.SharedPreferences): Int {
-        val installDate = sharedPref.getLong("app_install_date", System.currentTimeMillis())
-        val currentDate = System.currentTimeMillis()
-        val daysDiff = ((currentDate - installDate) / (24 * 60 * 60 * 1000)).toInt() + 1
-
-        return when {
-            daysDiff <= 0 -> 1
-            else -> daysDiff
         }
     }
 }

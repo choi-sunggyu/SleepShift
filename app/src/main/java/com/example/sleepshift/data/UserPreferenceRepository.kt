@@ -16,6 +16,14 @@ class UserPreferenceRepository(context: Context) {
         return prefs.getLong("app_install_date", 0L)
     }
 
+    fun getCurrentDay(): Int {
+        return prefs.getInt("current_day", 1)
+    }
+
+    fun setCurrentDay(day: Int) {
+        prefs.edit().putInt("current_day", day).apply()
+    }
+
     fun setAppInstallDate(timestamp: Long) {
         prefs.edit().putLong("app_install_date", timestamp).apply()
         Log.d("Repository", "앱 설치일 저장: $timestamp")

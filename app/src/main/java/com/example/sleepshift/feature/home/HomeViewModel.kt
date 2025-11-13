@@ -44,18 +44,19 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             Log.d("HomeViewModel", "앱 설치일 설정됨")
         }
 
-        // 처음 실행시 초기 코인
+        // 처음 실행시 초기 코인 및 Day 1 설정
         if (repository.isFirstRun()) {
             repository.setPawCoinCount(Constants.INITIAL_COIN_COUNT)
+            repository.setCurrentDay(1)  // ⭐ Day 1부터 시작
             repository.setFirstRunCompleted()
-            Log.d("HomeViewModel", "초기 코인 ${Constants.INITIAL_COIN_COUNT}개 지급")
+            Log.d("HomeViewModel", "초기 코인 ${Constants.INITIAL_COIN_COUNT}개 지급, Day 1 설정")
         }
 
         updateAllData()
     }
 
     fun updateAllData() {
-        _currentDay.value = calculateCurrentDay()
+        _currentDay.value = getCurrentDay()  // ⭐ 수정됨
         _bedtime.value = getCurrentBedtime()
         _coinCount.value = repository.getPawCoinCount()
         _currentStreak.value = consecutiveSuccessManager.getCurrentStreak()
@@ -63,9 +64,20 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         Log.d("HomeViewModel", "데이터 업데이트 - Day: ${_currentDay.value}, 코인: ${_coinCount.value}, 연속: ${_currentStreak.value}일")
     }
 
-    private fun calculateCurrentDay(): Int {
-        val installDate = repository.getAppInstallDate()
-        return DateCalculator.calculateDaysSinceInstall(installDate)
+    /**
+     * ⭐⭐⭐ 수정: SharedPreferences의 current_day 값 사용
+     */
+    private fun getCurrentDay(): Int {
+        val currentDay = repository.getCurrentDay()
+
+        // 혹시 값이 없으면 1로 초기화
+        if (currentDay <= 0) {
+            repository.setCurrentDay(1)
+            Log.d("HomeViewModel", "⚠️ current_day가 0 이하, Day 1로 초기화")
+            return 1
+        }
+
+        return currentDay
     }
 
     private fun getCurrentBedtime(): String {

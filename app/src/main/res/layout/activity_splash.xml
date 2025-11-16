@@ -8,11 +8,12 @@
 
     <ImageView
         android:id="@+id/ivLogo"
-        android:layout_width="726dp"
-        android:layout_height="760dp"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:src="@drawable/onboarding"
+        android:background="@color/background_primary"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.501"
+        app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 

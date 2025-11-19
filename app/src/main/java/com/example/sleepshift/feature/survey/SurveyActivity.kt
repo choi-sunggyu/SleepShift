@@ -2,7 +2,6 @@ package com.example.sleepshift.feature.survey
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
@@ -11,9 +10,8 @@ import com.example.sleepshift.data.SleepRepository
 import com.example.sleepshift.data.SleepSettings
 import com.example.sleepshift.data.SleepProgress
 import com.example.sleepshift.feature.LoadingActivity
-import com.example.sleepshift.feature.home.HomeActivity
-import com.example.sleepshift.util.KstTime
 import com.example.sleepshift.util.DailyAlarmManager
+import com.example.sleepshift.util.DateTimeUtils
 import kotlinx.coroutines.launch
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -157,7 +155,7 @@ class SurveyActivity : AppCompatActivity() {
                 scheduledBedtime = scheduled.format(hhmm),
                 consecutiveSuccessDays = 0,
                 dailyShiftMinutes = 30,
-                lastProgressUpdate = KstTime.todayYmd()
+                lastProgressUpdate = DateTimeUtils.todayYmd()
             )
 
             repo.saveSettings(settings)
